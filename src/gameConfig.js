@@ -1,6 +1,17 @@
 export const WOW_CLASSES = Object.freeze([
-  'Warrior','Paladin','Hunter','Rogue','Priest','Death Knight','Shaman',
-  'Mage','Warlock','Monk','Druid','Demon Hunter','Evoker'
+  'Warrior',
+  'Paladin',
+  'Hunter',
+  'Rogue',
+  'Priest',
+  'Death Knight',
+  'Shaman',
+  'Mage',
+  'Warlock',
+  'Monk',
+  'Druid',
+  'Demon Hunter',
+  'Evoker',
 ]);
 
 export const GAME_CONFIG = Object.freeze({
@@ -9,17 +20,17 @@ export const GAME_CONFIG = Object.freeze({
   expansionName: 'Midnight',
   levelCap: 90,
   minLevel: 1,
-  regions: Object.freeze(['US','EU','KR','TW']),
-  factions: Object.freeze(['Alliance','Horde','Neutral']),
+  regions: Object.freeze(['US', 'EU', 'KR', 'TW']),
+  factions: Object.freeze(['Alliance', 'Horde', 'Neutral']),
   activityTypes: Object.freeze([
-    Object.freeze({ id:'questing', label:'Questing' }),
-    Object.freeze({ id:'dungeon', label:'Dungeon' }),
-    Object.freeze({ id:'delve', label:'Delve' }),
-    Object.freeze({ id:'pvp', label:'PvP' }),
-    Object.freeze({ id:'grinding', label:'Mob Grinding' }),
-    Object.freeze({ id:'campaign', label:'Campaign' }),
-    Object.freeze({ id:'profession', label:'Profession / Gathering' }),
-    Object.freeze({ id:'other', label:'Other' }),
+    Object.freeze({ id: 'questing', label: 'Questing' }),
+    Object.freeze({ id: 'dungeon', label: 'Dungeon' }),
+    Object.freeze({ id: 'delve', label: 'Delve' }),
+    Object.freeze({ id: 'pvp', label: 'PvP' }),
+    Object.freeze({ id: 'grinding', label: 'Mob Grinding' }),
+    Object.freeze({ id: 'campaign', label: 'Campaign' }),
+    Object.freeze({ id: 'profession', label: 'Profession / Gathering' }),
+    Object.freeze({ id: 'other', label: 'Other' }),
   ]),
 });
 
