@@ -2,12 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const migrationPath = join(
-  process.cwd(),
-  'supabase',
-  'migrations',
-  '20261005230000_core_ding_domain.sql'
-);
+const migrationPath = join(process.cwd(), 'supabase', 'migrations', '20261005230000_core_ding_domain.sql');
 const sql = readFileSync(migrationPath, 'utf8').toLowerCase();
 
 describe('atomic Ding migration contract', () => {
@@ -37,7 +32,7 @@ describe('atomic Ding migration contract', () => {
   it('does not expose direct browser progression writes', () => {
     expect(sql).not.toMatch(/create policy\s+level_events_.*insert/);
     expect(sql).not.toMatch(/create policy\s+characters_.*update/);
-    expect(sql).toContain("grant execute on function public.record_ding");
+    expect(sql).toContain('grant execute on function public.record_ding');
   });
 
   it('updates the locked character from the inserted server event', () => {
