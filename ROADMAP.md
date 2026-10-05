@@ -14,21 +14,21 @@
 - Preserve old Bust SQL only as conversion reference; active DING migrations are written cleanly from scratch.
 
 End-to-end roadmap
-1. [~] Repository bootstrap + source transplant
-   - Inspect Ding-Ops, establish its default branch/state, and preserve any files you already added.
-   - Copy the reusable Bust-App production baseline into Ding-Ops, excluding production-specific secrets/backend identifiers and obsolete Bust deployment state.
-   - Add PROJECT.md, ROADMAP.md, .env.example, and a conversion ledger documenting every Bust → DING semantic replacement.
-   - Rename package/app/PWA/storage namespaces immediately so an early build cannot collide with Bust.
-   - Run static sanity checks possible before Supabase exists.
-   - Commit: bootstrap baseline.
-   - USER CHECKPOINT: none unless the target repo contains conflicting files I should not overwrite.
-2. [ ] Domain conversion: account → characters → Ding events
-   - Add first-class characters.
-   - Replace busts with level_events.
-   - Implement active-character selection, current level, class/spec/race/faction/realm/region, tracked-from level, archive state.
-   - Replace the 2-hour cooldown with an atomic server-authoritative record_ding transaction: row lock, ownership, current+1, cap enforcement, UUID idempotency, duplicate-level protection.
-   - Preserve pending-event recovery semantics for ambiguous network failures.
-   - Add tests for concurrency, retries, duplicate UUIDs, stale clients, max-level, and parallel characters.
+1. [x] Repository bootstrap + source transplant
+   - [x] Inspect Ding-Ops, establish its default branch/state, and preserve any files you already added.
+   - [x] Copy the reusable Bust-App production baseline into Ding-Ops, excluding production-specific secrets/backend identifiers and obsolete Bust deployment state.
+   - [x] Add PROJECT.md, ROADMAP.md, .env.example, and a conversion ledger documenting every Bust → DING semantic replacement.
+   - [x] Rename package/app/PWA/storage namespaces immediately so an early build cannot collide with Bust.
+   - [x] Run static sanity checks possible before Supabase exists.
+   - [x] Commit: bootstrap baseline (`c0a5329` + bootstrap CI fixes).
+   - [x] USER CHECKPOINT: none required; target repo was clean.
+2. [~] Domain conversion: account → characters → Ding events
+   - [x] Add first-class characters.
+   - [~] Replace busts with level_events. Core schema/backend paths done; inherited UI remains until the DING shell lands.
+   - [~] Implement active-character selection, current level, class/spec/race/faction/realm/region, tracked-from level, archive state. Schema/backend complete; UI pending.
+   - [x] Replace the 2-hour cooldown with an atomic server-authoritative record_ding transaction: row lock, ownership, current+1, cap enforcement, UUID idempotency, duplicate-level protection.
+   - [~] Preserve pending-event recovery semantics for ambiguous network failures. Storage/check/retry utilities complete; UI wiring pending.
+   - [~] Add tests for concurrency, retries, duplicate UUIDs, stale clients, max-level, and parallel characters. Pure/static contract coverage added; live Supabase concurrency tests deferred to the integration gate.
    - Commit: core Ding schema/domain.
 3. [ ] Supabase project wiring
    - Create clean migrations from scratch for DING rather than pointing at Bust.
