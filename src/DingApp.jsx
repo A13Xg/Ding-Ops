@@ -3,12 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { BarChart3, Bell, LogOut, Plus, Swords, UsersRound } from 'lucide-react';
 import { backend } from './backend.js';
 import { GAME_CONFIG, WOW_CLASSES, mergeGameConfig } from './gameConfig.js';
-import {
-  createDingRequest,
-  deriveLevelDurationSeconds,
-  isMaxLevel,
-  validateCharacterDraft,
-} from './dingDomain.js';
+import { createDingRequest, deriveLevelDurationSeconds, isMaxLevel, validateCharacterDraft } from './dingDomain.js';
 import {
   checkPendingDing,
   clearPendingDing,
@@ -94,10 +89,7 @@ function DingLogin({ onAuthed }) {
           {mode === 'signup' && (
             <label>
               Invite code
-              <input
-                value={form.inviteCode}
-                onChange={event => setForm({ ...form, inviteCode: event.target.value })}
-              />
+              <input value={form.inviteCode} onChange={event => setForm({ ...form, inviteCode: event.target.value })} />
             </label>
           )}
           <button className="mf-button" disabled={busy}>
@@ -261,8 +253,12 @@ function EventCard({ event, character, onOpen }) {
     <button className="ding-event-card mf-frame" type="button" onClick={() => onOpen(event)}>
       <div className="ding-event-level">{event.to_level}</div>
       <div>
-        <strong>{event.username || 'Unknown'} · {character?.name || 'Unknown character'}</strong>
-        <span>{character?.class_name || 'Unknown class'} · {fmt(event.timestamp)}</span>
+        <strong>
+          {event.username || 'Unknown'} · {character?.name || 'Unknown character'}
+        </strong>
+        <span>
+          {character?.class_name || 'Unknown class'} · {fmt(event.timestamp)}
+        </span>
         <p>{event.note || String(event.from_level) + ' → ' + String(event.to_level) + '. Grass remains untouched.'}</p>
       </div>
     </button>
@@ -281,14 +277,33 @@ function EventDetail({ event, character, viewerId, onClose, onUpdated }) {
           ×
         </button>
         <span className="mf-kicker">LEVEL EVENT</span>
-        <h2>{character?.name || 'Character'} dinged {event.to_level}</h2>
-        <p>{fmt(event.timestamp)} · {event.time_bucket || 'Unknown window'}</p>
+        <h2>
+          {character?.name || 'Character'} dinged {event.to_level}
+        </h2>
+        <p>
+          {fmt(event.timestamp)} · {event.time_bucket || 'Unknown window'}
+        </p>
         <div className="ding-detail-grid">
-          <div><small>PLAYER</small><strong>{event.username || 'Unknown'}</strong></div>
-          <div><small>CLASS</small><strong>{character?.class_name || '—'}</strong></div>
-          <div><small>ZONE</small><strong>{event.zone || '—'}</strong></div>
-          <div><small>ACTIVITY</small><strong>{event.activity_type || '—'}</strong></div>
-          <div><small>DEATHS</small><strong>{event.deaths ?? '—'}</strong></div>
+          <div>
+            <small>PLAYER</small>
+            <strong>{event.username || 'Unknown'}</strong>
+          </div>
+          <div>
+            <small>CLASS</small>
+            <strong>{character?.class_name || '—'}</strong>
+          </div>
+          <div>
+            <small>ZONE</small>
+            <strong>{event.zone || '—'}</strong>
+          </div>
+          <div>
+            <small>ACTIVITY</small>
+            <strong>{event.activity_type || '—'}</strong>
+          </div>
+          <div>
+            <small>DEATHS</small>
+            <strong>{event.deaths ?? '—'}</strong>
+          </div>
           <div>
             <small>SESSION</small>
             <strong>{event.session_minutes != null ? String(event.session_minutes) + 'm' : '—'}</strong>
@@ -350,7 +365,9 @@ function AnalyticsPane({ events, users, characters, viewerId }) {
     <div className="ding-analytics">
       <div className="ding-stat-grid">
         <div className="stat mf-frame">
-          <span>GROUP DINGS</span><strong>{events.length}</strong><small>all tracked levels</small>
+          <span>GROUP DINGS</span>
+          <strong>{events.length}</strong>
+          <small>all tracked levels</small>
         </div>
         <div className="stat mf-frame">
           <span>TODAY</span>
@@ -358,7 +375,9 @@ function AnalyticsPane({ events, users, characters, viewerId }) {
           <small>local viewer day</small>
         </div>
         <div className="stat mf-frame">
-          <span>YOUR DINGS</span><strong>{own.length}</strong><small>tracked levels</small>
+          <span>YOUR DINGS</span>
+          <strong>{own.length}</strong>
+          <small>tracked levels</small>
         </div>
         <div className="stat mf-frame">
           <span>AVG PACE</span>
@@ -389,7 +408,9 @@ function AnalyticsPane({ events, users, characters, viewerId }) {
         <h2>Tracked characters</h2>
         {characters.map(character => (
           <div className="ding-rank-row" key={character.id}>
-            <span>{character.name} · {character.class_name}</span>
+            <span>
+              {character.name} · {character.class_name}
+            </span>
             <strong>LVL {character.current_level}</strong>
           </div>
         ))}
@@ -429,7 +450,9 @@ function CharacterPane({ user, characters, config, onSelected, onCreated }) {
         >
           <div>
             <strong>{character.name}</strong>
-            <span>{character.class_name} · {character.realm} · {character.region}</span>
+            <span>
+              {character.class_name} · {character.realm} · {character.region}
+            </span>
           </div>
           <b>LVL {character.current_level}</b>
         </button>
@@ -617,7 +640,9 @@ function DingDashboard({ user, setUser }) {
           <span>
             <b>{user.username}</b>
             <small>
-              {activeCharacter ? activeCharacter.name + ' · LVL ' + String(activeCharacter.current_level) : 'No character'}
+              {activeCharacter
+                ? activeCharacter.name + ' · LVL ' + String(activeCharacter.current_level)
+                : 'No character'}
             </small>
           </span>
         </button>
@@ -636,8 +661,12 @@ function DingDashboard({ user, setUser }) {
       {pending && (
         <div className="ding-pending">
           Ding confirmation pending.
-          <button type="button" onClick={checkPending}>CHECK</button>
-          <button type="button" onClick={retryPending}>RETRY SAME EVENT</button>
+          <button type="button" onClick={checkPending}>
+            CHECK
+          </button>
+          <button type="button" onClick={retryPending}>
+            RETRY SAME EVENT
+          </button>
         </div>
       )}
 
@@ -647,7 +676,9 @@ function DingDashboard({ user, setUser }) {
             <div className="ding-character-heading">
               <span>{activeCharacter.class_name}</span>
               <h1>{activeCharacter.name}</h1>
-              <p>{activeCharacter.realm} · {activeCharacter.region} · {config.expansionName}</p>
+              <p>
+                {activeCharacter.realm} · {activeCharacter.region} · {config.expansionName}
+              </p>
             </div>
             <DingButton
               phase={pending && phase === 'idle' ? 'pending' : phase}

@@ -13,8 +13,7 @@
   color: var(--ink);
   background:
     radial-gradient(circle at 50% 42%, rgba(59, 130, 246, 0.2), transparent 34%),
-    radial-gradient(circle at 68% 62%, rgba(124, 58, 237, 0.14), transparent 34%),
-    var(--bg);
+    radial-gradient(circle at 68% 62%, rgba(124, 58, 237, 0.14), transparent 34%), var(--bg);
 }
 
 .ding-grid-bg {
@@ -210,8 +209,7 @@
   aspect-ratio: 1;
   border: 2px solid #60a5fa;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 35% 28%, #bfdbfe 0, #60a5fa 17%, #3b82f6 39%, #6d28d9 70%, #160b35 100%);
+  background: radial-gradient(circle at 35% 28%, #bfdbfe 0, #60a5fa 17%, #3b82f6 39%, #6d28d9 70%, #160b35 100%);
   color: #f8fbff;
   box-shadow:
     0 0 0 12px rgba(59, 130, 246, 0.07),
