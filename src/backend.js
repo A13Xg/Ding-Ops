@@ -36,7 +36,7 @@ async function getSupa() {
 /* Compared case-insensitively and trimmed. This code ships inside the client
  * bundle either way, so guarding its capitalisation buys nothing and only makes
  * it annoying to type. */
-const INVITE_CODE = 'bust4me';
+const INVITE_CODE = 'ding4me';
 const synthEmail = u => `${String(u).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}@ding-ops.dev`;
 function toUser(p) { return p ? { id: p.id, username: p.username, avatar_seed: p.avatar_seed, created_at: p.created_at, last_bust_timestamp: p.last_bust_timestamp, active_character_id: p.active_character_id || null, tagline: p.tagline || null, showcase: p.showcase || null } : null; }
 function joinBust(b) { const p = profileCache.get(b.user_id) || {}; return { ...b, username: p.username || 'Unknown', avatar_seed: p.avatar_seed || 'bust' }; }
@@ -183,6 +183,23 @@ const staticBackend = {
     }
     if (data?.error) throw new Error(data.error);
     await sb.auth.signOut();
+  },
+  async dingDashboard() {
+    const sb = await getSupa();
+    const [profiles, characters, levelEvents] = await Promise.all([
+      refreshProfiles(sb),
+      fetchAllPages((from, to) =>
+        sb.from('characters').select('*').order('created_at', { ascending: true }).order('id', { ascending: true }).range(from, to)
+      ),
+      fetchAllPages((from, to) =>
+        sb.from('level_events').select('*').order('timestamp', { ascending: false }).order('id', { ascending: false }).range(from, to)
+      ),
+    ]);
+    return {
+      users: profiles.map(toUser),
+      characters: characters.map(toCharacter),
+      levelEvents: levelEvents.map(joinLevelEvent),
+    };
   },
   async dashboard() {
     const sb = await getSupa();
@@ -366,6 +383,53 @@ const staticBackend = {
     if (error) throw new Error(error.message);
     profileCache.set(data.id, data);
     return toUser(data);
+  },
+  subscribeDing({ onLevelEvent, onCharacter, onProfile, onStatus }) {
+    let channel;
+    let unsubscribed = false;
+    getSupa().then(sb => {
+      if (unsubscribed) return;
+      channel = sb.channel('ding-feed')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'level_events' }, async payload => {
+          if (!profileCache.has(payload.new.user_id)) { try { await refreshProfiles(sb); } catch {} }
+          if (!unsubscribed) onLevelEvent?.(joinLevelEvent(payload.new), 'created');
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'level_events' }, async payload => {
+          if (!profileCache.has(payload.new.user_id)) { try { await refreshProfiles(sb); } catch {} }
+          if (!unsubscribed) onLevelEvent?.(joinLevelEvent(payload.new), 'updated');
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'level_events' }, payload => {
+          if (!unsubscribed) onLevelEvent?.(payload.old, 'deleted');
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'characters' }, payload => {
+          if (unsubscribed) return;
+          const row = payload.eventType === 'DELETE' ? payload.old : payload.new;
+          onCharacter?.(toCharacter(row), payload.eventType.toLowerCase());
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, payload => {
+          if (unsubscribed) return;
+          profileCache.set(payload.new.id, payload.new);
+          onProfile?.(toUser(payload.new), 'created');
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, payload => {
+          if (unsubscribed) return;
+          profileCache.set(payload.new.id, payload.new);
+          onProfile?.(toUser(payload.new), 'updated');
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'profiles' }, payload => {
+          if (unsubscribed) return;
+          profileCache.delete(payload.old.id);
+          onProfile?.(payload.old, 'deleted');
+        })
+        .subscribe(status => {
+          if (!unsubscribed) onStatus?.(status);
+        });
+    });
+    return () => {
+      unsubscribed = true;
+      channel?.unsubscribe();
+      onStatus?.('CLOSED');
+    };
   },
   subscribe({ onBust, onProfile, onAchievement, onStatus }) {
     let channel;
