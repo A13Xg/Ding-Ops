@@ -17,6 +17,7 @@ import { Overlay } from './Overlay.jsx';
 import { Explosion } from './Explosion.jsx';
 import { haptic, stopHaptics, hapticsEnabled, setHapticsEnabled } from './haptics.js';
 import { ErrorBoundary } from './ErrorBoundary.jsx';
+import { DingApp } from './DingApp.jsx';
 import {
   detectPushPlatform,
   enablePushNotifications as armPushNotifications,
@@ -726,4 +727,5 @@ function buildAnalytics(busts,users,user,unlocks=[],debugXp=0){ const xpFor=id=>
   document.documentElement.classList.add('msym-failed');
   setMsymStatus('failed');
 })();
-createRoot(document.getElementById('root')).render(<ErrorBoundary><App/></ErrorBoundary>);
+const RootApp = import.meta.env.VITE_USE_LEGACY_BUST === '1' ? App : DingApp;
+createRoot(document.getElementById('root')).render(<ErrorBoundary><RootApp/></ErrorBoundary>);
