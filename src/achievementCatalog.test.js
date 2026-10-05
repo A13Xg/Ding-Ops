@@ -30,13 +30,7 @@ const LEGACY_MIGRATIONS_DIR = join(process.cwd(), 'supabase', 'legacy_bust_migra
  * only the baseline would report those ids as missing and push someone into
  * "fixing" it by duplicating the list.
  */
-function seededCatalogIds() {
-  const active = readdirSync(ACTIVE_MIGRATIONS_DIR).filter(name => name.endsWith('.sql')).sort();
-  // Bootstrap only: until DING owns an active catalog migration, validate the
-  // transplanted rules against the preserved Bust seed instead of weakening the
-  // catalog drift test. Phase 7 removes this fallback once the DING catalog lands.
-  const dir = active.length ? ACTIVE_MIGRATIONS_DIR : LEGACY_MIGRATIONS_DIR;
-  const files = active.length ? active : readdirSync(LEGACY_MIGRATIONS_DIR).filter(name => name.endsWith('.sql')).sort();
+function idsFrom(dir, files) {
   const ids = [];
   for (const file of files) {
     const sql = readFileSync(join(dir, file), 'utf8');
@@ -46,8 +40,26 @@ function seededCatalogIds() {
       ids.push(...[...block[1].matchAll(/'([^']+)'/g)].map(match => match[1]));
     }
   }
-  if (!ids.length) throw new Error('no achievement_catalog seed found in active or legacy migrations');
   return ids;
+}
+
+function seededCatalogIds() {
+  const activeFiles = readdirSync(ACTIVE_MIGRATIONS_DIR)
+    .filter(name => name.endsWith('.sql'))
+    .sort();
+  const activeIds = idsFrom(ACTIVE_MIGRATIONS_DIR, activeFiles);
+  if (activeIds.length) return activeIds;
+
+  // Bootstrap only: DING now has active domain migrations, but its replacement
+  // achievement catalog is Phase 7 work. Until that seed lands, validate the
+  // transplanted rules against the preserved source seed. Once an active DING
+  // achievement seed exists this fallback becomes unreachable and will be removed.
+  const legacyFiles = readdirSync(LEGACY_MIGRATIONS_DIR)
+    .filter(name => name.endsWith('.sql'))
+    .sort();
+  const legacyIds = idsFrom(LEGACY_MIGRATIONS_DIR, legacyFiles);
+  if (!legacyIds.length) throw new Error('no achievement_catalog seed found in active or legacy migrations');
+  return legacyIds;
 }
 
 describe('achievement catalog', () => {
