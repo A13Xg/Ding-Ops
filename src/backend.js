@@ -5,6 +5,7 @@
  */
 import { timeBucket } from './rules.js';
 import { fetchAllPages } from './fetchAllPages.js';
+import { normalizeCharacterDraft } from './dingDomain.js';
 
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPA_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -37,8 +38,10 @@ async function getSupa() {
  * it annoying to type. */
 const INVITE_CODE = 'bust4me';
 const synthEmail = u => `${String(u).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}@ding-ops.dev`;
-function toUser(p) { return p ? { id: p.id, username: p.username, avatar_seed: p.avatar_seed, created_at: p.created_at, last_bust_timestamp: p.last_bust_timestamp, tagline: p.tagline || null, showcase: p.showcase || null } : null; }
+function toUser(p) { return p ? { id: p.id, username: p.username, avatar_seed: p.avatar_seed, created_at: p.created_at, last_bust_timestamp: p.last_bust_timestamp, active_character_id: p.active_character_id || null, tagline: p.tagline || null, showcase: p.showcase || null } : null; }
 function joinBust(b) { const p = profileCache.get(b.user_id) || {}; return { ...b, username: p.username || 'Unknown', avatar_seed: p.avatar_seed || 'bust' }; }
+function toCharacter(row) { return row ? { ...row, current_level: Number(row.current_level), tracked_from_level: Number(row.tracked_from_level) } : null; }
+function joinLevelEvent(row) { const p = profileCache.get(row.user_id) || {}; return { ...row, username: p.username || 'Unknown', avatar_seed: p.avatar_seed || 'ding' }; }
 async function refreshProfiles(sb) {
   const data = await fetchAllPages((from, to) => sb.from('profiles').select('*').order('created_at', { ascending: true }).order('id', { ascending: true }).range(from, to));
   profileCache = new Map(data.map(p => [p.id, p]));
@@ -82,6 +85,89 @@ const staticBackend = {
     return toUser(ins.data);
   },
   async logout() { const sb = await getSupa(); await sb.auth.signOut(); },
+  // DING domain methods are intentionally additive during migration. The
+  // inherited Bust UI continues to build until the DING vertical slice owns
+  // the shell, while new screens can use the character/level-event API now.
+  async gameConfig() {
+    const sb = await getSupa();
+    const { data, error } = await sb.from('game_config').select('*').eq('id', 'current').single();
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  async characters({ includeArchived = false } = {}) {
+    const sb = await getSupa();
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) throw new Error('Not signed in');
+    let query = sb.from('characters').select('*').eq('user_id', user.id).order('created_at', { ascending: true });
+    if (!includeArchived) query = query.eq('is_archived', false);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return (data || []).map(toCharacter);
+  },
+  async createCharacter(input) {
+    const sb = await getSupa();
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) throw new Error('Not signed in');
+    const draft = normalizeCharacterDraft(input);
+    const row = { ...draft, user_id: user.id };
+    const { data, error } = await sb.from('characters').insert(row).select().single();
+    if (error) throw new Error(error.message);
+    return toCharacter(data);
+  },
+  async updateCharacter(characterId, patch = {}) {
+    const sb = await getSupa();
+    const current = (await this.characters({ includeArchived: true })).find(row => row.id === characterId);
+    if (!current) throw new Error('Character not found');
+    const draft = normalizeCharacterDraft({ ...current, ...patch });
+    const { data, error } = await sb.rpc('update_character_metadata', {
+      p_character_id: characterId,
+      p_name: draft.name,
+      p_realm: draft.realm,
+      p_region: draft.region,
+      p_class_name: draft.class_name,
+      p_spec: draft.spec,
+      p_race: draft.race,
+      p_faction: draft.faction,
+      p_is_archived: Boolean(patch.is_archived ?? current.is_archived),
+    });
+    if (error) throw new Error(error.message);
+    return toCharacter(Array.isArray(data) ? data[0] : data);
+  },
+  async setActiveCharacter(characterId) {
+    const sb = await getSupa();
+    const { data, error } = await sb.rpc('set_active_character', { p_character_id: characterId || null });
+    if (error) throw new Error(error.message);
+    return toUser(Array.isArray(data) ? data[0] : data);
+  },
+  async levelEvents(limit = 200) {
+    const sb = await getSupa();
+    const result = await sb.from('level_events').select('*').order('timestamp', { ascending: false }).order('id', { ascending: false }).limit(Math.max(1, Math.min(1000, Number(limit) || 200)));
+    if (result.error) throw new Error(result.error.message);
+    if (!profileCache.size) { try { await refreshProfiles(sb); } catch {} }
+    return (result.data || []).map(joinLevelEvent);
+  },
+  async levelEventById(id, actorId) {
+    const sb = await getSupa();
+    let query = sb.from('level_events').select('*').eq('id', id);
+    if (actorId) query = query.eq('user_id', actorId);
+    const { data, error } = await query.maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? joinLevelEvent(data) : null;
+  },
+  async recordDing(request) {
+    const sb = await getSupa();
+    const { data, error } = await sb.rpc('record_ding', request);
+    if (error) throw new Error(error.message);
+    const row = Array.isArray(data) ? data[0] : data;
+    return row ? joinLevelEvent(row) : null;
+  },
+  async patchLevelEventNote(id, note) {
+    const sb = await getSupa();
+    const { data, error } = await sb.rpc('update_level_event_note', { p_event_id: id, p_note: String(note || '').slice(0, 240) });
+    if (error) throw new Error(error.message);
+    const row = Array.isArray(data) ? data[0] : data;
+    return row ? joinLevelEvent(row) : null;
+  },
   /* Deletes the auth user, not just the profile. Removing only the profile left
    * the auth.users row behind holding this username's synthetic email, so
    * signing up again with the same name failed as "Username already exists".
