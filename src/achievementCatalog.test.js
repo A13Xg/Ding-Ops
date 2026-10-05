@@ -21,7 +21,8 @@ import { achievements } from './rules.js';
 
 // Resolved from the repo root rather than import.meta.url: the jsdom test
 // environment rewrites module URLs to http, which fileURLToPath rejects.
-const MIGRATIONS_DIR = join(process.cwd(), 'supabase', 'migrations');
+const ACTIVE_MIGRATIONS_DIR = join(process.cwd(), 'supabase', 'migrations');
+const LEGACY_MIGRATIONS_DIR = join(process.cwd(), 'supabase', 'legacy_bust_migrations');
 
 /*
  * Every migration, not just the baseline. The catalog is seeded in more than one
@@ -30,18 +31,22 @@ const MIGRATIONS_DIR = join(process.cwd(), 'supabase', 'migrations');
  * "fixing" it by duplicating the list.
  */
 function seededCatalogIds() {
+  const active = readdirSync(ACTIVE_MIGRATIONS_DIR).filter(name => name.endsWith('.sql')).sort();
+  // Bootstrap only: until DING owns an active catalog migration, validate the
+  // transplanted rules against the preserved Bust seed instead of weakening the
+  // catalog drift test. Phase 7 removes this fallback once the DING catalog lands.
+  const dir = active.length ? ACTIVE_MIGRATIONS_DIR : LEGACY_MIGRATIONS_DIR;
+  const files = active.length ? active : readdirSync(LEGACY_MIGRATIONS_DIR).filter(name => name.endsWith('.sql')).sort();
   const ids = [];
-  for (const file of readdirSync(MIGRATIONS_DIR)
-    .filter(name => name.endsWith('.sql'))
-    .sort()) {
-    const sql = readFileSync(join(MIGRATIONS_DIR, file), 'utf8');
+  for (const file of files) {
+    const sql = readFileSync(join(dir, file), 'utf8');
     for (const block of sql.matchAll(
       /insert into public\.achievement_catalog[\s\S]*?unnest\(array\[([\s\S]*?)\]\s*(?:::text\[\])?\s*\)\s*as/g
     )) {
       ids.push(...[...block[1].matchAll(/'([^']+)'/g)].map(match => match[1]));
     }
   }
-  if (!ids.length) throw new Error('no achievement_catalog seed found in supabase/migrations');
+  if (!ids.length) throw new Error('no achievement_catalog seed found in active or legacy migrations');
   return ids;
 }
 
