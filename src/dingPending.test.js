@@ -60,9 +60,7 @@ describe('pending Ding recovery', () => {
   });
 
   it('reports an unconfirmed event without inventing a new id', async () => {
-    await expect(
-      checkPendingDing({ actorId: 'u1', request }, vi.fn().mockResolvedValue(null))
-    ).resolves.toEqual({
+    await expect(checkPendingDing({ actorId: 'u1', request }, vi.fn().mockResolvedValue(null))).resolves.toEqual({
       status: 'unconfirmed',
       event: null,
     });
