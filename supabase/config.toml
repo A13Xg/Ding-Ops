@@ -1,0 +1,43 @@
+[functions.reconcile-achievements]
+verify_jwt = true
+
+[functions.register-push-subscription]
+verify_jwt = true
+
+# Announces one of the caller's own rows to the rest of the crew. JWT-verified:
+# the function additionally checks the row belongs to the caller and is fresh.
+[functions.notify-event]
+verify_jwt = true
+
+# Scheduled entry points. No end-user JWT exists for a cron run, so they
+# authenticate with REMINDER_CRON_SECRET (x-cron-secret) or a service-role bearer.
+[functions.dispatch-inactivity-reminders]
+verify_jwt = false
+
+[functions.dispatch-push-backstop]
+verify_jwt = false
+
+[functions.broadcast-test-notification]
+verify_jwt = true
+
+[functions.admin-set-password]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+# The service worker acknowledging a delivered notification. No end-user JWT is
+# available inside a worker, so this authenticates on the unguessable per-delivery
+# receipt id carried in the push payload instead.
+[functions.ack-push]
+verify_jwt = false
+
+# Reads the delivery log for the debug menu. Admin allowlist enforced in-function.
+[functions.push-delivery-report]
+verify_jwt = true
+
+[functions.admin-discord-settings]
+verify_jwt = true
+
+[functions.discord-test-notification]
+verify_jwt = true

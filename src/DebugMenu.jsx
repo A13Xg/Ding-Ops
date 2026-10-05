@@ -1,0 +1,1054 @@
+/*
+ * Debug menu — session sandbox, grouped into tabs.
+ *
+ * Everything here is session-only and invisible to the crew EXCEPT the Notify
+ * tab, which sends a real web push to every registered device. That one is
+ * gated server-side by an allowlist and asks for confirmation first.
+ *
+ * Lifted out of main.jsx when it grew tabs; it was the single largest component
+ * in that file and none of it is needed on the dashboard's critical path.
+ */
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { ChevronDown, X } from 'lucide-react';
+
+import { achievements } from './rules.js';
+import { backend } from './backend.js';
+import { describeTokens, renderBroadcast, unknownTokens } from './broadcastTemplate.js';
+import { describeDiscordTokens } from './discordTemplate.js';
+import { summarizeDeliveries } from './pushDeliveryReport.js';
+import { MIcon, matMap } from './badgeIcons.jsx';
+import { detectPushPlatform, getNotificationPermission } from './notifications.js';
+import { fetchBuildManifest, readServiceWorkerVersion } from './appVersion.js';
+import { Lightbox } from './Lightbox.jsx';
+
+const TABS = [
+  { id: 'bust', label: 'BUST' },
+  { id: 'progress', label: 'PROGRESS' },
+  { id: 'notify', label: 'NOTIFY' },
+  { id: 'discord', label: 'DISCORD' },
+  { id: 'delivery', label: 'DELIVERY' },
+  { id: 'device', label: 'DEVICE' },
+  { id: 'accounts', label: 'ACCOUNTS' },
+  { id: 'tools', label: 'TOOLS' },
+  { id: 'session', label: 'SESSION' },
+];
+
+/* --------------------------- Achievement picker --------------------------- */
+
+/*
+ * 132 achievements is too many to remember ids for, so the {{ACHIEVEMENT:…}}
+ * token gets a browser. Sprites resolve exactly the way the trophy cabinet
+ * resolves them, and are tinted by the tier's own --tier colour, so a row here
+ * looks like the badge it will name.
+ */
+function AchievementPicker({ onPick, onClose }) {
+  const [query, setQuery] = useState('');
+  const rows = useMemo(() => {
+    const sorted = achievements.slice().sort((a, b) => a.name.localeCompare(b.name));
+    const needle = query.trim().toLowerCase();
+    if (!needle) return sorted;
+    return sorted.filter(
+      item =>
+        item.name.toLowerCase().includes(needle) ||
+        item.id.toLowerCase().includes(needle) ||
+        item.tier.toLowerCase().includes(needle)
+    );
+  }, [query]);
+
+  return createPortal(
+    <div className="confirm-back" onClick={onClose}>
+      <div className="ach-picker mf-frame" onClick={e => e.stopPropagation()}>
+        <button className="detail-close" onClick={onClose} aria-label="Close achievement list">
+          <X />
+        </button>
+        <h2>Achievements</h2>
+        <input
+          className="ach-picker-filter"
+          autoFocus
+          placeholder="Filter by name, id or tier…"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+        />
+        <div className="ach-picker-list">
+          {rows.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              className={`ach-picker-row tier-${item.tier}`}
+              onClick={() => onPick(item.id)}
+            >
+              <span className="ach-picker-sprite">
+                <MIcon name={item.micon || matMap[item.icon] || 'shield'} />
+              </span>
+              <span className="ach-picker-name">{item.name}</span>
+              <span className="tier-chip">{item.tier}</span>
+              <code>{item.id}</code>
+            </button>
+          ))}
+          {rows.length === 0 && <p className="showcase-hint">Nothing matches “{query}”.</p>}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+/* ------------------------------- Notify tab ------------------------------- */
+
+function NotifyTab({ username, users }) {
+  const [title, setTitle] = useState('{{USER}} has busted');
+  const [body, setBody] = useState('Sent by {{SENDER}} at {{TIME}} on {{DATE}}.');
+  const [confirm, setConfirm] = useState(false);
+  const [picker, setPicker] = useState(false);
+  const [singleUser, setSingleUser] = useState(true);
+  const [recipientMenuOpen, setRecipientMenuOpen] = useState(false);
+  const [recipientIds, setRecipientIds] = useState(() => {
+    const currentUser = (users || []).find(user => user.username.toLowerCase() === username.toLowerCase());
+    return currentUser ? [currentUser.id] : [];
+  });
+  const [state, setState] = useState({ status: 'idle', message: '' });
+
+  const roster = useMemo(
+    () => (users || []).slice().sort((a, b) => String(a.username).localeCompare(String(b.username))),
+    [users]
+  );
+  const selectedNames = roster.filter(user => recipientIds.includes(user.id)).map(user => user.username);
+  const recipientLabel = selectedNames.length ? selectedNames.join(', ') : 'Select users';
+  const toggleRecipient = userId =>
+    setRecipientIds(ids => (ids.includes(userId) ? ids.filter(id => id !== userId) : [...ids, userId]));
+
+  /* Preview uses your own name for {{USER}}, which is only exact for your own
+   * device — every other recipient sees their own. Labelled as such below. */
+  const context = { recipient: username, sender: username, crew: 0, sentAt: new Date(), timeZone: undefined };
+  const preview = { title: renderBroadcast(title, context), body: renderBroadcast(body, context) };
+  const typos = useMemo(() => unknownTokens(`${title} ${body}`), [title, body]);
+  const blank = !title.trim() && !body.trim();
+  const appendToken = token => setBody(prev => `${prev}${prev && !prev.endsWith(' ') ? ' ' : ''}${token}`);
+
+  async function send() {
+    setConfirm(false);
+    setState({ status: 'sending', message: '' });
+    try {
+      const result = await backend.broadcastTestNotification({
+        title,
+        body,
+        userIds: singleUser ? recipientIds : null,
+      });
+      if (!result?.ok) {
+        setState({ status: 'error', message: result?.error || result?.reason || 'Broadcast failed' });
+        return;
+      }
+      setState({
+        status: 'sent',
+        message: `Delivered to ${result.delivered} of ${result.attempted} device${result.attempted === 1 ? '' : 's'}.`,
+      });
+    } catch (error) {
+      setState({ status: 'error', message: error.message || 'Broadcast failed' });
+    }
+  }
+
+  return (
+    <div className="debug-panel">
+      <p className="showcase-hint danger-hint">
+        Unlike the rest of this menu, this sends a real push notification to{' '}
+        <strong>{singleUser ? 'the selected users' : 'every registered device'}</strong>, including your own when
+        selected.
+      </p>
+
+      <label className="debug-note">
+        Title
+        <input value={title} maxLength={120} onChange={e => setTitle(e.target.value)} />
+      </label>
+      <label className="debug-note">
+        Body
+        <textarea value={body} maxLength={300} onChange={e => setBody(e.target.value)} />
+      </label>
+
+      <div className={`recipient-picker${singleUser ? '' : ' disabled'}`}>
+        <label className="recipient-toggle">
+          <input type="checkbox" checked={singleUser} onChange={e => setSingleUser(e.target.checked)} />
+          Send to selected users
+        </label>
+        <div className="recipient-dropdown">
+          <button
+            type="button"
+            className="recipient-trigger"
+            disabled={!singleUser}
+            aria-expanded={recipientMenuOpen}
+            aria-haspopup="listbox"
+            onClick={() => setRecipientMenuOpen(open => !open)}
+          >
+            <span>{recipientLabel}</span>
+            <ChevronDown />
+          </button>
+          {singleUser && recipientMenuOpen && (
+            <div className="recipient-menu" role="listbox" aria-label="Recipients" aria-multiselectable="true">
+              {roster.map(user => (
+                <button
+                  type="button"
+                  role="option"
+                  key={user.id}
+                  aria-selected={recipientIds.includes(user.id)}
+                  onClick={() => toggleRecipient(user.id)}
+                >
+                  {user.username}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {singleUser && <small>{selectedNames.length ? selectedNames.join(', ') : 'Select at least one user.'}</small>}
+      </div>
+
+      <div className="token-sheet">
+        <span className="mf-kicker">Insertable variables</span>
+        {describeTokens().map(({ token, hint }) => (
+          <span key={token} className="token-slot">
+            <button
+              type="button"
+              className="token-chip"
+              title={`Append ${token} to the body`}
+              onClick={() => appendToken(token)}
+            >
+              <code>{token}</code>
+              <em>{hint}</em>
+            </button>
+            {token.startsWith('{{ACHIEVEMENT') && (
+              <button
+                type="button"
+                className="token-info"
+                title="Browse every achievement"
+                aria-label="Browse every achievement"
+                onClick={() => setPicker(true)}
+              >
+                i
+              </button>
+            )}
+          </span>
+        ))}
+      </div>
+
+      <div className="broadcast-preview">
+        <span className="mf-kicker">Preview</span>
+        <strong>{preview.title || <i>(no title)</i>}</strong>
+        <p>{preview.body || <i>(no body)</i>}</p>
+        <small>
+          {'{{USER}}'} shows your name here; each recipient sees their own. {'{{CREW}}'} resolves on send.
+        </small>
+      </div>
+
+      {typos.length > 0 && <p className="broadcast-warn">Unrecognised, will send literally: {typos.join(', ')}</p>}
+      {state.status === 'error' && <p className="broadcast-warn">{state.message}</p>}
+      {state.status === 'sent' && <p className="broadcast-ok">{state.message}</p>}
+
+      <div className="picker-actions">
+        <button
+          className="mf-button danger"
+          disabled={blank || state.status === 'sending' || (singleUser && !recipientIds.length)}
+          onClick={() => setConfirm(true)}
+        >
+          {state.status === 'sending' ? 'SENDING…' : singleUser ? 'SEND TO SELECTED USERS' : 'BROADCAST TO ALL USERS'}
+        </button>
+      </div>
+
+      {picker && (
+        <AchievementPicker
+          onClose={() => setPicker(false)}
+          onPick={id => {
+            appendToken(`{{ACHIEVEMENT:${id}}}`);
+            setPicker(false);
+          }}
+        />
+      )}
+
+      {confirm &&
+        createPortal(
+          <div className="confirm-back" onClick={() => setConfirm(false)}>
+            <div className="confirm-box mf-frame" onClick={e => e.stopPropagation()}>
+              <h2>{singleUser ? 'Send to selected users?' : 'Send to everyone?'}</h2>
+              <p>
+                {singleUser
+                  ? `This pushes to ${selectedNames.join(', ')}. It cannot be recalled.`
+                  : 'This pushes to every registered device on the crew. It cannot be recalled.'}
+              </p>
+              <div className="broadcast-preview">
+                <strong>{preview.title || <i>(no title)</i>}</strong>
+                <p>{preview.body || <i>(no body)</i>}</p>
+              </div>
+              <div className="picker-actions">
+                <button className="mf-button ghost" onClick={() => setConfirm(false)}>
+                  CANCEL
+                </button>
+                <button className="mf-button danger" onClick={send}>
+                  SEND IT
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </div>
+  );
+}
+
+/* ------------------------------ Delivery tab ------------------------------ */
+
+/*
+ * What was pushed, and what a device confirmed receiving.
+ *
+ * "Received" counts service-worker acknowledgements (see supabase/functions/
+ * ack-push). It is a floor: an offline device shows unconfirmed even when the
+ * notification is sitting on its lock screen, so a gap here is a prompt to look,
+ * not proof that delivery failed.
+ */
+function DeliveryTab() {
+  const [state, setState] = useState({ status: 'idle', message: '', report: null });
+
+  async function load() {
+    setState({ status: 'loading', message: 'Loading delivery log…', report: null });
+    try {
+      const { deliveries, unavailable } = await backend.pushDeliveryReport();
+      setState({
+        status: 'ready',
+        message: unavailable ? `Delivery log unavailable: ${unavailable}` : '',
+        report: summarizeDeliveries(deliveries),
+      });
+    } catch (error) {
+      setState({ status: 'error', message: String(error?.message || error), report: null });
+    }
+  }
+
+  const report = state.report;
+  return (
+    <div className="debug-panel">
+      <p className="showcase-hint">
+        Sent counts what a push service accepted. Received counts devices that acknowledged the notification — an
+        offline device stays unconfirmed, so treat a gap as unknown rather than as a failure.
+      </p>
+      <div className="picker-actions">
+        <button className="mf-button ghost" disabled={state.status === 'loading'} onClick={load}>
+          {report ? 'REFRESH LOG' : 'LOAD LOG'}
+        </button>
+      </div>
+      {state.message && <p className="showcase-hint">{state.message}</p>}
+      {report && (
+        <>
+          <div className="delivery-totals">
+            <div className="metric">
+              <small>SENT</small>
+              <strong>{report.totals.sent}</strong>
+            </div>
+            <div className="metric">
+              <small>RECEIVED</small>
+              <strong>{report.totals.received}</strong>
+            </div>
+            <div className="metric">
+              <small>CONFIRMED</small>
+              <strong>
+                {report.totals.sent ? Math.round((report.totals.received / report.totals.sent) * 100) : 0}%
+              </strong>
+            </div>
+          </div>
+          {report.events.length === 0 ? (
+            <p className="showcase-hint">No deliveries logged yet.</p>
+          ) : (
+            <div className="delivery-log">
+              {report.events.map(event => (
+                <div key={event.batchId} className="delivery-row">
+                  <span className="delivery-when">{new Date(event.sentAt).toLocaleString()}</span>
+                  <span className="delivery-kind">{event.kind}</span>
+                  <span className="delivery-who">{event.actorName}</span>
+                  <span className="delivery-what" title={event.recipients.map(r => r.name).join(', ')}>
+                    {event.title || '—'}
+                  </span>
+                  <span className="delivery-count">
+                    {event.sent} / {event.received}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* -------------------------------- Tools tab ------------------------------- */
+
+/* ------------------------------- Device tab -------------------------------
+ *
+ * Answers "why is this specific phone getting nothing", which every other tab
+ * is the wrong shape for: NOTIFY sends, DELIVERY reports on the crew. The
+ * questions here are all about the device you are holding.
+ *
+ * The health block is the part worth reading. `unacked` counts pushes a push
+ * service ACCEPTED for this endpoint that the device never acknowledged, and it
+ * is the only way to tell a working endpoint from one Apple accepts and
+ * silently discards — APNs answers 201 either way and the browser keeps handing
+ * back a subscription whose VAPID key still matches. A climbing unacked with a
+ * null last ack means the endpoint is a ghost; ROTATE mints a new one.
+ */
+function DeviceTab({ enablePush, rotateEndpoint, buildId, versionUrl }) {
+  const [state, setState] = useState({ status: 'idle', message: '' });
+  const [info, setInfo] = useState(null);
+  const [swVersion, setSwVersion] = useState(null);
+  const [latestBuild, setLatestBuild] = useState(null);
+
+  const platform = useMemo(() => detectPushPlatform(), []);
+
+  const refresh = async () => {
+    setState({ status: 'working', message: 'Re-arming push…' });
+    const [outcome, sw, manifest] = await Promise.all([
+      // interactive:false so opening this tab can never fire a permission
+      // prompt the user did not ask for.
+      enablePush({ interactive: false }).catch(error => ({
+        ok: false,
+        reason: 'threw',
+        detail: String(error?.message || error),
+      })),
+      readServiceWorkerVersion(),
+      fetchBuildManifest(versionUrl),
+    ]);
+    setInfo(outcome);
+    setSwVersion(sw);
+    setLatestBuild(manifest?.buildId || null);
+    setState({
+      status: outcome?.ok ? 'ok' : 'error',
+      message: outcome?.ok
+        ? outcome.rotated
+          ? 'Push armed — endpoint was dead and has been rotated.'
+          : 'Push armed.'
+        : `${outcome?.reason || 'failed'}${outcome?.detail ? ` — ${outcome.detail}` : ''}`,
+    });
+  };
+
+  const testPing = async () => {
+    setState({ status: 'working', message: 'Sending test ping…' });
+    // sendTest targets only the endpoint that just registered, so this never
+    // reaches another device — not even another of your own.
+    const outcome = await enablePush({ interactive: false, sendTest: true }).catch(error => ({
+      ok: false,
+      reason: String(error?.message || error),
+    }));
+    const test = outcome?.server?.test;
+    setInfo(outcome);
+    setState({
+      status: outcome?.ok && test?.delivered ? 'ok' : 'error',
+      message: outcome?.ok
+        ? `Accepted by push service: ${test?.delivered ?? 0}/${test?.attempted ?? 0}.${test?.failures?.length ? ` ${test.failures.join('; ')}` : ' Watch for it on the lock screen — acceptance is not delivery.'}`
+        : `${outcome?.reason || 'failed'}`,
+    });
+  };
+
+  const rotate = async () => {
+    setState({ status: 'working', message: 'Rotating endpoint…' });
+    const outcome = await rotateEndpoint().catch(error => ({ ok: false, reason: String(error?.message || error) }));
+    setState({
+      status: outcome?.ok ? 'ok' : 'error',
+      message: outcome?.ok
+        ? 'New endpoint registered; the old one was dropped.'
+        : `Rotation failed — ${outcome?.reason || 'unknown'}`,
+    });
+    if (outcome?.ok) await refresh();
+  };
+
+  const health = info?.server?.health || null;
+  const rows = [
+    ['App build', buildId],
+    ['Deployed build', latestBuild ?? '—'],
+    ['Service worker', swVersion ?? 'not controlling this page'],
+    ['Permission', getNotificationPermission()],
+    [
+      'Platform',
+      [platform.ios && 'iOS', platform.android && 'Android', platform.standalone && 'installed']
+        .filter(Boolean)
+        .join(' · ') || 'desktop browser',
+    ],
+    [
+      'Push APIs',
+      [platform.hasServiceWorker && 'sw', platform.hasPushManager && 'push', platform.hasNotification && 'notification']
+        .filter(Boolean)
+        .join(' · ') || 'none',
+    ],
+    ['Endpoint', info?.endpoint ? `${new URL(info.endpoint).host}…${info.endpoint.slice(-8)}` : '—'],
+    ['Sent unacked', health ? String(health.unackedCount) : '—'],
+    ['Last confirmed', health?.lastAckAt ? new Date(health.lastAckAt).toLocaleString() : 'never'],
+    ['Send failures', health ? String(health.failureCount) : '—'],
+  ];
+
+  return (
+    <div className="debug-panel">
+      <p className="showcase-hint">
+        This device only. Nothing here notifies the crew.
+        {latestBuild && latestBuild !== buildId ? ' A newer build is deployed — reload to pick it up.' : ''}
+      </p>
+      <dl className="device-facts">
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {state.status === 'error' && <p className="broadcast-warn">{state.message}</p>}
+      {state.status === 'ok' && <p className="broadcast-ok">{state.message}</p>}
+      <div className="picker-actions">
+        <button className="mf-button ghost" disabled={state.status === 'working'} onClick={refresh}>
+          REFRESH
+        </button>
+        <button className="mf-button ghost" disabled={state.status === 'working'} onClick={testPing}>
+          TEST PING THIS DEVICE
+        </button>
+        <button className="mf-button ghost danger" disabled={state.status === 'working'} onClick={rotate}>
+          ROTATE ENDPOINT
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ToolsTab({ logoSrc }) {
+  const [lightbox, setLightbox] = useState(false);
+  return (
+    <div className="debug-panel">
+      <p className="showcase-hint">
+        Unwired components, opened by hand. The lightbox is not attached to any app behaviour yet.
+      </p>
+      <div className="picker-actions">
+        <button className="mf-button ghost" onClick={() => setLightbox(true)}>
+          OPEN LIGHTBOX
+        </button>
+      </div>
+      {lightbox && <Lightbox src={logoSrc} alt="Lightbox placeholder" onClose={() => setLightbox(false)} />}
+    </div>
+  );
+}
+
+/* ------------------------------ Accounts tab ------------------------------ */
+
+/*
+ * Force-set another account's password. This is account takeover, and it is
+ * gated by the same allowlist as the broadcast — see _shared/adminAuth.ts. The
+ * service-role key that performs it never reaches the browser; all that leaves
+ * here is a user id and a new password over an authenticated call.
+ */
+function AccountsTab({ users }) {
+  const [target, setTarget] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState(false);
+  const [state, setState] = useState({ status: 'idle', message: '' });
+
+  const roster = useMemo(
+    () => (users || []).slice().sort((a, b) => String(a.username).localeCompare(String(b.username))),
+    [users]
+  );
+  const chosen = roster.find(user => user.id === target);
+  const tooShort = password.length > 0 && password.length < 6;
+  const ready = Boolean(target) && password.length >= 6;
+
+  async function apply() {
+    setConfirm(false);
+    setState({ status: 'working', message: '' });
+    try {
+      const result = await backend.adminSetPassword({ userId: target, password });
+      if (!result?.ok) {
+        setState({ status: 'error', message: result?.error || result?.reason || 'Password update failed' });
+        return;
+      }
+      setState({ status: 'done', message: `Password updated for ${result.username || chosen?.username}.` });
+      setPassword('');
+    } catch (error) {
+      setState({ status: 'error', message: error.message || 'Password update failed' });
+    }
+  }
+
+  return (
+    <div className="debug-panel">
+      <p className="showcase-hint danger-hint">
+        Sets an account&rsquo;s password without knowing the old one. The owner is <strong>not</strong> told, and their
+        existing sessions keep working until they sign out.
+      </p>
+
+      <label className="debug-note">
+        Account
+        <select value={target} onChange={e => setTarget(e.target.value)}>
+          <option value="">Select an operator&hellip;</option>
+          {roster.map(user => (
+            <option key={user.id} value={user.id}>
+              {user.username}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="debug-note">
+        New password
+        <input
+          type="text"
+          value={password}
+          maxLength={200}
+          autoComplete="off"
+          placeholder="At least 6 characters"
+          onChange={e => setPassword(e.target.value)}
+        />
+      </label>
+
+      {tooShort && <p className="broadcast-warn">Password must be at least 6 characters.</p>}
+      {state.status === 'error' && <p className="broadcast-warn">{state.message}</p>}
+      {state.status === 'done' && <p className="broadcast-ok">{state.message}</p>}
+
+      <div className="picker-actions">
+        <button
+          className="mf-button danger"
+          disabled={!ready || state.status === 'working'}
+          onClick={() => setConfirm(true)}
+        >
+          {state.status === 'working' ? 'UPDATING…' : 'FORCE PASSWORD RESET'}
+        </button>
+      </div>
+
+      {confirm &&
+        createPortal(
+          <div className="confirm-back" onClick={() => setConfirm(false)}>
+            <div className="confirm-box mf-frame" onClick={e => e.stopPropagation()}>
+              <h2>Reset {chosen?.username}&rsquo;s password?</h2>
+              <p>
+                They will only be able to sign in with the new password. They are not notified, and cannot recover the
+                old one.
+              </p>
+              <div className="picker-actions">
+                <button className="mf-button ghost" onClick={() => setConfirm(false)}>
+                  CANCEL
+                </button>
+                <button className="mf-button danger" onClick={apply}>
+                  DO IT
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </div>
+  );
+}
+
+/* -------------------------------- Discord tab ------------------------------ */
+
+/*
+ * Configures the Discord webhook integration: on/off switches, the webhook URL
+ * (falls back to the DISCORD_WEBHOOK_URL Edge Function secret when left
+ * blank), bot identity, colors, templates, and an optional role/@everyone
+ * mention. Admin-gated server-side by `admin-discord-settings`/
+ * `discord-test-notification`, the same allowlist as every other admin action
+ * here — see _shared/adminAuth.ts.
+ *
+ * Templates use the {{TOKEN}} syntax from src/discordTemplate.js, which is its
+ * own token set — distinct from the crew-broadcast tokens above, since a
+ * Discord message is rendered once per EVENT rather than once per recipient.
+ */
+const DISCORD_FIELDS = [
+  { key: 'bust_title_template', label: 'Bust — title template', placeholder: '💥 {{PUSH_TITLE}}' },
+  { key: 'bust_description_template', label: 'Bust — description template', placeholder: '{{PUSH_BODY}}', area: true },
+  { key: 'achievement_title_template', label: 'Achievement — title template', placeholder: '🏆 {{PUSH_TITLE}}' },
+  {
+    key: 'achievement_description_template',
+    label: 'Achievement — description template',
+    placeholder: '{{PUSH_BODY}}',
+    area: true,
+  },
+];
+
+function DiscordTab() {
+  const [settings, setSettings] = useState(null);
+  const [load, setLoad] = useState({ status: 'loading', message: '' });
+  const [save, setSave] = useState({ status: 'idle', message: '' });
+  const [test, setTest] = useState({ status: 'idle', message: '' });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await backend.getDiscordSettings();
+        if (cancelled) return;
+        if (!result?.ok) {
+          setLoad({ status: 'error', message: result?.error || result?.reason || 'Could not load Discord settings' });
+          return;
+        }
+        setSettings({ ...(result.defaults || {}), ...(result.settings || {}) });
+        setLoad({ status: 'ok', message: '' });
+      } catch (error) {
+        if (!cancelled) setLoad({ status: 'error', message: error.message || 'Could not load Discord settings' });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const patchField = (key, value) => setSettings(prev => ({ ...prev, [key]: value }));
+
+  async function persist() {
+    setSave({ status: 'saving', message: '' });
+    try {
+      const result = await backend.updateDiscordSettings(settings);
+      if (!result?.ok) {
+        setSave({ status: 'error', message: result?.error || result?.reason || 'Save failed' });
+        return;
+      }
+      setSettings(prev => ({ ...prev, ...(result.settings || {}) }));
+      setSave({ status: 'ok', message: 'Saved.' });
+    } catch (error) {
+      setSave({ status: 'error', message: error.message || 'Save failed' });
+    }
+  }
+
+  async function sendTest(kind) {
+    setTest({ status: 'sending', message: '' });
+    try {
+      const result = await backend.sendDiscordTestMessage({ kind, settings });
+      if (!result?.ok) {
+        setTest({ status: 'error', message: result?.error || result?.reason || 'Test send failed' });
+        return;
+      }
+      setTest({ status: 'ok', message: `Test ${kind} embed sent.` });
+    } catch (error) {
+      setTest({ status: 'error', message: error.message || 'Test send failed' });
+    }
+  }
+
+  if (load.status === 'loading') {
+    return (
+      <div className="debug-panel">
+        <p className="showcase-hint">Loading Discord settings…</p>
+      </div>
+    );
+  }
+  if (load.status === 'error' || !settings) {
+    return (
+      <div className="debug-panel">
+        <p className="broadcast-warn">{load.message || 'Could not load Discord settings.'}</p>
+        <p className="showcase-hint">This tab is only usable by an allowlisted admin account.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="debug-panel">
+      <p className="showcase-hint">
+        Mirrors every bust and every achievement into a Discord channel via an incoming webhook. Idle/inactivity nags
+        never go to Discord. Leave the webhook URL blank to use the <code>DISCORD_WEBHOOK_URL</code> secret instead.
+      </p>
+
+      <label className="recipient-toggle">
+        <input type="checkbox" checked={!!settings.enabled} onChange={e => patchField('enabled', e.target.checked)} />
+        Discord integration enabled
+      </label>
+      <label className="recipient-toggle">
+        <input
+          type="checkbox"
+          checked={settings.bust_enabled !== false}
+          onChange={e => patchField('bust_enabled', e.target.checked)}
+        />
+        Announce busts
+      </label>
+      <label className="recipient-toggle">
+        <input
+          type="checkbox"
+          checked={settings.achievement_enabled !== false}
+          onChange={e => patchField('achievement_enabled', e.target.checked)}
+        />
+        Announce achievements
+      </label>
+      <label className="recipient-toggle">
+        <input
+          type="checkbox"
+          checked={settings.include_thumbnail !== false}
+          onChange={e => patchField('include_thumbnail', e.target.checked)}
+        />
+        Show the achievement&rsquo;s tier badge as a thumbnail
+      </label>
+
+      <label className="debug-note">
+        Webhook URL (optional — overrides the server secret)
+        <input
+          value={settings.webhook_url || ''}
+          placeholder="https://discord.com/api/webhooks/…"
+          onChange={e => patchField('webhook_url', e.target.value)}
+        />
+        <small>
+          Shown masked after saving — the token never round-trips to this screen. Leave the masked value untouched to
+          keep it, or paste a full new URL to replace it.
+        </small>
+      </label>
+
+      <div className="debug-grid">
+        <label>
+          Bot username
+          <input
+            value={settings.bot_username || ''}
+            placeholder="BUST Control"
+            maxLength={80}
+            onChange={e => patchField('bot_username', e.target.value)}
+          />
+        </label>
+        <label>
+          Bot avatar URL
+          <input
+            value={settings.bot_avatar_url || ''}
+            placeholder="https://…/ding-logo.svg"
+            onChange={e => patchField('bot_avatar_url', e.target.value)}
+          />
+        </label>
+        <label>
+          Bust embed color
+          <input
+            value={settings.bust_color || ''}
+            placeholder="#5865F2"
+            maxLength={7}
+            onChange={e => patchField('bust_color', e.target.value)}
+          />
+        </label>
+        <label>
+          Achievement embed color
+          <input
+            value={settings.achievement_color || ''}
+            placeholder="Defaults to the achievement's own color"
+            maxLength={7}
+            onChange={e => patchField('achievement_color', e.target.value)}
+          />
+        </label>
+      </div>
+
+      <label className="debug-note">
+        Footer text
+        <input
+          value={settings.footer_text || ''}
+          placeholder="BUST"
+          onChange={e => patchField('footer_text', e.target.value)}
+        />
+      </label>
+      <label className="debug-note">
+        Mention content (optional)
+        <input
+          value={settings.mention_content || ''}
+          placeholder="@everyone or <@&ROLE_ID>"
+          maxLength={200}
+          onChange={e => patchField('mention_content', e.target.value)}
+        />
+      </label>
+
+      {DISCORD_FIELDS.map(({ key, label, placeholder, area }) => (
+        <label className="debug-note" key={key}>
+          {label}
+          {area ? (
+            <textarea
+              value={settings[key] || ''}
+              placeholder={placeholder}
+              onChange={e => patchField(key, e.target.value)}
+            />
+          ) : (
+            <input
+              value={settings[key] || ''}
+              placeholder={placeholder}
+              onChange={e => patchField(key, e.target.value)}
+            />
+          )}
+        </label>
+      ))}
+
+      <div className="token-sheet">
+        <span className="mf-kicker">Insertable variables</span>
+        {describeDiscordTokens().map(({ token, hint }) => (
+          <span key={token} className="token-slot">
+            <span className="token-chip" title={hint}>
+              <code>{token}</code>
+              <em>{hint}</em>
+            </span>
+          </span>
+        ))}
+      </div>
+
+      {save.status === 'error' && <p className="broadcast-warn">{save.message}</p>}
+      {save.status === 'ok' && <p className="broadcast-ok">{save.message}</p>}
+      {test.status === 'error' && <p className="broadcast-warn">{test.message}</p>}
+      {test.status === 'ok' && <p className="broadcast-ok">{test.message}</p>}
+
+      <div className="picker-actions">
+        <button className="mf-button" disabled={save.status === 'saving'} onClick={persist}>
+          {save.status === 'saving' ? 'SAVING…' : 'SAVE DISCORD SETTINGS'}
+        </button>
+        <button className="mf-button ghost" disabled={test.status === 'sending'} onClick={() => sendTest('bust')}>
+          SEND TEST BUST
+        </button>
+        <button
+          className="mf-button ghost"
+          disabled={test.status === 'sending'}
+          onClick={() => sendTest('achievement')}
+        >
+          SEND TEST ACHIEVEMENT
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------- Debug menu ------------------------------- */
+
+export function DebugMenu({
+  debug,
+  username,
+  users,
+  logoSrc,
+  onClose,
+  enablePush,
+  rotateEndpoint,
+  buildId,
+  versionUrl,
+}) {
+  const [tab, setTab] = useState('bust');
+  const [form, setForm] = useState({
+    note: 'Debug bust',
+    temp_f: '72',
+    pressure: '1013',
+    city: 'Debug Bay',
+    lat: '',
+    long: '',
+    elevation_ft: '100',
+    tide_ft: '1.0',
+    btc_usd: '67000',
+    timestamp: new Date().toISOString().slice(0, 16),
+  });
+  const [pick, setPick] = useState('');
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const unlockables = useMemo(() => achievements.slice().sort((a, b) => a.name.localeCompare(b.name)), []);
+
+  const field = (label, key, props = {}) => (
+    <label>
+      {label}
+      <input value={form[key]} onChange={e => set(key, e.target.value)} {...props} />
+    </label>
+  );
+
+  return createPortal(
+    <div className="ach-detail-back" onClick={onClose}>
+      <div className="debug-box mf-frame" onClick={e => e.stopPropagation()}>
+        <button className="detail-close" onClick={onClose} aria-label="Close debug menu">
+          <X />
+        </button>
+        <h2>Debug Menu</h2>
+
+        <div className="debug-tabs" role="tablist" aria-label="Debug sections">
+          {TABS.map(({ id, label }) => (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={tab === id}
+              className={tab === id ? 'active' : ''}
+              onClick={() => setTab(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'bust' && (
+          <div className="debug-panel">
+            <p className="showcase-hint">Session-only. Nothing here writes to the database or alerts the crew.</p>
+            <div className="debug-grid">
+              <label>
+                Time
+                <input type="datetime-local" value={form.timestamp} onChange={e => set('timestamp', e.target.value)} />
+              </label>
+              {field('Temp °F', 'temp_f', { type: 'number' })}
+              {field('Pressure hPa', 'pressure', { type: 'number' })}
+              {field('Altitude ft ASL', 'elevation_ft', { type: 'number' })}
+              {field('Tide ft (+high/-low)', 'tide_ft', { type: 'number', step: '0.1' })}
+              {field('BTC USD', 'btc_usd', { type: 'number', step: '1' })}
+              {field('City', 'city')}
+              {field('Latitude', 'lat', { type: 'number' })}
+              {field('Longitude', 'long', { type: 'number' })}
+            </div>
+            <label className="debug-note">
+              Note
+              <textarea value={form.note} maxLength={240} onChange={e => set('note', e.target.value)} />
+            </label>
+            <div className="picker-actions">
+              <button className="mf-button" onClick={() => debug.onBust(form)}>
+                ADD DEBUG BUST
+              </button>
+            </div>
+          </div>
+        )}
+
+        {tab === 'progress' && (
+          <div className="debug-panel">
+            <p className="showcase-hint">Fake XP and unlock visuals for this session only.</p>
+            <div className="debug-grid">
+              <label>
+                XP Override
+                <input
+                  type="number"
+                  value={debug.xp}
+                  onChange={e => debug.setXp(Math.max(0, Number(e.target.value) || 0))}
+                />
+              </label>
+            </div>
+            <div className="debug-unlock">
+              <select value={pick} onChange={e => setPick(e.target.value)}>
+                <option value="">Select unlock visual…</option>
+                {unlockables.map(a => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} · {a.kind} · {a.points} XP
+                  </option>
+                ))}
+              </select>
+              <button
+                className="mf-button ghost"
+                disabled={!pick}
+                onClick={() => {
+                  debug.onUnlock(pick);
+                  setPick('');
+                }}
+              >
+                TRIGGER UNLOCK
+              </button>
+            </div>
+          </div>
+        )}
+
+        {tab === 'notify' && <NotifyTab username={username} users={users} />}
+        {tab === 'discord' && <DiscordTab />}
+        {tab === 'delivery' && <DeliveryTab />}
+        {tab === 'device' && (
+          <DeviceTab
+            enablePush={enablePush}
+            rotateEndpoint={rotateEndpoint}
+            buildId={buildId}
+            versionUrl={versionUrl}
+          />
+        )}
+        {tab === 'accounts' && <AccountsTab users={users} />}
+        {tab === 'tools' && <ToolsTab logoSrc={logoSrc} />}
+
+        {tab === 'session' && (
+          <div className="debug-panel">
+            <p className="showcase-hint">
+              {debug.counts.busts} debug busts · {debug.counts.unlocks} debug unlocks · {debug.xp} debug XP
+            </p>
+            <div className="picker-actions">
+              <button className="mf-button ghost" onClick={debug.onResetCooldown}>
+                RESET COOLDOWN OVERRIDE
+              </button>
+              <button className="mf-button ghost danger" onClick={debug.onClear}>
+                CLEAR DEBUG SESSION
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
