@@ -91,6 +91,19 @@ export const dingAchievements = Object.freeze([
   },
 ]);
 
+/**
+ * @typedef {{ user_id?: string, to_level?: number, local_hour?: number, activity_type?: string | null, session_minutes?: number | null, deaths?: number | null }} DingAchievementEvent
+ * @typedef {{ user_id?: string }} DingAchievementCharacter
+ * @typedef {{ user_id?: string, achievement_type?: string }} DingAchievementRecord
+ *
+ * @param {{
+ *   userId?: string,
+ *   events?: DingAchievementEvent[],
+ *   characters?: DingAchievementCharacter[],
+ *   existing?: DingAchievementRecord[],
+ *   levelCap?: number
+ * }} input
+ */
 export function computeDingAchievementUnlocks({
   userId,
   events = [],
