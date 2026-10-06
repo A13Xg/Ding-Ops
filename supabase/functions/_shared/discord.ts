@@ -3,12 +3,12 @@
  *
  * Fully decoupled from the mobile-push pipeline on purpose: Discord has none
  * of web push's lock-screen fatigue concerns, so it is never subject to the
- * achievement cooldown slot or the per-bust cap in `_shared/announce.ts`. The
- * requirement is "every bust, every achievement" and this module is what makes
+ * achievement cooldown slot or the per-ding cap in `_shared/announce.ts`. The
+ * requirement is "every ding, every achievement" and this module is what makes
  * that true independently of how push notifications are paced.
  *
  * `discord_events` is its own deduplication ledger (see
- * supabase/migrations/20260930010000_discord_webhook.sql) so a retried
+ * supabase/migrations/20261005233500_platform_services.sql) so a retried
  * `notify-event` call, or a race with `dispatch-push-backstop`, does not post
  * duplicate messages during ordinary retries and concurrent sends. A process
  * failure after Discord accepts a message but before the database records
@@ -17,7 +17,7 @@
  *
  * Deliberately never imported by `dispatch-inactivity-reminders` — idle nags
  * must never reach Discord. The only callers are the two functions that route
- * through `announceBust` / `announceAchievement` in `_shared/announce.ts`.
+ * through `announceDing` / `announceAchievement` in `_shared/announce.ts`.
  */
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import type { Database } from './database.types.ts';
@@ -25,22 +25,22 @@ import { claimEvent, releaseEvent } from './eventLedger.ts';
 import type { EventKind } from './eventLedger.ts';
 import {
   buildAchievementDiscordPayload,
-  buildBustDiscordPayload,
+  buildDingDiscordPayload,
   hexToDiscordColor,
 } from '../../../src/discordTemplate.js';
 
 export type DiscordSettings = {
   enabled: boolean;
-  bust_enabled: boolean;
+  ding_enabled: boolean;
   achievement_enabled: boolean;
   webhook_url: string | null;
   bot_username: string | null;
   bot_avatar_url: string | null;
   footer_text: string | null;
-  bust_color: string | null;
+  ding_color: string | null;
   achievement_color: string | null;
-  bust_title_template: string | null;
-  bust_description_template: string | null;
+  ding_title_template: string | null;
+  ding_description_template: string | null;
   achievement_title_template: string | null;
   achievement_description_template: string | null;
   mention_content: string | null;
@@ -49,16 +49,16 @@ export type DiscordSettings = {
 
 export const DEFAULT_DISCORD_SETTINGS: DiscordSettings = {
   enabled: false,
-  bust_enabled: true,
+  ding_enabled: true,
   achievement_enabled: true,
   webhook_url: null,
   bot_username: null,
   bot_avatar_url: null,
   footer_text: null,
-  bust_color: null,
+  ding_color: null,
   achievement_color: null,
-  bust_title_template: null,
-  bust_description_template: null,
+  ding_title_template: null,
+  ding_description_template: null,
   achievement_title_template: null,
   achievement_description_template: null,
   mention_content: null,
@@ -70,10 +70,10 @@ export const DISCORD_SETTINGS_TEXT_FIELDS = [
   'bot_username',
   'bot_avatar_url',
   'footer_text',
-  'bust_color',
+  'ding_color',
   'achievement_color',
-  'bust_title_template',
-  'bust_description_template',
+  'ding_title_template',
+  'ding_description_template',
   'achievement_title_template',
   'achievement_description_template',
   'mention_content',
@@ -81,7 +81,7 @@ export const DISCORD_SETTINGS_TEXT_FIELDS = [
 
 export const DISCORD_SETTINGS_BOOLEAN_FIELDS = [
   'enabled',
-  'bust_enabled',
+  'ding_enabled',
   'achievement_enabled',
   'include_thumbnail',
 ] as const;
@@ -91,10 +91,10 @@ const MAX_TEXT_LENGTH: Partial<Record<(typeof DISCORD_SETTINGS_TEXT_FIELDS)[numb
   bot_username: 80,
   bot_avatar_url: 2000,
   footer_text: 2048,
-  bust_color: 7,
+  ding_color: 7,
   achievement_color: 7,
-  bust_title_template: 256,
-  bust_description_template: 4096,
+  ding_title_template: 256,
+  ding_description_template: 4096,
   achievement_title_template: 256,
   achievement_description_template: 4096,
   mention_content: 200,
@@ -155,7 +155,7 @@ export function validateDiscordSettingsPatch(patch: Record<string, unknown>): Di
     if (text && limit && text.length > limit) {
       return { ok: false, error: `${field} is too long (max ${limit} characters)` };
     }
-    if (text && (field === 'bust_color' || field === 'achievement_color') && hexToDiscordColor(text) == null) {
+    if (text && (field === 'ding_color' || field === 'achievement_color') && hexToDiscordColor(text) == null) {
       return { ok: false, error: `${field} must be a hex color like #5865F2` };
     }
     if (text && field === 'webhook_url' && !DISCORD_WEBHOOK_URL_RE.test(text)) {
@@ -235,7 +235,7 @@ async function finishDiscordEvent(
     .eq('id', eventId);
 }
 
-export type DiscordBustContext = {
+export type DiscordDingContext = {
   occurredAt?: string | null;
   sourceId: string;
   actorId: string | null;
@@ -265,7 +265,7 @@ export type DiscordOutcome = { status: 'disabled' | 'unconfigured' | 'duplicate'
 };
 
 /**
- * Post a webhook message for one bust or achievement, with ledger-based
+ * Post a webhook message for one ding or achievement, with ledger-based
  * deduplication for ordinary retries. Always
  * resolves — never throws — so a Discord outage can never take down the push
  * pipeline that calls this alongside it.
@@ -273,12 +273,12 @@ export type DiscordOutcome = { status: 'disabled' | 'unconfigured' | 'duplicate'
 export async function sendDiscordNotification(
   admin: SupabaseClient<Database>,
   kind: EventKind,
-  context: DiscordBustContext | DiscordAchievementContext,
+  context: DiscordDingContext | DiscordAchievementContext,
 ): Promise<DiscordOutcome> {
   try {
     const settings = await getDiscordSettings(admin);
     if (!settings.enabled) return { status: 'disabled' };
-    if (kind === 'bust' && !settings.bust_enabled) return { status: 'disabled' };
+    if (kind === 'ding' && !settings.ding_enabled) return { status: 'disabled' };
     if (kind === 'achievement' && !settings.achievement_enabled) return { status: 'disabled' };
 
     const webhookUrl = resolveWebhookUrl(settings);
@@ -289,8 +289,8 @@ export async function sendDiscordNotification(
 
     try {
       const occurredAt = context.occurredAt ? new Date(context.occurredAt) : new Date();
-      const payload = kind === 'bust'
-        ? buildBustDiscordPayload({ ...context, sentAt: occurredAt, siteUrl: siteUrl() }, settings)
+      const payload = kind === 'ding'
+        ? buildDingDiscordPayload({ ...context, sentAt: occurredAt, siteUrl: siteUrl() }, settings)
         : buildAchievementDiscordPayload({ ...context, sentAt: occurredAt, siteUrl: siteUrl() }, settings);
 
       const response = await postToDiscordWebhook(webhookUrl, payload);
@@ -313,7 +313,7 @@ export async function sendDiscordNotification(
 }
 
 /**
- * Debug-menu only: send a sample bust or achievement embed straight to the
+ * Debug-menu only: send a sample ding or achievement embed straight to the
  * webhook, using whatever settings the admin is currently previewing — which
  * may not be saved yet. Deliberately bypasses `discord_events`: a manual test
  * send has no row behind it, the same reasoning `broadcast-test-notification`
@@ -332,23 +332,29 @@ export async function sendDiscordTestMessage(
     sourceId: 'test',
     actorId: null,
     username: 'TestCrewMember',
+    characterName: 'Testmage',
+    level: 84,
+    className: 'Mage',
+    spec: 'Arcane',
+    realm: 'Example Realm',
+    zone: 'Harandar',
+    activity: 'questing',
     note: 'This is a test note from the admin panel.',
-    city: 'Testville',
     achievementName: 'Sample Achievement',
     tier: 'gold',
     points: 50,
     accent: '#ffd166',
-    pushTitle: kind === 'bust' ? 'TestCrewMember just busted' : 'TestCrewMember unlocked Sample Achievement',
-    pushBody: kind === 'bust'
-      ? 'Cooldown started. The rest of you are just standing there.'
+    pushTitle: kind === 'ding' ? 'Testmage hit 84' : 'TestCrewMember unlocked Sample Achievement',
+    pushBody: kind === 'ding'
+      ? 'Another level secured. Sunlight remains optional.'
       : 'Awarded for behavior nobody asked to be tracked.',
     sentAt: new Date(),
     siteUrl: siteUrl(),
     ...sample,
   };
 
-  const payload = kind === 'bust'
-    ? buildBustDiscordPayload(context, settings)
+  const payload = kind === 'ding'
+    ? buildDingDiscordPayload(context, settings)
     : buildAchievementDiscordPayload(context, settings);
   const response = await postToDiscordWebhook(webhookUrl, payload);
   return { ok: true, status: response.status };
