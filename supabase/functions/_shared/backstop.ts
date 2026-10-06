@@ -1,5 +1,5 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
-import { announceAchievement, announceBust } from './announce.ts';
+import { announceAchievement, announceDing } from './announce.ts';
 import { getDiscordSettings } from './discord.ts';
 import { fetchAllPages } from '../../../src/fetchAllPages.js';
 
@@ -22,11 +22,11 @@ async function ledgerKeys(admin: SupabaseClient, table: string, ids: string[]) {
 
 /** Sweep both channels independently; a push claim says nothing about Discord. */
 export async function dispatchRecentEvents(admin: SupabaseClient, since: string) {
-  const [busts, achievements, settings] = await Promise.all([
+  const [dings, achievements, settings] = await Promise.all([
     fetchAllPages((from, to) =>
       admin
-        .from('busts')
-        .select('id,user_id,note,city,timestamp')
+        .from('level_events')
+        .select('id,user_id,character_id,to_level,note,zone,activity_type,timestamp')
         .gte('timestamp', since)
         // Stable ordering lets a bounded sweep work through the full page set.
         .order('timestamp', { ascending: false })
@@ -44,26 +44,26 @@ export async function dispatchRecentEvents(admin: SupabaseClient, since: string)
     ),
     getDiscordSettings(admin),
   ]);
-  const ids = [...busts, ...achievements].map((row) => row.id);
-  if (!ids.length) return { busts: 0, achievements: 0, delivered: 0, skipped: 0 };
+  const ids = [...dings, ...achievements].map((row) => row.id);
+  if (!ids.length) return { dings: 0, achievements: 0, delivered: 0, skipped: 0 };
   const [announced, discordAnnounced] = await Promise.all([
     ledgerKeys(admin, 'push_events', ids),
     settings.enabled ? ledgerKeys(admin, 'discord_events', ids) : Promise.resolve(new Set<string>()),
   ]);
-  const summary = { busts: 0, achievements: 0, delivered: 0, skipped: 0 };
+  const summary = { dings: 0, achievements: 0, delivered: 0, skipped: 0 };
 
-  let bustAttempts = 0;
-  for (const bust of busts) {
-    const pushHandled = announced.has(`bust:${bust.id}`);
-    const discordHandled = !settings.enabled || !settings.bust_enabled || discordAnnounced.has(`bust:${bust.id}`);
+  let dingAttempts = 0;
+  for (const ding of dings) {
+    const pushHandled = announced.has(`ding:${ding.id}`);
+    const discordHandled = !settings.enabled || !settings.ding_enabled || discordAnnounced.has(`ding:${ding.id}`);
     if (pushHandled && discordHandled) {
       summary.skipped += 1;
       continue;
     }
-    if (bustAttempts++ >= MAX_EVENTS_PER_RUN) break;
-    const outcome = await announceBust(admin, bust, undefined, { skipPush: pushHandled });
+    if (dingAttempts++ >= MAX_EVENTS_PER_RUN) break;
+    const outcome = await announceDing(admin, ding, undefined, { skipPush: pushHandled });
     if (outcome.status === 'sent') {
-      summary.busts += 1;
+      summary.dings += 1;
       summary.delivered += outcome.result.delivered;
     } else {
       summary.skipped += 1;
