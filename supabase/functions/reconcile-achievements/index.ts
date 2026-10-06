@@ -1,15 +1,16 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import type { Database } from '../_shared/database.types.ts';
-import { achievements, computeAchievementUnlocks } from '../../../src/rules.js';
+import { dingAchievements, computeDingAchievementUnlocks } from '../../../src/dingAchievements.js';
 import { fetchAllPages } from '../../../src/fetchAllPages.js';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-const validAchievementIds = new Set(achievements.map((item) => item.id));
 
-Deno.serve(async (req) => {
+const validAchievementIds = new Set(dingAchievements.map(item => item.id));
+
+Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -47,41 +48,66 @@ Deno.serve(async (req) => {
     const admin = createClient<Database>(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
     const userId = authData.user.id;
 
-    const [profileResult, busts, existing, profiles] = await Promise.all([
-      admin.from('profiles').select('id, created_at').eq('id', userId).single(),
+    const [configResult, events, characters, existing] = await Promise.all([
+      admin.from('game_config').select('level_cap').eq('id', 'current').single(),
       fetchAllPages((from, to) =>
-        admin.from('busts').select('*').order('timestamp', { ascending: true }).order('id', { ascending: true }).range(from, to)
+        admin
+          .from('level_events')
+          .select('*')
+          .eq('user_id', userId)
+          .order('timestamp', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to)
       ),
       fetchAllPages((from, to) =>
-        admin.from('achievements').select('*').order('unlocked_at', { ascending: true }).order('id', { ascending: true }).range(from, to)
+        admin
+          .from('characters')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to)
       ),
       fetchAllPages((from, to) =>
-        admin.from('profiles').select('id').order('created_at', { ascending: true }).order('id', { ascending: true }).range(from, to)
+        admin
+          .from('achievements')
+          .select('*')
+          .order('unlocked_at', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to)
       ),
     ]);
 
-    if (profileResult.error || !profileResult.data) {
-      throw new Error(profileResult.error?.message || 'Profile not found');
+    if (configResult.error || !configResult.data) {
+      throw new Error(configResult.error?.message || 'DING game configuration is missing');
     }
 
-    const earned = computeAchievementUnlocks(userId, busts, existing, {
-      createdAt: profileResult.data.created_at,
-      userCount: profiles.length,
-    }).filter((id) => validAchievementIds.has(id));
+    const earned = computeDingAchievementUnlocks({
+      userId,
+      events,
+      characters,
+      existing,
+      levelCap: configResult.data.level_cap,
+    }).filter(id => validAchievementIds.has(id));
 
     if (earned.length) {
       const { error } = await admin.from('achievements').upsert(
-        earned.map((achievement_type) => ({ user_id: userId, achievement_type })),
-        { onConflict: 'user_id,achievement_type', ignoreDuplicates: true },
+        earned.map(achievement_type => ({ user_id: userId, achievement_type })),
+        { onConflict: 'user_id,achievement_type', ignoreDuplicates: true }
       );
       if (error) throw new Error(error.message);
     }
 
-    const achievementsRows = await fetchAllPages((from, to) =>
-      admin.from('achievements').select('*').order('unlocked_at', { ascending: false }).order('id', { ascending: false }).range(from, to)
+    const achievementRows = await fetchAllPages((from, to) =>
+      admin
+        .from('achievements')
+        .select('*')
+        .order('unlocked_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(from, to)
     );
 
-    return new Response(JSON.stringify({ achievements: achievementsRows }), {
+    return new Response(JSON.stringify({ achievements: achievementRows, newlyEarned: earned }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
