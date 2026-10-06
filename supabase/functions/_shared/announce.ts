@@ -1,8 +1,8 @@
 /*
- * Turns a bust or achievement row into a crew-wide push AND a Discord webhook
+ * Turns a Ding or achievement row into a crew-wide push AND a Discord webhook
  * message, each tracked independently.
  *
- * Both callers share this: `notify-event` (the busting client, for instant
+ * Both callers share this: `notify-event` (the client that recorded the Ding, for instant
  * delivery) and `dispatch-push-backstop` (the scheduled sweep, for when that
  * client never made the call). The push_events ledger is what keeps them from
  * double-announcing the same row for push; `discord_events` (see
@@ -12,7 +12,7 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import type { Database } from './database.types.ts';
 import { achievements } from '../../../src/rules.js';
-import { buildAchievementNotification, buildBustNotification } from '../../../src/notificationMessages.js';
+import { buildAchievementNotification, buildDingNotification } from '../../../src/notificationMessages.js';
 import { achievementSlotId } from '../../../src/pushCooldown.js';
 import { sendDiscordNotification } from './discord.ts';
 import {
@@ -38,7 +38,7 @@ export type AnnounceOutcome =
  */
 async function claimWithoutSending(
   admin: SupabaseClient<Database>,
-  kind: 'bust' | 'achievement',
+  kind: 'ding' | 'achievement',
   sourceId: string,
   actorId: string,
 ) {
@@ -56,7 +56,7 @@ async function claimWithoutSending(
 const BURST_WINDOW_MS = 2 * 60 * 1000;
 
 /**
- * Retire the rows a bust unlocked but did not announce.
+ * Retire the rows a Ding unlocked but did not announce.
  *
  * Without this the cap is a delay, not a cap. The client picks one unlock to
  * announce and simply drops the rest — but those rows are still sitting in
@@ -64,7 +64,7 @@ const BURST_WINDOW_MS = 2 * 60 * 1000;
  * row, so the next sweep treats one of them as un-announced and pushes it. The
  * ten-minute cooldown slot does not stop that: the slot the client used has
  * already expired by the time the sweep runs, so the sweep claims a fresh one.
- * Net effect was two achievement pushes per bust, ten minutes apart.
+ * Net effect was two achievement pushes per Ding, ten minutes apart.
  *
  * Claiming them with zero recipients records them as handled, which is the only
  * thing the sweep checks.
@@ -101,7 +101,7 @@ async function usernameFor(admin: SupabaseClient<Database>, userId: string) {
 
 async function announce(
   admin: SupabaseClient<Database>,
-  kind: 'bust' | 'achievement',
+  kind: 'ding' | 'achievement',
   sourceId: string,
   actorId: string,
   payload: { title: string; body: string; tag: string; kind: string },
@@ -149,39 +149,57 @@ async function announce(
   }
 }
 
-export async function announceBust(
+export async function announceDing(
   admin: SupabaseClient<Database>,
-  bust: { id: string; user_id: string; note?: string | null; city?: string | null; timestamp?: string },
+  ding: {
+    id: string;
+    user_id: string;
+    character_id: string;
+    to_level: number;
+    note?: string | null;
+    zone?: string | null;
+    activity_type?: string | null;
+    timestamp?: string;
+  },
   username?: string,
   { skipPush = false } = {},
 ) {
-  const name = username || (await usernameFor(admin, bust.user_id));
-  const payload = buildBustNotification({
+  const name = username || (await usernameFor(admin, ding.user_id));
+  const { data: character } = await admin
+    .from('characters')
+    .select('name,realm,class_name,spec')
+    .eq('id', ding.character_id)
+    .maybeSingle();
+  const characterName = character?.name || 'a character';
+  const payload = buildDingNotification({
     username: name,
-    note: bust.note,
-    bustId: bust.id,
-    city: bust.city,
+    characterName,
+    toLevel: ding.to_level,
+    note: ding.note,
+    eventId: ding.id,
+    zone: ding.zone,
   });
-  // Independent of the push outcome above (sent, no-recipients, duplicate —
-  // all mean "this bust happened"): Discord gets its own exactly-once ledger,
-  // see _shared/discord.ts. Run alongside the push send rather than after it —
-  // sendDiscordNotification never throws, so there's no error-handling reason
-  // to serialize them, and doing so would add the full webhook round trip to
-  // every bust's latency for no benefit.
+  const discordContext = {
+    sourceId: ding.id,
+    actorId: ding.user_id,
+    username: name,
+    characterName,
+    level: ding.to_level,
+    className: character?.class_name || null,
+    spec: character?.spec || null,
+    realm: character?.realm || null,
+    zone: ding.zone || null,
+    activity: ding.activity_type || null,
+    note: ding.note,
+    occurredAt: ding.timestamp,
+    pushTitle: payload.title,
+    pushBody: payload.body,
+  };
   const [outcome] = await Promise.all([
     skipPush
-      ? Promise.resolve({ status: 'duplicate' as const, kind: 'bust', sourceId: bust.id })
-      : announce(admin, 'bust', bust.id, bust.user_id, payload),
-    sendDiscordNotification(admin, 'bust', {
-      sourceId: bust.id,
-      actorId: bust.user_id,
-      username: name,
-      note: bust.note,
-      city: bust.city,
-      occurredAt: bust.timestamp,
-      pushTitle: payload.title,
-      pushBody: payload.body,
-    }),
+      ? Promise.resolve({ status: 'duplicate' as const, kind: 'ding', sourceId: ding.id })
+      : announce(admin, 'ding', ding.id, ding.user_id, payload),
+    sendDiscordNotification(admin, 'ding', discordContext),
   ]);
   return outcome;
 }
@@ -255,7 +273,7 @@ export async function announceAchievement(
   }
   await finishPushEvent(admin, slotEventId, { attempted: 0, delivered: 0, pruned: 0, failures: [] });
 
-  // Same reasoning as announceBust: these two are independent and
+  // Same reasoning as announceDing: these two are independent and
   // sendDiscordNotification never throws, so run them concurrently instead of
   // adding the Discord round trip to every achievement's latency.
   const [outcome] = await Promise.all([
