@@ -7,10 +7,10 @@
  */
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import type { Database } from '../_shared/database.types.ts';
-import { announceAchievement, announceBust } from '../_shared/announce.ts';
+import { announceAchievement, announceDing } from '../_shared/announce.ts';
 import { corsHeaders, json } from '../_shared/push.ts';
 
-// A client that crashes mid-bust is covered by dispatch-push-backstop instead.
+// A client that crashes mid-Ding is covered by dispatch-push-backstop instead.
 const MAX_EVENT_AGE_MS = 15 * 60 * 1000;
 // The ledger already caps each row at one push, but a client can mint many
 // achievement rows at once by re-reconciling. Cap how loud one account can be.
@@ -63,9 +63,9 @@ Deno.serve(async (req) => {
     const userId = authData.user.id;
 
     const payload = await req.json().catch(() => ({}));
-    const kind = payload?.kind === 'achievement' ? 'achievement' : payload?.kind === 'bust' ? 'bust' : null;
+    const kind = payload?.kind === 'achievement' ? 'achievement' : payload?.kind === 'ding' ? 'bust' : null;
     const id = typeof payload?.id === 'string' ? payload.id : '';
-    if (!kind || !id) return json(400, { error: 'Expected { kind: "bust" | "achievement", id }' });
+    if (!kind || !id) return json(400, { error: 'Expected { kind: "ding" | "achievement", id }' });
 
     const admin = createClient<Database>(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
 
@@ -76,19 +76,19 @@ Deno.serve(async (req) => {
       return json(429, { error: 'Too many crew notifications from this account. Try again shortly.' });
     }
 
-    if (kind === 'bust') {
+    if (kind === 'ding') {
       const { data, error } = await admin
-        .from('busts')
-        .select('id,user_id,note,city,timestamp')
+        .from('level_events')
+        .select('id,user_id,character_id,to_level,note,zone,activity_type,timestamp')
         .eq('id', id)
         .maybeSingle();
       if (error) throw new Error(error.message);
-      if (!data) return json(404, { error: 'Bust not found' });
-      if (data.user_id !== userId) return json(403, { error: 'You can only announce your own bust' });
+      if (!data) return json(404, { error: 'Ding not found' });
+      if (data.user_id !== userId) return json(403, { error: 'You can only announce your own Ding' });
       if (Date.now() - new Date(data.timestamp).getTime() > MAX_EVENT_AGE_MS) {
         return json(200, { ok: true, status: 'stale' });
       }
-      const outcome = await announceBust(admin, data);
+      const outcome = await announceDing(admin, data);
       return json(200, { ok: true, ...outcome });
     }
 
