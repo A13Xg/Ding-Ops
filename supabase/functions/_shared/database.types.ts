@@ -1,13 +1,15 @@
 /*
- * Generated. Do not hand-edit — regenerate after any schema change:
+ * DING schema types.
+ *
+ * Keep this file aligned with supabase/migrations/. Once the dedicated DING
+ * Supabase project is linked, replace this checked-in bootstrap version with:
+ *
  *   supabase gen types typescript --linked > supabase/functions/_shared/database.types.ts
  *
- * Threading this through createClient<Database>(...) is what makes
- * `deno check` (npm run typecheck:functions, already in CI) catch a wrong
- * table/column name or a bad .rpc() signature at typecheck time instead of
- * silently shipping — createClient() with no type param accepts any string
- * as a table name.
+ * The explicit table/RPC surface is intentional: createClient<Database>()
+ * should fail CI when an Edge Function references a stale Bust table/column.
  */
+
 export type Json =
   | string
   | number
@@ -16,78 +18,244 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+type Relationship = {
+  foreignKeyName: string;
+  columns: string[];
+  isOneToOne: boolean;
+  referencedRelation: string;
+  referencedColumns: string[];
+};
+
+type Table<Row, Insert, Update, Relationships extends Relationship[] = []> = {
+  Row: Row;
+  Insert: Insert;
+  Update: Update;
+  Relationships: Relationships;
+};
+
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: '14.5';
   };
-  graphql_public: {
-    Tables: {
-      [_ in never]: never;
-    };
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json;
-          operationName?: string;
-          query?: string;
-          variables?: Json;
-        };
-        Returns: Json;
-      };
-    };
-    Enums: {
-      [_ in never]: never;
-    };
-    CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
   public: {
     Tables: {
-      achievement_catalog: {
-        Row: {
+      game_config: Table<
+        {
           id: string;
-        };
-        Insert: {
+          expansion_key: string;
+          expansion_name: string;
+          level_cap: number;
+          updated_at: string;
+        },
+        {
           id: string;
-        };
-        Update: {
+          expansion_key: string;
+          expansion_name: string;
+          level_cap: number;
+          updated_at?: string;
+        },
+        {
           id?: string;
-        };
-        Relationships: [];
-      };
-      achievements: {
-        Row: {
-          achievement_type: string;
+          expansion_key?: string;
+          expansion_name?: string;
+          level_cap?: number;
+          updated_at?: string;
+        }
+      >;
+      profiles: Table<
+        {
           id: string;
-          unlocked_at: string;
-          user_id: string;
-        };
-        Insert: {
-          achievement_type: string;
+          username: string;
+          avatar_seed: string | null;
+          tagline: string | null;
+          showcase: string | null;
+          active_character_id: string | null;
+          created_at: string;
+        },
+        {
+          id: string;
+          username: string;
+          avatar_seed?: string | null;
+          tagline?: string | null;
+          showcase?: string | null;
+          active_character_id?: string | null;
+          created_at?: string;
+        },
+        {
           id?: string;
-          unlocked_at?: string;
-          user_id: string;
-        };
-        Update: {
-          achievement_type?: string;
-          id?: string;
-          unlocked_at?: string;
-          user_id?: string;
-        };
-        Relationships: [
+          username?: string;
+          avatar_seed?: string | null;
+          tagline?: string | null;
+          showcase?: string | null;
+          active_character_id?: string | null;
+          created_at?: string;
+        },
+        [
           {
-            foreignKeyName: 'achievements_achievement_type_fkey';
-            columns: ['achievement_type'];
+            foreignKeyName: 'profiles_active_character_id_fkey';
+            columns: ['active_character_id'];
             isOneToOne: false;
-            referencedRelation: 'achievement_catalog';
+            referencedRelation: 'characters';
             referencedColumns: ['id'];
           },
+        ]
+      >;
+      characters: Table<
+        {
+          id: string;
+          user_id: string;
+          name: string;
+          realm: string;
+          region: string;
+          class_name: string;
+          spec: string | null;
+          race: string | null;
+          faction: string | null;
+          current_level: number;
+          tracked_from_level: number;
+          is_archived: boolean;
+          created_at: string;
+          updated_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          name: string;
+          realm: string;
+          region: string;
+          class_name: string;
+          spec?: string | null;
+          race?: string | null;
+          faction?: string | null;
+          current_level: number;
+          tracked_from_level: number;
+          is_archived?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        },
+        {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          realm?: string;
+          region?: string;
+          class_name?: string;
+          spec?: string | null;
+          race?: string | null;
+          faction?: string | null;
+          current_level?: number;
+          tracked_from_level?: number;
+          is_archived?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        },
+        [
+          {
+            foreignKeyName: 'characters_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
+      level_events: Table<
+        {
+          id: string;
+          user_id: string;
+          character_id: string;
+          from_level: number;
+          to_level: number;
+          timestamp: string;
+          time_zone: string;
+          local_date: string;
+          local_hour: number;
+          time_bucket: string;
+          zone: string | null;
+          activity_type: string | null;
+          deaths: number | null;
+          session_minutes: number | null;
+          note: string;
+          created_at: string;
+        },
+        {
+          id: string;
+          user_id: string;
+          character_id: string;
+          from_level: number;
+          to_level: number;
+          timestamp: string;
+          time_zone: string;
+          local_date: string;
+          local_hour: number;
+          time_bucket: string;
+          zone?: string | null;
+          activity_type?: string | null;
+          deaths?: number | null;
+          session_minutes?: number | null;
+          note?: string;
+          created_at?: string;
+        },
+        {
+          id?: string;
+          user_id?: string;
+          character_id?: string;
+          from_level?: number;
+          to_level?: number;
+          timestamp?: string;
+          time_zone?: string;
+          local_date?: string;
+          local_hour?: number;
+          time_bucket?: string;
+          zone?: string | null;
+          activity_type?: string | null;
+          deaths?: number | null;
+          session_minutes?: number | null;
+          note?: string;
+          created_at?: string;
+        },
+        [
+          {
+            foreignKeyName: 'level_events_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'level_events_character_id_fkey';
+            columns: ['character_id'];
+            isOneToOne: false;
+            referencedRelation: 'characters';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
+      achievement_catalog: Table<
+        { id: string },
+        { id: string },
+        { id?: string }
+      >;
+      achievements: Table<
+        {
+          id: string;
+          user_id: string;
+          achievement_type: string;
+          unlocked_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          achievement_type: string;
+          unlocked_at?: string;
+        },
+        {
+          id?: string;
+          user_id?: string;
+          achievement_type?: string;
+          unlocked_at?: string;
+        },
+        [
           {
             foreignKeyName: 'achievements_user_id_fkey';
             columns: ['user_id'];
@@ -95,282 +263,147 @@ export type Database = {
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
           },
-        ];
-      };
-      busts: {
-        Row: {
-          btc_usd: number | null;
-          city: string | null;
-          elevation_ft: number | null;
-          id: string;
-          lat: number | null;
-          long: number | null;
-          note: string | null;
-          pressure: number | null;
-          temp_f: number | null;
-          tide_ft: number | null;
-          time_bucket: string;
-          timestamp: string;
-          user_id: string;
-        };
-        Insert: {
-          btc_usd?: number | null;
-          city?: string | null;
-          elevation_ft?: number | null;
-          id?: string;
-          lat?: number | null;
-          long?: number | null;
-          note?: string | null;
-          pressure?: number | null;
-          temp_f?: number | null;
-          tide_ft?: number | null;
-          time_bucket: string;
-          timestamp?: string;
-          user_id: string;
-        };
-        Update: {
-          btc_usd?: number | null;
-          city?: string | null;
-          elevation_ft?: number | null;
-          id?: string;
-          lat?: number | null;
-          long?: number | null;
-          note?: string | null;
-          pressure?: number | null;
-          temp_f?: number | null;
-          tide_ft?: number | null;
-          time_bucket?: string;
-          timestamp?: string;
-          user_id?: string;
-        };
-        Relationships: [
           {
-            foreignKeyName: 'busts_user_id_fkey';
+            foreignKeyName: 'achievements_achievement_type_fkey';
+            columns: ['achievement_type'];
+            isOneToOne: false;
+            referencedRelation: 'achievement_catalog';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
+      push_subscriptions: Table<
+        {
+          id: number;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent: string | null;
+          created_at: string;
+          updated_at: string;
+          last_success_at: string | null;
+          last_ack_at: string | null;
+          failure_count: number;
+          unacked_count: number;
+        },
+        {
+          id?: never;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          last_success_at?: string | null;
+          last_ack_at?: string | null;
+          failure_count?: number;
+          unacked_count?: number;
+        },
+        {
+          id?: never;
+          user_id?: string;
+          endpoint?: string;
+          p256dh?: string;
+          auth?: string;
+          user_agent?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          last_success_at?: string | null;
+          last_ack_at?: string | null;
+          failure_count?: number;
+          unacked_count?: number;
+        },
+        [
+          {
+            foreignKeyName: 'push_subscriptions_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: false;
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
           },
-        ];
-      };
-      discord_events: {
-        Row: {
-          actor_id: string | null;
-          created_at: string;
-          dispatched_at: string | null;
-          error: string | null;
+        ]
+      >;
+      push_events: Table<
+        {
           id: number;
           kind: string;
           source_id: string;
-          status_code: number | null;
-          success: boolean | null;
-        };
-        Insert: {
-          actor_id?: string | null;
-          created_at?: string;
-          dispatched_at?: string | null;
-          error?: string | null;
+          actor_id: string | null;
+          created_at: string;
+          dispatched_at: string | null;
+          recipients: number;
+          delivered: number;
+        },
+        {
           id?: never;
           kind: string;
           source_id: string;
-          status_code?: number | null;
-          success?: boolean | null;
-        };
-        Update: {
           actor_id?: string | null;
           created_at?: string;
           dispatched_at?: string | null;
-          error?: string | null;
+          recipients?: number;
+          delivered?: number;
+        },
+        {
           id?: never;
           kind?: string;
           source_id?: string;
-          status_code?: number | null;
-          success?: boolean | null;
-        };
-        Relationships: [
+          actor_id?: string | null;
+          created_at?: string;
+          dispatched_at?: string | null;
+          recipients?: number;
+          delivered?: number;
+        },
+        [
           {
-            foreignKeyName: 'discord_events_actor_id_fkey';
+            foreignKeyName: 'push_events_actor_id_fkey';
             columns: ['actor_id'];
             isOneToOne: false;
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
           },
-        ];
-      };
-      discord_settings: {
-        Row: {
-          achievement_color: string | null;
-          achievement_description_template: string | null;
-          achievement_enabled: boolean;
-          achievement_title_template: string | null;
-          bot_avatar_url: string | null;
-          bot_username: string | null;
-          bust_color: string | null;
-          bust_description_template: string | null;
-          bust_enabled: boolean;
-          bust_title_template: string | null;
-          enabled: boolean;
-          footer_text: string | null;
+        ]
+      >;
+      push_deliveries: Table<
+        {
           id: number;
-          include_thumbnail: boolean;
-          mention_content: string | null;
-          updated_at: string;
-          updated_by: string | null;
-          webhook_url: string | null;
-        };
-        Insert: {
-          achievement_color?: string | null;
-          achievement_description_template?: string | null;
-          achievement_enabled?: boolean;
-          achievement_title_template?: string | null;
-          bot_avatar_url?: string | null;
-          bot_username?: string | null;
-          bust_color?: string | null;
-          bust_description_template?: string | null;
-          bust_enabled?: boolean;
-          bust_title_template?: string | null;
-          enabled?: boolean;
-          footer_text?: string | null;
-          id?: number;
-          include_thumbnail?: boolean;
-          mention_content?: string | null;
-          updated_at?: string;
-          updated_by?: string | null;
-          webhook_url?: string | null;
-        };
-        Update: {
-          achievement_color?: string | null;
-          achievement_description_template?: string | null;
-          achievement_enabled?: boolean;
-          achievement_title_template?: string | null;
-          bot_avatar_url?: string | null;
-          bot_username?: string | null;
-          bust_color?: string | null;
-          bust_description_template?: string | null;
-          bust_enabled?: boolean;
-          bust_title_template?: string | null;
-          enabled?: boolean;
-          footer_text?: string | null;
-          id?: number;
-          include_thumbnail?: boolean;
-          mention_content?: string | null;
-          updated_at?: string;
-          updated_by?: string | null;
-          webhook_url?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'discord_settings_updated_by_fkey';
-            columns: ['updated_by'];
-            isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      inactivity_reminders: {
-        Row: {
-          cycle_bust_at: string;
-          last_message_index: number | null;
-          last_sent_at: string | null;
-          scheduled_for: string | null;
-          updated_at: string;
-          user_id: string;
-        };
-        Insert: {
-          cycle_bust_at: string;
-          last_message_index?: number | null;
-          last_sent_at?: string | null;
-          scheduled_for?: string | null;
-          updated_at?: string;
-          user_id: string;
-        };
-        Update: {
-          cycle_bust_at?: string;
-          last_message_index?: number | null;
-          last_sent_at?: string | null;
-          scheduled_for?: string | null;
-          updated_at?: string;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'inactivity_reminders_user_id_fkey';
-            columns: ['user_id'];
-            isOneToOne: true;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      profiles: {
-        Row: {
-          avatar_seed: string;
-          created_at: string;
-          id: string;
-          last_bust_timestamp: string | null;
-          showcase: string | null;
-          tagline: string | null;
-          username: string;
-        };
-        Insert: {
-          avatar_seed: string;
-          created_at?: string;
-          id: string;
-          last_bust_timestamp?: string | null;
-          showcase?: string | null;
-          tagline?: string | null;
-          username: string;
-        };
-        Update: {
-          avatar_seed?: string;
-          created_at?: string;
-          id?: string;
-          last_bust_timestamp?: string | null;
-          showcase?: string | null;
-          tagline?: string | null;
-          username?: string;
-        };
-        Relationships: [];
-      };
-      push_deliveries: {
-        Row: {
-          acked_at: string | null;
-          actor_id: string | null;
-          batch_id: string;
-          id: number;
-          kind: string;
           receipt_id: string;
+          batch_id: string;
+          kind: string;
+          actor_id: string | null;
           recipient_id: string | null;
-          sent_at: string;
           subscription_id: number | null;
           title: string;
-        };
-        Insert: {
-          acked_at?: string | null;
-          actor_id?: string | null;
+          sent_at: string;
+          acked_at: string | null;
+        },
+        {
+          id?: never;
+          receipt_id?: string;
           batch_id: string;
-          id?: never;
           kind: string;
-          receipt_id?: string;
-          recipient_id?: string | null;
-          sent_at?: string;
-          subscription_id?: number | null;
-          title?: string;
-        };
-        Update: {
-          acked_at?: string | null;
           actor_id?: string | null;
-          batch_id?: string;
-          id?: never;
-          kind?: string;
-          receipt_id?: string;
           recipient_id?: string | null;
-          sent_at?: string;
           subscription_id?: number | null;
           title?: string;
-        };
-        Relationships: [
+          sent_at?: string;
+          acked_at?: string | null;
+        },
+        {
+          id?: never;
+          receipt_id?: string;
+          batch_id?: string;
+          kind?: string;
+          actor_id?: string | null;
+          recipient_id?: string | null;
+          subscription_id?: number | null;
+          title?: string;
+          sent_at?: string;
+          acked_at?: string | null;
+        },
+        [
           {
             foreignKeyName: 'push_deliveries_actor_id_fkey';
             columns: ['actor_id'];
@@ -385,102 +418,158 @@ export type Database = {
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
           },
-        ];
-      };
-      push_events: {
-        Row: {
-          actor_id: string | null;
-          created_at: string;
-          delivered: number;
-          dispatched_at: string | null;
+        ]
+      >;
+      inactivity_reminders: Table<
+        {
+          user_id: string;
+          cycle_ding_at: string;
+          scheduled_for: string | null;
+          last_sent_at: string | null;
+          last_message_index: number | null;
+          updated_at: string;
+        },
+        {
+          user_id: string;
+          cycle_ding_at: string;
+          scheduled_for?: string | null;
+          last_sent_at?: string | null;
+          last_message_index?: number | null;
+          updated_at?: string;
+        },
+        {
+          user_id?: string;
+          cycle_ding_at?: string;
+          scheduled_for?: string | null;
+          last_sent_at?: string | null;
+          last_message_index?: number | null;
+          updated_at?: string;
+        },
+        [
+          {
+            foreignKeyName: 'inactivity_reminders_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: true;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
+      discord_settings: Table<
+        {
+          id: number;
+          enabled: boolean;
+          ding_enabled: boolean;
+          achievement_enabled: boolean;
+          webhook_url: string | null;
+          bot_username: string | null;
+          bot_avatar_url: string | null;
+          footer_text: string | null;
+          ding_color: string | null;
+          achievement_color: string | null;
+          ding_title_template: string | null;
+          ding_description_template: string | null;
+          achievement_title_template: string | null;
+          achievement_description_template: string | null;
+          mention_content: string | null;
+          include_thumbnail: boolean;
+          updated_at: string;
+          updated_by: string | null;
+        },
+        {
+          id?: number;
+          enabled?: boolean;
+          ding_enabled?: boolean;
+          achievement_enabled?: boolean;
+          webhook_url?: string | null;
+          bot_username?: string | null;
+          bot_avatar_url?: string | null;
+          footer_text?: string | null;
+          ding_color?: string | null;
+          achievement_color?: string | null;
+          ding_title_template?: string | null;
+          ding_description_template?: string | null;
+          achievement_title_template?: string | null;
+          achievement_description_template?: string | null;
+          mention_content?: string | null;
+          include_thumbnail?: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
+        },
+        {
+          id?: number;
+          enabled?: boolean;
+          ding_enabled?: boolean;
+          achievement_enabled?: boolean;
+          webhook_url?: string | null;
+          bot_username?: string | null;
+          bot_avatar_url?: string | null;
+          footer_text?: string | null;
+          ding_color?: string | null;
+          achievement_color?: string | null;
+          ding_title_template?: string | null;
+          ding_description_template?: string | null;
+          achievement_title_template?: string | null;
+          achievement_description_template?: string | null;
+          mention_content?: string | null;
+          include_thumbnail?: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
+        },
+        [
+          {
+            foreignKeyName: 'discord_settings_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
+      discord_events: Table<
+        {
           id: number;
           kind: string;
-          recipients: number;
           source_id: string;
-        };
-        Insert: {
-          actor_id?: string | null;
-          created_at?: string;
-          delivered?: number;
-          dispatched_at?: string | null;
+          actor_id: string | null;
+          created_at: string;
+          dispatched_at: string | null;
+          success: boolean | null;
+          status_code: number | null;
+          error: string | null;
+        },
+        {
           id?: never;
           kind: string;
-          recipients?: number;
           source_id: string;
-        };
-        Update: {
           actor_id?: string | null;
           created_at?: string;
-          delivered?: number;
           dispatched_at?: string | null;
+          success?: boolean | null;
+          status_code?: number | null;
+          error?: string | null;
+        },
+        {
           id?: never;
           kind?: string;
-          recipients?: number;
           source_id?: string;
-        };
-        Relationships: [
+          actor_id?: string | null;
+          created_at?: string;
+          dispatched_at?: string | null;
+          success?: boolean | null;
+          status_code?: number | null;
+          error?: string | null;
+        },
+        [
           {
-            foreignKeyName: 'push_events_actor_id_fkey';
+            foreignKeyName: 'discord_events_actor_id_fkey';
             columns: ['actor_id'];
             isOneToOne: false;
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
           },
-        ];
-      };
-      push_subscriptions: {
-        Row: {
-          auth: string;
-          created_at: string;
-          endpoint: string;
-          failure_count: number;
-          id: number;
-          last_ack_at: string | null;
-          last_success_at: string | null;
-          p256dh: string;
-          unacked_count: number;
-          updated_at: string;
-          user_agent: string | null;
-          user_id: string;
-        };
-        Insert: {
-          auth: string;
-          created_at?: string;
-          endpoint: string;
-          failure_count?: number;
-          id?: never;
-          last_ack_at?: string | null;
-          last_success_at?: string | null;
-          p256dh: string;
-          unacked_count?: number;
-          updated_at?: string;
-          user_agent?: string | null;
-          user_id: string;
-        };
-        Update: {
-          auth?: string;
-          created_at?: string;
-          endpoint?: string;
-          failure_count?: number;
-          id?: never;
-          last_ack_at?: string | null;
-          last_success_at?: string | null;
-          p256dh?: string;
-          unacked_count?: number;
-          updated_at?: string;
-          user_agent?: string | null;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'push_subscriptions_user_id_fkey';
-            columns: ['user_id'];
-            isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
+        ]
+      >;
     };
     Views: {
       [_ in never]: never;
@@ -494,32 +583,71 @@ export type Database = {
         Args: { subscription_ids: number[] };
         Returns: undefined;
       };
+      record_push_ack: {
+        Args: { receipt: string };
+        Returns: boolean;
+      };
       prune_dead_push_subscriptions: {
         Args: {
-          min_age?: string;
           never_acked_after?: number;
-          silent_for?: string;
+          min_age?: string;
           went_silent_after?: number;
+          silent_for?: string;
         };
         Returns: number;
       };
       push_subscription_health: {
         Args: never;
         Returns: {
-          acked_total: number;
-          created_at: string;
-          failure_count: number;
-          host: string;
           id: number;
-          last_ack_at: string;
-          last_success_at: string;
-          sent_total: number;
-          unacked_count: number;
-          user_agent: string;
           user_id: string;
+          host: string;
+          user_agent: string | null;
+          created_at: string;
+          last_success_at: string | null;
+          last_ack_at: string | null;
+          unacked_count: number;
+          failure_count: number;
+          sent_total: number;
+          acked_total: number;
         }[];
       };
-      record_push_ack: { Args: { receipt: string }; Returns: boolean };
+      set_active_character: {
+        Args: { p_character_id: string | null };
+        Returns: Database['public']['Tables']['profiles']['Row'];
+      };
+      update_character_metadata: {
+        Args: {
+          p_character_id: string;
+          p_name: string;
+          p_realm: string;
+          p_region: string;
+          p_class_name: string;
+          p_spec?: string | null;
+          p_race?: string | null;
+          p_faction?: string | null;
+          p_is_archived?: boolean;
+        };
+        Returns: Database['public']['Tables']['characters']['Row'];
+      };
+      record_ding: {
+        Args: {
+          p_event_id: string;
+          p_character_id: string;
+          p_expected_from_level: number;
+          p_zone?: string | null;
+          p_activity_type?: string | null;
+          p_deaths?: number | null;
+          p_session_minutes?: number | null;
+          p_note?: string;
+          p_time_zone?: string;
+        };
+        Returns: Database['public']['Tables']['level_events']['Row'];
+      };
+      update_level_event_note: {
+        Args: { p_event_id: string; p_note: string };
+        Returns: Database['public']['Tables']['level_events']['Row'];
+      };
     };
     Enums: {
       [_ in never]: never;
@@ -530,118 +658,21 @@ export type Database = {
   };
 };
 
-type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>;
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>];
+type DefaultSchema = Database['public'];
 
 export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
-  } ? keyof (
-      & DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
-      & DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views']
-    )
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-} ? (
-    & DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
-    & DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views']
-  )[TableName] extends {
-    Row: infer R;
-  } ? R
-  : never
-  : DefaultSchemaTableNameOrOptions extends keyof (
-    & DefaultSchema['Tables']
-    & DefaultSchema['Views']
-  ) ? (
-      & DefaultSchema['Tables']
-      & DefaultSchema['Views']
-    )[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R;
-    } ? R
-    : never
+  Name extends keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+> = (DefaultSchema['Tables'] & DefaultSchema['Views'])[Name] extends { Row: infer Row }
+  ? Row
   : never;
 
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
-  } ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-} ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
-    Insert: infer I;
-  } ? I
-  : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
-      Insert: infer I;
-    } ? I
-    : never
-  : never;
+export type TablesInsert<Name extends keyof DefaultSchema['Tables']> =
+  DefaultSchema['Tables'][Name] extends { Insert: infer Insert } ? Insert : never;
 
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
-  } ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-} ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
-    Update: infer U;
-  } ? U
-  : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
-      Update: infer U;
-    } ? U
-    : never
-  : never;
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema['Enums']
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
-  } ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
-    : never) = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-} ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
-    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
-  : never;
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema['CompositeTypes']
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
-  } ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
-    : never) = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-} ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
-    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
-  : never;
+export type TablesUpdate<Name extends keyof DefaultSchema['Tables']> =
+  DefaultSchema['Tables'][Name] extends { Update: infer Update } ? Update : never;
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
