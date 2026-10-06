@@ -12,7 +12,6 @@
  */
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import type { Database } from '../_shared/database.types.ts';
-import { reconcileInactivityReminderState } from '../../../src/inactivityReminder.js';
 import { corsHeaders, json, sendToSubscriptions } from '../_shared/push.ts';
 
 Deno.serve(async (req) => {
@@ -74,44 +73,6 @@ Deno.serve(async (req) => {
       if (replaceError) console.error('[register-push-subscription] rotation cleanup failed', replaceError.message);
     }
 
-    // Keep the reminder cycle in sync so a newly armed device is not immediately
-    // nagged (or skipped) because its schedule was never initialised.
-    const [profileResult, reminderStateResult] = await Promise.all([
-      // maybeSingle: an auth user with no profile row must still be able to arm push.
-      admin.from('profiles').select('last_bust_timestamp').eq('id', userId).maybeSingle(),
-      admin
-        .from('inactivity_reminders')
-        .select('cycle_bust_at,scheduled_for,last_sent_at,last_message_index')
-        .eq('user_id', userId)
-        .maybeSingle(),
-    ]);
-    if (profileResult.error) throw new Error(profileResult.error.message);
-    if (reminderStateResult.error) throw new Error(reminderStateResult.error.message);
-
-    const reconciled = reconcileInactivityReminderState({
-      latestBustAt: profileResult.data?.last_bust_timestamp || null,
-      state: reminderStateResult.data
-        ? {
-          cycleBustAt: reminderStateResult.data.cycle_bust_at,
-          scheduledFor: reminderStateResult.data.scheduled_for,
-          lastSentAt: reminderStateResult.data.last_sent_at,
-          lastMessageIndex: reminderStateResult.data.last_message_index,
-        }
-        : null,
-    });
-
-    if (reconciled) {
-      const { error: stateError } = await admin.from('inactivity_reminders').upsert({
-        user_id: userId,
-        cycle_bust_at: reconciled.cycleBustAt,
-        scheduled_for: reconciled.scheduledFor,
-        last_sent_at: reconciled.lastSentAt,
-        last_message_index: reconciled.lastMessageIndex,
-        updated_at: nowIso,
-      });
-      if (stateError) throw new Error(stateError.message);
-    }
-
     // Endpoint liveness, so the client can tell a working subscription from one
     // the push service accepts and silently discards. Apple does exactly that
     // with an invalidated Web Push endpoint — 201 forever, nothing rendered —
@@ -144,9 +105,9 @@ Deno.serve(async (req) => {
         .eq('user_id', userId);
       if (storedError) throw new Error(storedError.message);
       const result = await sendToSubscriptions(admin, stored || [], {
-        title: 'BUST push is live',
+        title: 'DING push is live',
         body: 'If you are reading this on your lock screen, everything downstream works.',
-        tag: `bust-test-${userId}`,
+        tag: `ding-test-${userId}`,
         kind: 'test',
         data: { kind: 'test' },
       }, { actorId: userId });
