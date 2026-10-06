@@ -1,7 +1,7 @@
 /*
  * discord-test-notification — debug-menu only.
  *
- * Sends one sample bust or achievement embed to the configured webhook so an
+ * Sends one sample ding or achievement embed to the configured webhook so an
  * admin can see exactly what the real thing will look like before relying on
  * it. Gated by the same allowlist as every other admin function.
  *
@@ -32,7 +32,7 @@ Deno.serve(async req => {
     const { admin, senderName, senderId } = gate.context;
 
     const body = await req.json().catch(() => ({}));
-    const kind = body?.kind === 'achievement' ? 'achievement' : 'bust';
+    const kind = body?.kind === 'achievement' ? 'achievement' : 'ding';
     const rawOverrides = { ...(body?.settings && typeof body.settings === 'object' ? body.settings : {}) };
 
     const saved = await getDiscordSettings(admin);
