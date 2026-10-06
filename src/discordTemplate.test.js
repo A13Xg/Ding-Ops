@@ -34,15 +34,18 @@ const ctx = {
 
 describe('discord templates', () => {
   it('fills DING domain tokens', () => {
-    expect(renderDiscordTemplate('{{USER}} / {{CHARACTER}} / {{LEVEL}} / {{CLASS}} / {{REALM}}', ctx))
-      .toBe('AlexG / Hexlord / 84 / Warlock / Area 52');
-    expect(renderDiscordTemplate('{{ZONE}} / {{ACTIVITY}} / {{NOTE}}', ctx))
-      .toBe('Harandar / questing / one more quest');
+    expect(renderDiscordTemplate('{{USER}} / {{CHARACTER}} / {{LEVEL}} / {{CLASS}} / {{REALM}}', ctx)).toBe(
+      'AlexG / Hexlord / 84 / Warlock / Area 52'
+    );
+    expect(renderDiscordTemplate('{{ZONE}} / {{ACTIVITY}} / {{NOTE}}', ctx)).toBe(
+      'Harandar / questing / one more quest'
+    );
   });
 
   it('falls back to push copy by default', () => {
-    expect(renderDiscordTemplate('{{PUSH_TITLE}} / {{PUSH_BODY}}', ctx))
-      .toBe('Hexlord hit 84 / Grass exposure remains unconfirmed.');
+    expect(renderDiscordTemplate('{{PUSH_TITLE}} / {{PUSH_BODY}}', ctx)).toBe(
+      'Hexlord hit 84 / Grass exposure remains unconfirmed.'
+    );
   });
 
   it('reports unknown tokens and documents every supported token', () => {
@@ -80,13 +83,15 @@ describe('discord templates', () => {
     expect(payload.embeds[0].title).toBe('✨ Hexlord hit 84');
     expect(payload.embeds[0].description).toBe('Grass exposure remains unconfirmed.');
     expect(payload.embeds[0].color).toBe(0x5865f2);
-    expect(payload.embeds[0].fields).toEqual(expect.arrayContaining([
-      { name: 'Character', value: 'Hexlord', inline: true },
-      { name: 'Level', value: '84', inline: true },
-      { name: 'Class', value: 'Warlock', inline: true },
-      { name: 'Realm', value: 'Area 52', inline: true },
-      { name: 'Zone', value: 'Harandar', inline: true },
-    ]));
+    expect(payload.embeds[0].fields).toEqual(
+      expect.arrayContaining([
+        { name: 'Character', value: 'Hexlord', inline: true },
+        { name: 'Level', value: '84', inline: true },
+        { name: 'Class', value: 'Warlock', inline: true },
+        { name: 'Realm', value: 'Area 52', inline: true },
+        { name: 'Zone', value: 'Harandar', inline: true },
+      ])
+    );
     expect(payload.username).toBe('DING Control');
     expect(payload.embeds[0].timestamp).toBe(ctx.sentAt.toISOString());
   });

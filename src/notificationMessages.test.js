@@ -38,8 +38,10 @@ describe('notification copy', () => {
 
   it('spreads variants across different Ding events', () => {
     const titles = new Set(
-      Array.from({ length: 40 }, (_, i) =>
-        buildDingNotification({ username: 'Rex', characterName: 'Hexlord', toLevel: 84, eventId: `d-${i}` }).title
+      Array.from(
+        { length: 40 },
+        (_, i) =>
+          buildDingNotification({ username: 'Rex', characterName: 'Hexlord', toLevel: 84, eventId: `d-${i}` }).title
       )
     );
     expect(titles.size).toBeGreaterThan(1);

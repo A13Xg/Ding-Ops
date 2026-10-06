@@ -76,14 +76,7 @@ function fill(template, values) {
   return String(template).replace(/\{(\w+)\}/g, (_, key) => values[key] ?? '');
 }
 
-export function buildDingNotification({
-  username,
-  characterName,
-  toLevel,
-  note,
-  eventId,
-  zone,
-} = {}) {
+export function buildDingNotification({ username, characterName, toLevel, note, eventId, zone } = {}) {
   const user = String(username || 'Someone').trim() || 'Someone';
   const character = String(characterName || 'a character').trim() || 'a character';
   const level = Number.isInteger(Number(toLevel)) ? String(Number(toLevel)) : '?';
