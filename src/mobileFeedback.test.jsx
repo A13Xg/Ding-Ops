@@ -85,10 +85,10 @@ describe('best-effort haptics', () => {
     const vibrate = vi.fn(() => true);
     vi.stubGlobal('navigator', { vibrate });
     vi.stubGlobal('matchMedia', () => ({ matches: false }));
-    expect(haptic('bust')).toBe(true);
+    expect(haptic('ding')).toBe(true);
     setHapticsEnabled(false);
     vibrate.mockClear();
-    expect(haptic('bust')).toBe(false);
+    expect(haptic('ding')).toBe(false);
     expect(vibrate).not.toHaveBeenCalled();
     setHapticsEnabled(true);
     vi.stubGlobal('matchMedia', () => ({ matches: true }));
@@ -103,7 +103,7 @@ describe('best-effort haptics', () => {
         throw new Error('blocked');
       },
     });
-    expect(haptic('bust')).toBe(false);
+    expect(haptic('ding')).toBe(false);
     vi.unstubAllGlobals();
   });
 });
