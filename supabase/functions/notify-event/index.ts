@@ -17,8 +17,8 @@ const MAX_EVENT_AGE_MS = 15 * 60 * 1000;
 //
 // Scoped to achievements on purpose. Counting every kind meant an achievement
 // backlog could exhaust the budget and then throttle that account's next real
-// bust — a bust is news, and it is already capped at one per two hours by the
-// enforce_bust_cooldown trigger, so it never needed this ceiling. Achievements
+// Ding. Dings are primary progression events and must never be dropped as
+// collateral from an achievement backlog. Achievements
 // are additionally held to one push per cooldown window by the slot claim in
 // _shared/announce.ts; this stays as the outer bound on a misbehaving client.
 const RATE_WINDOW_MS = 5 * 60 * 1000;
@@ -63,15 +63,14 @@ Deno.serve(async (req) => {
     const userId = authData.user.id;
 
     const payload = await req.json().catch(() => ({}));
-    const kind = payload?.kind === 'achievement' ? 'achievement' : payload?.kind === 'ding' ? 'bust' : null;
+    const kind = payload?.kind === 'achievement' ? 'achievement' : payload?.kind === 'ding' ? 'ding' : null;
     const id = typeof payload?.id === 'string' ? payload.id : '';
     if (!kind || !id) return json(400, { error: 'Expected { kind: "ding" | "achievement", id }' });
 
     const admin = createClient<Database>(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
 
-    // Busts are exempt: the cooldown trigger already bounds them, and a bust is
-    // the one notification that must never be dropped as collateral from an
-    // achievement backlog.
+    // Dings are exempt: they are the primary progression event and must never
+    // be dropped as collateral from an achievement backlog.
     if (kind === 'achievement' && (await overRateLimit(admin, userId))) {
       return json(429, { error: 'Too many crew notifications from this account. Try again shortly.' });
     }
