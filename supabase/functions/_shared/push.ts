@@ -1,5 +1,5 @@
 /*
- * Shared web-push delivery helpers for the BUST Edge Functions.
+ * Shared web-push delivery helpers for the DING Edge Functions.
  *
  * Everything that actually puts a notification on someone's lock screen goes
  * through sendToSubscriptions() so the failure handling — pruning dead
@@ -215,7 +215,7 @@ export async function subscriptionsForCrew(
  */
 export async function claimPushEvent(
   admin: SupabaseClient<Database>,
-  kind: 'bust' | 'achievement',
+  kind: 'ding' | 'achievement',
   sourceId: string,
   actorId: string | null,
 ) {
