@@ -1,4 +1,4 @@
-const PATTERNS = { selection: 12, charge: [25, 45, 40], bust: [65, 35, 100], achievement: [20, 45, 35] };
+const PATTERNS = { selection: 12, charge: [25, 45, 40], ding: [65, 35, 100], achievement: [20, 45, 35] };
 
 let sessionPreference = null;
 
