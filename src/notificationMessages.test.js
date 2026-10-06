@@ -3,17 +3,17 @@ import { describe, it, expect } from 'vitest';
 import {
   ACHIEVEMENT_BODIES,
   ACHIEVEMENT_TITLES,
-  BUST_BODIES,
-  BUST_TITLES,
+  DING_BODIES,
+  DING_TITLES,
   INACTIVITY_MESSAGE_CATALOG,
   buildAchievementNotification,
-  buildBustNotification,
+  buildDingNotification,
   seedIndex,
 } from './notificationMessages.js';
 
 describe('notification copy', () => {
   it('keeps every catalog non-empty so a notification can never ship blank', () => {
-    for (const catalog of [BUST_TITLES, BUST_BODIES, ACHIEVEMENT_TITLES, ACHIEVEMENT_BODIES]) {
+    for (const catalog of [DING_TITLES, DING_BODIES, ACHIEVEMENT_TITLES, ACHIEVEMENT_BODIES]) {
       expect(catalog.length).toBeGreaterThan(0);
       expect(catalog.every(entry => entry.trim().length > 0)).toBe(true);
     }
@@ -30,45 +30,58 @@ describe('notification copy', () => {
     }
   });
 
-  it('picks a variant deterministically so two devices never disagree', () => {
-    const a = buildBustNotification({ username: 'Rex', bustId: 'b-1' });
-    const b = buildBustNotification({ username: 'Rex', bustId: 'b-1' });
-    expect(a).toEqual(b);
-    expect(seedIndex('b-1', 5)).toBe(seedIndex('b-1', 5));
+  it('picks a Ding variant deterministically so two devices never disagree', () => {
+    const input = { username: 'Rex', characterName: 'Hexlord', toLevel: 84, eventId: 'd-1' };
+    expect(buildDingNotification(input)).toEqual(buildDingNotification(input));
+    expect(seedIndex('d-1', 5)).toBe(seedIndex('d-1', 5));
   });
 
-  it('spreads variants across different events', () => {
+  it('spreads variants across different Ding events', () => {
     const titles = new Set(
-      Array.from({ length: 40 }, (_, i) => buildBustNotification({ username: 'Rex', bustId: `b-${i}` }).title)
+      Array.from({ length: 40 }, (_, i) =>
+        buildDingNotification({ username: 'Rex', characterName: 'Hexlord', toLevel: 84, eventId: `d-${i}` }).title
+      )
     );
     expect(titles.size).toBeGreaterThan(1);
   });
 
-  it('quotes the note when there is one and stays inside the tag namespace', () => {
-    const withNote = buildBustNotification({ username: 'Rex', note: 'shed a tear', bustId: 'b-9', city: 'Dayton' });
-    expect(withNote.title).toContain('Rex');
-    expect(withNote.body).toContain('shed a tear');
-    expect(withNote.body).toContain('Dayton');
-    expect(withNote.tag).toBe('bust-b-9');
-    expect(withNote.kind).toBe('bust');
+  it('quotes the note and keeps Dings inside their own notification namespace', () => {
+    const withNote = buildDingNotification({
+      username: 'Rex',
+      characterName: 'Hexlord',
+      toLevel: 84,
+      note: 'one more quest',
+      eventId: 'd-9',
+      zone: 'Harandar',
+    });
+    expect(withNote.title).toMatch(/Rex|Hexlord/);
+    expect(withNote.body).toContain('one more quest');
+    expect(withNote.body).toContain('Harandar');
+    expect(withNote.tag).toBe('ding-d-9');
+    expect(withNote.kind).toBe('ding');
 
-    const withoutNote = buildBustNotification({ username: 'Rex', bustId: 'b-9' });
-    expect(BUST_BODIES).toContain(withoutNote.body);
+    const withoutNote = buildDingNotification({
+      username: 'Rex',
+      characterName: 'Hexlord',
+      toLevel: 84,
+      eventId: 'd-9',
+    });
+    expect(DING_BODIES).toContain(withoutNote.body);
   });
 
-  it('falls back to a usable name when the username is missing', () => {
-    const notification = buildBustNotification({ bustId: 'b-2' });
-    expect(notification.title).toContain('Someone');
+  it('falls back to usable actor and character labels', () => {
+    const notification = buildDingNotification({ eventId: 'd-2', toLevel: 2 });
+    expect(notification.title).toMatch(/Someone|a character/);
   });
 
   it('names the achievement in the title', () => {
     const notification = buildAchievementNotification({
       username: 'Rex',
-      achievementName: 'Night Ops',
-      achievementId: 'night_ops',
+      achievementName: 'Night Shift',
+      achievementId: 'night_shift',
       tier: 'silver',
     });
-    expect(notification.title).toContain('Night Ops');
+    expect(notification.title).toContain('Night Shift');
     expect(notification.title).toContain('Rex');
     expect(ACHIEVEMENT_BODIES).toContain(notification.body);
     expect(notification.tier).toBe('silver');
