@@ -196,7 +196,7 @@ const staticBackend = {
   },
   async dingDashboard() {
     const sb = await getSupa();
-    const [profiles, characters, levelEvents] = await Promise.all([
+    const [profiles, characters, levelEvents, achievements] = await Promise.all([
       refreshProfiles(sb),
       fetchAllPages((from, to) =>
         sb.from('characters').select('*').order('created_at', { ascending: true }).order('id', { ascending: true }).range(from, to)
@@ -204,11 +204,15 @@ const staticBackend = {
       fetchAllPages((from, to) =>
         sb.from('level_events').select('*').order('timestamp', { ascending: false }).order('id', { ascending: false }).range(from, to)
       ),
+      fetchAllPages((from, to) =>
+        sb.from('achievements').select('*').order('unlocked_at', { ascending: false }).order('id', { ascending: false }).range(from, to)
+      ),
     ]);
     return {
       users: profiles.map(toUser),
       characters: characters.map(toCharacter),
       levelEvents: levelEvents.map(joinLevelEvent),
+      achievements,
     };
   },
   async reconcileAchievements() {
@@ -219,7 +223,10 @@ const staticBackend = {
     if (error) throw new Error(error.message || 'Achievement reconciliation failed');
     if (data?.error) throw new Error(data.error);
     if (!Array.isArray(data?.achievements)) throw new Error('Achievement reconciliation returned an invalid response');
-    return { achievements: data.achievements };
+    return {
+      achievements: data.achievements,
+      newlyEarned: Array.isArray(data?.newlyEarned) ? data.newlyEarned : [],
+    };
   },
   async saveAchievements() { return (await this.reconcileAchievements()).achievements; },
   async registerPushSubscription(subscription, meta = {}) {
