@@ -21,17 +21,17 @@ function iso(ms) {
 }
 
 describe('inactivity reminder scheduling', () => {
-  it('schedules first reminder once per bust cycle and keeps persisted timestamp', () => {
-    const bustMs = Date.UTC(2026, 0, 1, 0, 0, 0);
-    const now = bustMs + 53 * 60 * 60 * 1000;
-    const first = reconcileInactivityReminderState({ latestBustAt: iso(bustMs), state: null, now, random: () => 0.5 });
-    expect(first?.cycleBustAt).toBe(iso(bustMs));
+  it('schedules first reminder once per Ding cycle and keeps persisted timestamp', () => {
+    const dingMs = Date.UTC(2026, 0, 1, 0, 0, 0);
+    const now = dingMs + 53 * 60 * 60 * 1000;
+    const first = reconcileInactivityReminderState({ latestDingAt: iso(dingMs), state: null, now, random: () => 0.5 });
+    expect(first?.cycleDingAt).toBe(iso(dingMs));
     const firstScheduledMs = new Date(first.scheduledFor).getTime();
-    expect(firstScheduledMs).toBeGreaterThanOrEqual(bustMs + FIRST_REMINDER_DELAY_MS);
-    expect(firstScheduledMs).toBeLessThanOrEqual(bustMs + FIRST_REMINDER_DELAY_MS + REMINDER_WINDOW_MS);
+    expect(firstScheduledMs).toBeGreaterThanOrEqual(dingMs + FIRST_REMINDER_DELAY_MS);
+    expect(firstScheduledMs).toBeLessThanOrEqual(dingMs + FIRST_REMINDER_DELAY_MS + REMINDER_WINDOW_MS);
 
     const second = reconcileInactivityReminderState({
-      latestBustAt: iso(bustMs),
+      latestDingAt: iso(dingMs),
       state: first,
       now: now + 10_000,
       random: () => 0,
@@ -39,50 +39,50 @@ describe('inactivity reminder scheduling', () => {
     expect(second?.scheduledFor).toBe(first?.scheduledFor);
   });
 
-  it('resets reminder cycle when a new bust timestamp appears', () => {
-    const firstBustMs = Date.UTC(2026, 0, 1, 0, 0, 0);
-    const secondBustMs = firstBustMs + 80 * 60 * 60 * 1000;
+  it('resets reminder cycle when a new Ding timestamp appears', () => {
+    const firstDingMs = Date.UTC(2026, 0, 1, 0, 0, 0);
+    const secondDingMs = firstDingMs + 80 * 60 * 60 * 1000;
     const stale = {
-      cycleBustAt: iso(firstBustMs),
-      lastSentAt: iso(firstBustMs + 60 * 60 * 1000),
-      scheduledFor: iso(firstBustMs + 70 * 60 * 60 * 1000),
+      cycleDingAt: iso(firstDingMs),
+      lastSentAt: iso(firstDingMs + 60 * 60 * 1000),
+      scheduledFor: iso(firstDingMs + 70 * 60 * 60 * 1000),
       lastMessageIndex: 2,
     };
 
     const reconciled = reconcileInactivityReminderState({
-      latestBustAt: iso(secondBustMs),
+      latestDingAt: iso(secondDingMs),
       state: stale,
-      now: secondBustMs,
+      now: secondDingMs,
       random: () => 0,
     });
 
     expect(reconciled).toEqual({
-      cycleBustAt: iso(secondBustMs),
+      cycleDingAt: iso(secondDingMs),
       lastSentAt: null,
-      scheduledFor: iso(secondBustMs + FIRST_REMINDER_DELAY_MS),
+      scheduledFor: iso(secondDingMs + FIRST_REMINDER_DELAY_MS),
       lastMessageIndex: null,
     });
   });
 
   it('enforces one reminder per rolling 24 hours and schedules the next randomized window', () => {
-    const bustMs = Date.UTC(2026, 0, 1, 0, 0, 0);
-    const dueAt = bustMs + FIRST_REMINDER_DELAY_MS;
+    const dingMs = Date.UTC(2026, 0, 1, 0, 0, 0);
+    const dueAt = dingMs + FIRST_REMINDER_DELAY_MS;
     const state = {
-      cycleBustAt: iso(bustMs),
+      cycleDingAt: iso(dingMs),
       lastSentAt: null,
       scheduledFor: iso(dueAt),
     };
 
-    expect(isInactivityReminderDue(state, iso(bustMs), dueAt)).toBe(true);
+    expect(isInactivityReminderDue(state, iso(dingMs), dueAt)).toBe(true);
     const sent = markInactivityReminderSent(state, { now: dueAt, random: () => 0.25 });
-    expect(isInactivityReminderDue(sent, iso(bustMs), dueAt + MIN_REMINDER_INTERVAL_MS - 1)).toBe(false);
+    expect(isInactivityReminderDue(sent, iso(dingMs), dueAt + MIN_REMINDER_INTERVAL_MS - 1)).toBe(false);
     const nextMs = new Date(sent.scheduledFor).getTime();
     expect(nextMs).toBeGreaterThanOrEqual(dueAt + MIN_REMINDER_INTERVAL_MS);
     expect(nextMs).toBeLessThanOrEqual(dueAt + MIN_REMINDER_INTERVAL_MS + REMINDER_WINDOW_MS);
   });
 
-  it('returns no schedule when there is no successful bust yet', () => {
-    expect(reconcileInactivityReminderState({ latestBustAt: null, state: null })).toBeNull();
+  it('returns no schedule when there is no successful Ding yet', () => {
+    expect(reconcileInactivityReminderState({ latestDingAt: null, state: null })).toBeNull();
   });
 });
 
@@ -95,7 +95,7 @@ describe('inactivity reminder storage', () => {
       removeItem: vi.fn(key => storage.values.delete(key)),
     };
     const state = {
-      cycleBustAt: iso(Date.UTC(2026, 0, 1, 0, 0, 0)),
+      cycleDingAt: iso(Date.UTC(2026, 0, 1, 0, 0, 0)),
       lastSentAt: null,
       scheduledFor: iso(Date.UTC(2026, 0, 3, 4, 0, 0)),
       lastMessageIndex: 2,
@@ -116,7 +116,7 @@ describe('inactivity reminder storage', () => {
 
   it('avoids immediately repeating the previous reminder message', () => {
     const previousIndex = INACTIVITY_MESSAGE_CATALOG.findIndex(item =>
-      item.text.includes('cooldown ended days ago')
+      item.text.includes('XP bar has filed')
     );
     const selected = pickInactivityReminderMessage({ random: () => 0, lastMessageIndex: previousIndex });
     expect(selected.index).not.toBe(previousIndex);
@@ -124,27 +124,27 @@ describe('inactivity reminder storage', () => {
     expect(selected.text.length).toBeGreaterThan(0);
     expect(selected.text.endsWith(REMINDER_CALL_TO_ACTION)).toBe(true);
   });
-  it('staggers reminders across a 5-7 day window measured from the last bust', () => {
+  it('staggers reminders across a 5-7 day window measured from the last Ding', () => {
     const DAY = 24 * 60 * 60 * 1000;
     expect(FIRST_REMINDER_DELAY_MS).toBe(5 * DAY);
     expect(MIN_REMINDER_INTERVAL_MS).toBe(5 * DAY);
     expect(FIRST_REMINDER_DELAY_MS + REMINDER_WINDOW_MS).toBe(7 * DAY);
 
-    // Different users with the same last bust must not all fire at once.
-    const bustMs = Date.parse('2026-01-01T00:00:00.000Z');
+    // Different users with the same last Ding must not all fire at once.
+    const dingMs = Date.parse('2026-01-01T00:00:00.000Z');
     const scheduled = [0.01, 0.25, 0.5, 0.75, 0.99].map(roll =>
       Date.parse(
         reconcileInactivityReminderState({
           state: null,
-          latestBustAt: iso(bustMs),
-          now: bustMs,
+          latestDingAt: iso(dingMs),
+          now: dingMs,
           random: () => roll,
         }).scheduledFor
       )
     );
     for (const at of scheduled) {
-      expect(at).toBeGreaterThanOrEqual(bustMs + 5 * DAY);
-      expect(at).toBeLessThanOrEqual(bustMs + 7 * DAY);
+      expect(at).toBeGreaterThanOrEqual(dingMs + 5 * DAY);
+      expect(at).toBeLessThanOrEqual(dingMs + 7 * DAY);
     }
     expect(new Set(scheduled).size).toBe(scheduled.length);
   });
@@ -159,13 +159,13 @@ describe('inactivity reminder storage', () => {
     const pg = '2026-08-25T12:00:00.123456+00:00';
     const now = Date.parse('2026-09-08T12:00:00Z');
     const state = {
-      cycleBustAt: pg,
+      cycleDingAt: pg,
       scheduledFor: '2026-09-20T00:00:00+00:00',
       lastSentAt: '2026-09-08T11:50:00+00:00',
       lastMessageIndex: 3,
     };
 
-    const reconciled = reconcileInactivityReminderState({ state, latestBustAt: pg, now });
+    const reconciled = reconcileInactivityReminderState({ state, latestDingAt: pg, now });
     expect(Date.parse(reconciled.lastSentAt)).toBe(Date.parse(state.lastSentAt));
     expect(reconciled.lastMessageIndex).toBe(3);
     expect(isInactivityReminderDue(reconciled, pg, now)).toBe(false);
@@ -174,16 +174,16 @@ describe('inactivity reminder storage', () => {
   it('sends a lapsed user exactly one reminder across repeated dispatch runs', () => {
     const pg = '2026-08-25T12:00:00.123456+00:00';
     const start = Date.parse('2026-09-08T12:00:00Z');
-    let state = { cycleBustAt: pg, scheduledFor: null, lastSentAt: null, lastMessageIndex: null };
+    let state = { cycleDingAt: pg, scheduledFor: null, lastSentAt: null, lastMessageIndex: null };
     let sent = 0;
 
     // Two hours of a 10-minute cron, with the database re-serialising each write.
     for (let tick = 0; tick < 12; tick += 1) {
       const now = start + tick * 10 * 60 * 1000;
-      const reconciled = reconcileInactivityReminderState({ state, latestBustAt: pg, now });
+      const reconciled = reconcileInactivityReminderState({ state, latestDingAt: pg, now });
       if (isInactivityReminderDue(reconciled, pg, now)) {
         sent += 1;
-        state = { ...markInactivityReminderSent(reconciled, { now }), cycleBustAt: pg };
+        state = { ...markInactivityReminderSent(reconciled, { now }), cycleDingAt: pg };
       } else {
         state = reconciled;
       }
