@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BarChart3, Bell, LogOut, Plus, Swords, UsersRound } from 'lucide-react';
 import { backend } from './backend.js';
+import { BadgeToast } from './BadgeToast.jsx';
+import { dingAchievementById } from './dingAchievements.js';
+import { useAchievementQueue } from './useAchievementQueue.js';
 import { GAME_CONFIG, WOW_CLASSES, mergeGameConfig } from './gameConfig.js';
 import { createDingRequest, deriveLevelDurationSeconds, isMaxLevel, validateCharacterDraft } from './dingDomain.js';
 import {
@@ -465,6 +468,7 @@ function DingDashboard({ user, setUser }) {
   const [users, setUsers] = useState([]);
   const [characters, setCharacters] = useState([]);
   const [events, setEvents] = useState([]);
+  const [achievements, setAchievements] = useState([]);
   const [config, setConfig] = useState(GAME_CONFIG);
   const [phase, setPhase] = useState('idle');
   const [pending, setPending] = useState(() => readPendingDing(sessionStorage, user.id));
@@ -473,6 +477,7 @@ function DingDashboard({ user, setUser }) {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [burstId, setBurstId] = useState(null);
+  const { current: badgeToast, enqueue: enqueueBadge } = useAchievementQueue(5200);
 
   useEffect(() => {
     let live = true;
@@ -482,6 +487,7 @@ function DingDashboard({ user, setUser }) {
         setUsers(snapshot.users);
         setCharacters(snapshot.characters);
         setEvents(snapshot.levelEvents);
+        setAchievements(snapshot.achievements || []);
         const freshUser = snapshot.users.find(profile => profile.id === user.id);
         if (freshUser) setUser(freshUser);
         if (remoteConfig) setConfig(mergeGameConfig(remoteConfig));
@@ -509,6 +515,13 @@ function DingDashboard({ user, setUser }) {
           action === 'deleted' ? previous.filter(row => row.id !== profile.id) : mergeRow(previous, profile)
         );
         if (profile.id === user.id && action !== 'deleted') setUser(profile);
+      },
+      onAchievement: (achievement, action) => {
+        setAchievements(previous =>
+          action === 'deleted'
+            ? previous.filter(row => row.id !== achievement.id)
+            : mergeRow(previous, achievement)
+        );
       },
     });
 
@@ -545,7 +558,39 @@ function DingDashboard({ user, setUser }) {
     setPhase('idle');
     setStatus('');
     setBurstId(event.id);
-    haptic('achievement');
+    haptic('ding');
+
+    // The Ding is already durable at this point. Notification and achievement
+    // failures are post-commit side effects and must never turn it into a
+    // false failed-save state.
+    void backend.notifyEvent('ding', event.id).catch(error => {
+      console.warn('[ding notify]', error);
+    });
+    void backend
+      .reconcileAchievements()
+      .then(result => {
+        setAchievements(result.achievements);
+        const freshItems = result.newlyEarned
+          .map(dingAchievementById)
+          .filter(Boolean);
+        if (freshItems.length) enqueueBadge(freshItems);
+
+        const announceable = [...freshItems].sort((a, b) => (b.points || 0) - (a.points || 0))[0];
+        if (!announceable) return;
+        const row = result.achievements.find(
+          achievement =>
+            achievement.user_id === user.id &&
+            achievement.achievement_type === announceable.id
+        );
+        if (row) {
+          void backend.notifyEvent('achievement', row.id).catch(error => {
+            console.warn('[achievement notify]', error);
+          });
+        }
+      })
+      .catch(error => {
+        console.warn('[achievement reconcile]', error);
+      });
   }
 
   async function startDing() {
@@ -696,7 +741,10 @@ function DingDashboard({ user, setUser }) {
         <BarChart3 /> SWEAT ANALYTICS
       </button>
 
-      <AnimatePresence>{burstId && <DingBurst id={burstId} />}</AnimatePresence>
+      <AnimatePresence>
+        {burstId && <DingBurst id={burstId} />}
+        {badgeToast && <BadgeToast key={badgeToast.id} badge={badgeToast} />}
+      </AnimatePresence>
 
       {overlay === 'analytics' && (
         <Overlay title="SWEAT ANALYTICS" onClose={() => setOverlay(null)} showScrollTop>
