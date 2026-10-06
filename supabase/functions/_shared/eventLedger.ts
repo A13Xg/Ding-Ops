@@ -15,7 +15,7 @@
  */
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
-export type EventKind = 'bust' | 'achievement';
+export type EventKind = 'ding' | 'achievement';
 
 /**
  * Claim an event for dispatch. Returns the new row's id, or null when another
