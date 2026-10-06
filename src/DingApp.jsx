@@ -518,9 +518,7 @@ function DingDashboard({ user, setUser }) {
       },
       onAchievement: (achievement, action) => {
         setAchievements(previous =>
-          action === 'deleted'
-            ? previous.filter(row => row.id !== achievement.id)
-            : mergeRow(previous, achievement)
+          action === 'deleted' ? previous.filter(row => row.id !== achievement.id) : mergeRow(previous, achievement)
         );
       },
     });
@@ -570,17 +568,13 @@ function DingDashboard({ user, setUser }) {
       .reconcileAchievements()
       .then(result => {
         setAchievements(result.achievements);
-        const freshItems = result.newlyEarned
-          .map(dingAchievementById)
-          .filter(Boolean);
+        const freshItems = result.newlyEarned.map(dingAchievementById).filter(Boolean);
         if (freshItems.length) enqueueBadge(freshItems);
 
         const announceable = [...freshItems].sort((a, b) => (b.points || 0) - (a.points || 0))[0];
         if (!announceable) return;
         const row = result.achievements.find(
-          achievement =>
-            achievement.user_id === user.id &&
-            achievement.achievement_type === announceable.id
+          achievement => achievement.user_id === user.id && achievement.achievement_type === announceable.id
         );
         if (row) {
           void backend.notifyEvent('achievement', row.id).catch(error => {

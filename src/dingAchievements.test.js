@@ -43,18 +43,24 @@ describe('DING achievement foundation', () => {
         }),
         event({ activity_type: 'questing' }),
       ],
-      characters: [{ id: 'c1', user_id: 'u1' }, { id: 'c2', user_id: 'u1' }, { id: 'c3', user_id: 'u1' }],
+      characters: [
+        { id: 'c1', user_id: 'u1' },
+        { id: 'c2', user_id: 'u1' },
+        { id: 'c3', user_id: 'u1' },
+      ],
     });
-    expect(fresh).toEqual(expect.arrayContaining([
-      'first_ding',
-      'max_level',
-      'late_night_ding',
-      'dungeon_ding',
-      'questing_ding',
-      'speed_level',
-      'death_tax',
-      'altaholic',
-    ]));
+    expect(fresh).toEqual(
+      expect.arrayContaining([
+        'first_ding',
+        'max_level',
+        'late_night_ding',
+        'dungeon_ding',
+        'questing_ding',
+        'speed_level',
+        'death_tax',
+        'altaholic',
+      ])
+    );
   });
 
   it('awards volume milestones at their thresholds', () => {
