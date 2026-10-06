@@ -3,7 +3,6 @@
  * requires VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY at build time. This is
  * what makes a GitHub Pages deployment work.
  */
-import { timeBucket } from './rules.js';
 import { fetchAllPages } from './fetchAllPages.js';
 import { normalizeCharacterDraft } from './dingDomain.js';
 
@@ -38,8 +37,19 @@ async function getSupa() {
  * it annoying to type. */
 const INVITE_CODE = 'ding4me';
 const synthEmail = u => `${String(u).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}@ding-ops.dev`;
-function toUser(p) { return p ? { id: p.id, username: p.username, avatar_seed: p.avatar_seed, created_at: p.created_at, last_bust_timestamp: p.last_bust_timestamp, active_character_id: p.active_character_id || null, tagline: p.tagline || null, showcase: p.showcase || null } : null; }
-function joinBust(b) { const p = profileCache.get(b.user_id) || {}; return { ...b, username: p.username || 'Unknown', avatar_seed: p.avatar_seed || 'bust' }; }
+function toUser(p) {
+  return p
+    ? {
+        id: p.id,
+        username: p.username,
+        avatar_seed: p.avatar_seed,
+        created_at: p.created_at,
+        active_character_id: p.active_character_id || null,
+        tagline: p.tagline || null,
+        showcase: p.showcase || null,
+      }
+    : null;
+}
 function toCharacter(row) { return row ? { ...row, current_level: Number(row.current_level), tracked_from_level: Number(row.tracked_from_level) } : null; }
 function joinLevelEvent(row) { const p = profileCache.get(row.user_id) || {}; return { ...row, username: p.username || 'Unknown', avatar_seed: p.avatar_seed || 'ding' }; }
 async function refreshProfiles(sb) {
@@ -201,55 +211,6 @@ const staticBackend = {
       levelEvents: levelEvents.map(joinLevelEvent),
     };
   },
-  async dashboard() {
-    const sb = await getSupa();
-    const [profiles, busts, achievements] = await Promise.all([
-      refreshProfiles(sb),
-      fetchAllPages((from, to) => sb.from('busts').select('*').order('timestamp', { ascending: false }).order('id', { ascending: false }).range(from, to)),
-      fetchAllPages((from, to) => sb.from('achievements').select('*').order('unlocked_at', { ascending: false }).order('id', { ascending: false }).range(from, to))
-    ]);
-    return { users: profiles.map(toUser), busts: busts.map(joinBust), achievements };
-  },
-  async recentBusts(limit = 60) {
-    const sb = await getSupa();
-    const result = await sb.from('busts').select('*').order('timestamp', { ascending: false }).limit(Math.max(1, Math.min(200, Number(limit) || 60)));
-    if (result.error) throw new Error(result.error.message);
-    if (!profileCache.size) { try { await refreshProfiles(sb); } catch {} }
-    return result.data.map(joinBust);
-  },
-  async bust(payload) {
-    const sb = await getSupa();
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) throw new Error('Not signed in');
-    const now = new Date();
-    if (payload.actorId && payload.actorId !== user.id) throw new Error('Signed-in account changed before submission');
-    const row = { id: payload.id || crypto.randomUUID(), user_id: user.id, timestamp: now.toISOString(), note: String(payload.note || '').slice(0, 240), temp_f: payload.temp_f, pressure: payload.pressure, lat: payload.lat, long: payload.long, city: payload.city, elevation_ft: payload.elevation_ft, tide_ft: payload.tide_ft, btc_usd: payload.btc_usd, time_bucket: timeBucket(now) };
-    const { data, error } = await sb.from('busts').insert(row).select().single();
-    if (error) throw new Error(/policy|row-level|cooldown/i.test(error.message) ? 'Cooldown is still active' : error.message);
-    return joinBust(data);
-  },
-  async bustById(id, actorId) {
-    const sb = await getSupa();
-    const { data, error } = await sb.from('busts').select('*').eq('id', id).eq('user_id', actorId).maybeSingle();
-    if (error) throw new Error(error.message);
-    return data ? joinBust(data) : null;
-  },
-  async latestOwnLocation(actorId, signal) {
-    const sb = await getSupa();
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user || user.id !== actorId) return null;
-    const { data, error } = await sb.from('busts').select('lat,long,timestamp').eq('user_id', actorId).gte('lat', -90).lte('lat', 90).gte('long', -180).lte('long', 180).order('timestamp', { ascending: false }).order('id', { ascending: false }).limit(1).abortSignal(signal);
-    if (error) throw new Error(error.message);
-    return data.find(row => typeof row.lat === 'number' && typeof row.long === 'number' && Math.abs(row.lat) <= 90 && Math.abs(row.long) <= 180) || null;
-  },
-  async patchBustNote(id, note) {
-    const sb = await getSupa();
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) throw new Error('Not signed in');
-    const { data, error } = await sb.from('busts').update({ note: String(note || '').slice(0, 240) }).eq('id', id).eq('user_id', user.id).select().single();
-    if (error) throw new Error(error.message);
-    return joinBust(data);
-  },
   async reconcileAchievements() {
     const sb = await getSupa();
     const { data: { user } } = await sb.auth.getUser();
@@ -361,7 +322,7 @@ const staticBackend = {
   async sendDiscordTestMessage({ kind, settings } = {}) {
     const sb = await getSupa();
     const { data, error } = await sb.functions.invoke('discord-test-notification', {
-      body: { kind: kind === 'achievement' ? 'achievement' : 'bust', settings: settings || undefined },
+      body: { kind: kind === 'achievement' ? 'achievement' : 'ding', settings: settings || undefined },
     });
     if (error) {
       const detail = await readFunctionError(error);
@@ -384,7 +345,7 @@ const staticBackend = {
     profileCache.set(data.id, data);
     return toUser(data);
   },
-  subscribeDing({ onLevelEvent, onCharacter, onProfile, onStatus }) {
+  subscribeDing({ onLevelEvent, onCharacter, onProfile, onAchievement, onStatus }) {
     let channel;
     let unsubscribed = false;
     getSupa().then(sb => {
@@ -421,6 +382,13 @@ const staticBackend = {
           profileCache.delete(payload.old.id);
           onProfile?.(payload.old, 'deleted');
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'achievements' }, payload => {
+          if (unsubscribed) return;
+          onAchievement?.(
+            payload.eventType === 'DELETE' ? payload.old : payload.new,
+            payload.eventType.toLowerCase()
+          );
+        })
         .subscribe(status => {
           if (!unsubscribed) onStatus?.(status);
         });
@@ -431,52 +399,6 @@ const staticBackend = {
       onStatus?.('CLOSED');
     };
   },
-  subscribe({ onBust, onProfile, onAchievement, onStatus }) {
-    let channel;
-    let unsubscribed = false;
-    getSupa().then(sb => {
-      if (unsubscribed) return;
-      channel = sb.channel('bust-feed')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'busts' }, async payload => {
-          if (!profileCache.has(payload.new.user_id)) { try { await refreshProfiles(sb); } catch {} }
-          if (unsubscribed) return;
-          onBust?.(joinBust(payload.new), 'created');
-        })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'busts' }, async payload => {
-          if (!profileCache.has(payload.new.user_id)) { try { await refreshProfiles(sb); } catch {} }
-          if (unsubscribed) return;
-          onBust?.(joinBust(payload.new), 'updated');
-        })
-        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'busts' }, payload => { if (!unsubscribed) onBust?.(payload.old, 'deleted'); })
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, payload => {
-          if (unsubscribed) return;
-          profileCache.set(payload.new.id, payload.new);
-          onProfile?.(toUser(payload.new), 'created');
-        })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, payload => {
-          if (unsubscribed) return;
-          profileCache.set(payload.new.id, payload.new);
-          onProfile?.(toUser(payload.new), 'updated');
-        })
-        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'profiles' }, payload => {
-          if (unsubscribed) return;
-          profileCache.delete(payload.old.id);
-          onProfile?.(payload.old, 'deleted');
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'achievements' }, payload => {
-          if (unsubscribed) return;
-          onAchievement?.(payload.eventType === 'DELETE' ? payload.old : payload.new, payload.eventType.toLowerCase());
-        })
-        .subscribe(status => {
-          if (unsubscribed) return;
-          if (status === 'SUBSCRIBED') onStatus?.('SUBSCRIBED');
-          else if (status === 'CHANNEL_ERROR') onStatus?.('CHANNEL_ERROR');
-          else if (status === 'TIMED_OUT') onStatus?.('TIMED_OUT');
-          else if (status === 'CLOSED') onStatus?.('CLOSED');
-        });
-    });
-    return () => { unsubscribed = true; channel?.unsubscribe(); onStatus?.('CLOSED'); };
-  }
 };
 
 export const backend = staticBackend;
