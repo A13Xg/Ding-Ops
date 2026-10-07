@@ -1466,3 +1466,95 @@ button.ding-award-card {
     display: none;
   }
 }
+
+
+.ding-character-row {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ding-character-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 16px;
+  text-align: left;
+}
+
+.ding-character-select > span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.ding-character-select small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.ding-character-manage {
+  flex: none;
+  align-self: stretch;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: rgba(15, 23, 42, .78);
+  color: #a5b4fc;
+  padding: 0 14px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.ding-form-actions.split {
+  justify-content: space-between;
+}
+
+.ding-form-actions.split > div {
+  display: flex;
+  gap: 10px;
+}
+
+.ding-root .mf-button.danger,
+.drawer-layer .mf-button.danger {
+  border-color: rgba(248, 113, 113, .52);
+  background: rgba(127, 29, 29, .45);
+  color: #fecaca;
+  box-shadow: none;
+}
+
+@media (max-width: 560px) {
+  .ding-character-row {
+    align-items: stretch;
+  }
+
+  .ding-character-select {
+    align-items: flex-start;
+  }
+
+  .ding-character-select > b {
+    flex: none;
+  }
+
+  .ding-character-manage {
+    padding-inline: 10px;
+  }
+
+  .ding-form-actions.split {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .ding-form-actions.split > div {
+    width: 100%;
+  }
+
+  .ding-form-actions.split .mf-button {
+    flex: 1;
+  }
+}
