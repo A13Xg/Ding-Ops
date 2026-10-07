@@ -3,16 +3,12 @@ import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { BadgeIcon } from './badgeIcons.jsx';
 import { haptic } from './haptics.js';
-const tierUrl = tier =>
-  ['bronze', 'silver', 'gold', 'platinum', 'mythic'].includes(tier)
-    ? `${import.meta.env.BASE_URL}badges/512/${tier}.png`
-    : null;
 export function BadgeMedal({ icon, accent, tier }) {
-  const url = tier ? tierUrl(tier) : null;
   return (
     <div
-      className={`badge-medal${url ? ` tier-plated` : ''}`}
-      style={{ '--badge': accent, ...(url ? { backgroundImage: `url(${url})` } : {}) }}
+      className={`badge-medal tier-${tier || 'bronze'}`}
+      style={{ '--badge': accent || '#60a5fa' }}
+      data-tier={tier || 'bronze'}
     >
       <BadgeIcon name={icon} />
     </div>
