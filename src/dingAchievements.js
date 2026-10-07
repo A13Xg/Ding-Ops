@@ -528,10 +528,7 @@ function buildMetrics(events, characters, levelCap, allEvents = events) {
     uniqueDays: new Set(dates).size,
     sessionCount: events.filter(event => Number.isInteger(event.session_minutes)).length,
     socialUsersByWindow: new Map(
-      [2, 5, 10].map(windowMinutes => [
-        windowMinutes,
-        synchronizedUserCount(events, allEvents, windowMinutes),
-      ])
+      [2, 5, 10].map(windowMinutes => [windowMinutes, synchronizedUserCount(events, allEvents, windowMinutes)])
     ),
   };
 }
