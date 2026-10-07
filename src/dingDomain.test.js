@@ -81,9 +81,11 @@ describe('Ding request contract', () => {
     );
   });
 
-  it('rejects negative optional counters', () => {
-    expect(() => createDingRequest({ character, eventId: 'e', deaths: -1 })).toThrow(/negative/i);
-    expect(() => createDingRequest({ character, eventId: 'e', sessionMinutes: -2 })).toThrow(/negative/i);
+  it('rejects optional counters outside sane persisted bounds', () => {
+    expect(() => createDingRequest({ character, eventId: 'e', deaths: -1 })).toThrow(/between 0/i);
+    expect(() => createDingRequest({ character, eventId: 'e', deaths: 10_001 })).toThrow(/between 0/i);
+    expect(() => createDingRequest({ character, eventId: 'e', sessionMinutes: -2 })).toThrow(/between 0/i);
+    expect(() => createDingRequest({ character, eventId: 'e', sessionMinutes: 525_601 })).toThrow(/between 0/i);
   });
 });
 
