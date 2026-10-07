@@ -1,3 +1,4 @@
+// Provider boundary stays intentionally independent from Supabase persistence.
 import { normalizeCharacterDraft, validateCharacterDraft } from './dingDomain.js';
 import { GAME_CONFIG } from './gameConfig.js';
 
