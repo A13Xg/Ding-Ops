@@ -11,7 +11,7 @@
  */
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import type { Database } from './database.types.ts';
-import { achievements } from '../../../src/rules.js';
+import { dingAchievements } from '../../../src/dingAchievements.js';
 import { buildAchievementNotification, buildDingNotification } from '../../../src/notificationMessages.js';
 import { achievementSlotId } from '../../../src/pushCooldown.js';
 import { sendDiscordNotification } from './discord.ts';
@@ -24,7 +24,7 @@ import {
   subscriptionsForCrew,
 } from './push.ts';
 
-const achievementById = new Map(achievements.map((item: { id: string }) => [item.id, item]));
+const achievementById = new Map(dingAchievements.map((item: { id: string }) => [item.id, item]));
 
 export type AnnounceOutcome =
   | { status: 'sent'; kind: string; sourceId: string; result: DeliveryResult }
