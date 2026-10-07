@@ -49,7 +49,7 @@ Deno.test('announceAchievement suppresses a second unlock inside the same cooldo
   const outcome = await announceAchievement(admin as unknown as Parameters<typeof announceAchievement>[0], {
     id: 'ach-row-2',
     user_id: 'user-1',
-    achievement_type: 'first_release',
+    achievement_type: 'first_ding',
   }, 'test-user');
   assertEquals(outcome.status, 'suppressed');
 });
