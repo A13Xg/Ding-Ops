@@ -147,6 +147,7 @@ export function ProfilePane({ user, characters, events, achievements, onUserUpda
   const [deletePhrase, setDeletePhrase] = useState('');
   const [accountBusy, setAccountBusy] = useState(false);
   const [accountStatus, setAccountStatus] = useState('');
+  const pwaInstall = usePwaInstall();
 
   useEffect(() => {
     setTagline(user.tagline || '');
@@ -245,6 +246,35 @@ export function ProfilePane({ user, characters, events, achievements, onUserUpda
           <small>Best-effort vibration where the browser supports it.</small>
         </label>
         <PushControl />
+        <div className="ding-install-control">
+          <div>
+            <Download />
+            <span>
+              <b>Install DING</b>
+              <small>
+                {pwaInstall.kind === 'installed'
+                  ? 'Running as an installed app.'
+                  : pwaInstall.kind === 'ios-manual'
+                    ? 'On iPhone/iPad: Safari Share → Add to Home Screen. Installed mode is required for iOS Web Push.'
+                    : pwaInstall.kind === 'prompt'
+                      ? 'Install the standalone PWA for faster access and more reliable background notifications.'
+                      : 'This browser is not offering an install prompt. You can keep using the web app normally.'}
+              </small>
+            </span>
+          </div>
+          {pwaInstall.kind === 'prompt' && (
+            <button
+              className="mf-button"
+              type="button"
+              onClick={async () => {
+                const result = await pwaInstall.install();
+                setAccountStatus(result.ok ? 'DING installed.' : 'Install prompt dismissed.');
+              }}
+            >
+              <Download /> INSTALL APP
+            </button>
+          )}
+        </div>
       </section>
 
       <section className="ding-panel mf-frame">
