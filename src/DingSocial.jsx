@@ -8,7 +8,12 @@ import { backend } from './backend.js';
 import { dingAchievements } from './dingAchievements.js';
 import { achievementXpForUser, parseShowcase, rankForUser, serializeShowcase } from './dingProgression.js';
 import { hapticsEnabled, setHapticsEnabled } from './haptics.js';
-import { enablePushNotifications, getNotificationPermission, PUSH_REASON_MESSAGE, rotatePushEndpoint } from './notifications.js';
+import {
+  enablePushNotifications,
+  getNotificationPermission,
+  PUSH_REASON_MESSAGE,
+  rotatePushEndpoint,
+} from './notifications.js';
 
 function initials(value) {
   return String(value || '?')
@@ -77,7 +82,9 @@ function PushControl() {
       setState({
         permission: getNotificationPermission(),
         ok: Boolean(result.ok),
-        message: result.ok ? 'Push endpoint rotated and re-registered.' : PUSH_REASON_MESSAGE[result.reason] || result.reason || 'Rotation failed.',
+        message: result.ok
+          ? 'Push endpoint rotated and re-registered.'
+          : PUSH_REASON_MESSAGE[result.reason] || result.reason || 'Rotation failed.',
       });
     } catch (error) {
       setState({ permission: getNotificationPermission(), ok: false, message: error.message });
@@ -93,7 +100,10 @@ function PushControl() {
         <span>
           <b>Crew push alerts</b>
           <small>
-            {state.message || (state.permission === 'granted' ? 'Browser permission granted. Arm this device with the DING backend.' : 'Get Dings and achievement alerts when the app is closed.')}
+            {state.message ||
+              (state.permission === 'granted'
+                ? 'Browser permission granted. Arm this device with the DING backend.'
+                : 'Get Dings and achievement alerts when the app is closed.')}
           </small>
         </span>
       </div>

@@ -594,7 +594,6 @@ function DingDashboard({ user, setUser }) {
     };
   }, [user.id]);
 
-
   const ownCharacters = useMemo(
     () => characters.filter(character => character.user_id === user.id && !character.is_archived),
     [characters, user.id]
@@ -776,8 +775,13 @@ function DingDashboard({ user, setUser }) {
 
       {updateAvailable && (
         <div className="ding-update-banner" role="status">
-          <span><b>NEW BUILD AVAILABLE</b><small>The raid leader patched DING while this tab was asleep.</small></span>
-          <button type="button" onClick={() => window.location.reload()}>RELOAD</button>
+          <span>
+            <b>NEW BUILD AVAILABLE</b>
+            <small>The raid leader patched DING while this tab was asleep.</small>
+          </span>
+          <button type="button" onClick={() => window.location.reload()}>
+            RELOAD
+          </button>
         </div>
       )}
       {status && <div className="ding-status">{status}</div>}
