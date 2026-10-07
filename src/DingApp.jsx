@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BarChart3, Bell, LogOut, Plus, Swords, UsersRound } from 'lucide-react';
+import { BarChart3, Bell, LogOut, Plus, Swords, Trophy, UsersRound } from 'lucide-react';
 import { backend } from './backend.js';
 import { BadgeToast } from './BadgeToast.jsx';
 import { dingAchievementById } from './dingAchievements.js';
+import { CrewPane, CrewToast, ProfilePane, TrophyPane } from './DingSocial.jsx';
 import { useAchievementQueue } from './useAchievementQueue.js';
 import { GAME_CONFIG, WOW_CLASSES, mergeGameConfig } from './gameConfig.js';
 import { createDingRequest, deriveLevelDurationSeconds, isMaxLevel, validateCharacterDraft } from './dingDomain.js';
@@ -477,6 +478,8 @@ function DingDashboard({ user, setUser }) {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [burstId, setBurstId] = useState(null);
+  const [crewToast, setCrewToast] = useState(null);
+  const dismissCrewToast = useCallback(() => setCrewToast(null), []);
   const { current: badgeToast, enqueue: enqueueBadge } = useAchievementQueue(5200);
 
   useEffect(() => {
@@ -504,6 +507,15 @@ function DingDashboard({ user, setUser }) {
         setEvents(previous =>
           action === 'deleted' ? previous.filter(row => row.id !== event.id) : mergeRow(previous, event)
         );
+        if (action === 'created' && event.user_id !== user.id) {
+          const character = characters.find(item => item.id === event.character_id);
+          setCrewToast({
+            id: `ding:${event.id}`,
+            kind: 'ding',
+            title: `${event.username || 'Someone'} dinged ${event.to_level}`,
+            body: `${character?.name || 'Their character'} · ${event.note || 'The grind continues.'}`,
+          });
+        }
       },
       onCharacter: (character, action) => {
         setCharacters(previous =>
@@ -520,6 +532,17 @@ function DingDashboard({ user, setUser }) {
         setAchievements(previous =>
           action === 'deleted' ? previous.filter(row => row.id !== achievement.id) : mergeRow(previous, achievement)
         );
+        if (action === 'created' && achievement.user_id !== user.id) {
+          const item = dingAchievementById(achievement.achievement_type);
+          if (item) {
+            setCrewToast({
+              id: `achievement:${achievement.id}`,
+              kind: 'achievement',
+              title: `${achievement.username || 'Someone'} unlocked ${item.name}`,
+              body: `${item.tier.toUpperCase()} · ${item.points} XP`,
+            });
+          }
+        }
       },
     });
 
@@ -527,7 +550,7 @@ function DingDashboard({ user, setUser }) {
       live = false;
       unsubscribe();
     };
-  }, [setUser, user.id]);
+  }, [characters, setUser, user.id]);
 
   useEffect(() => {
     if (!burstId) return undefined;
@@ -674,7 +697,7 @@ function DingDashboard({ user, setUser }) {
     <main className={'ding-root' + (phase === 'charge' ? ' ding-charging' : '')}>
       <div className="ding-grid-bg" />
       <header className="ding-topbar">
-        <button className="ding-player-chip" type="button" onClick={() => setOverlay('characters')}>
+        <button className="ding-player-chip" type="button" onClick={() => setOverlay('profile')}>
           <UsersRound />
           <span>
             <b>{user.username}</b>
@@ -689,6 +712,12 @@ function DingDashboard({ user, setUser }) {
         <div className="ding-actions">
           <button type="button" onClick={() => setOverlay('feed')} aria-label="Activity feed">
             <Bell />
+          </button>
+          <button type="button" onClick={() => setOverlay('crew')} aria-label="Crew roster">
+            <UsersRound />
+          </button>
+          <button type="button" onClick={() => setOverlay('trophy')} aria-label="Trophy cabinet">
+            <Trophy />
           </button>
           <button type="button" onClick={() => setOverlay('characters')} aria-label="Characters">
             <Swords />
@@ -739,12 +768,47 @@ function DingDashboard({ user, setUser }) {
         {burstId && <DingBurst id={burstId} />}
         {badgeToast && <BadgeToast key={badgeToast.id} badge={badgeToast} />}
       </AnimatePresence>
+      <CrewToast toast={crewToast} onClose={dismissCrewToast} />
 
       {overlay === 'analytics' && (
         <Overlay title="SWEAT ANALYTICS" onClose={() => setOverlay(null)} showScrollTop>
           <AnalyticsPane events={events} users={users} characters={characters} viewerId={user.id} />
         </Overlay>
       )}
+
+      {overlay === 'profile' && (
+        <Overlay title="OPERATOR PROFILE" onClose={() => setOverlay(null)} showScrollTop>
+          <ProfilePane
+            user={user}
+            characters={characters}
+            events={events}
+            achievements={achievements}
+            onUserUpdated={updated => {
+              setUser(updated);
+              setUsers(previous => mergeRow(previous, updated));
+            }}
+          />
+        </Overlay>
+      )}
+
+      {overlay === 'crew' && (
+        <Overlay title="CREW ROSTER" onClose={() => setOverlay(null)} showScrollTop>
+          <CrewPane
+            users={users}
+            characters={characters}
+            events={events}
+            achievements={achievements}
+            viewerId={user.id}
+          />
+        </Overlay>
+      )}
+
+      {overlay === 'trophy' && (
+        <Overlay title="TROPHY CABINET" onClose={() => setOverlay(null)} showScrollTop>
+          <TrophyPane userId={user.id} achievements={achievements} />
+        </Overlay>
+      )}
+
 
       {overlay === 'feed' && (
         <Overlay title="DING FEED" onClose={() => setOverlay(null)} showScrollTop>
