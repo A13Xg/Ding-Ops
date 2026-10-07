@@ -565,8 +565,7 @@
   }
 }
 
-/* Shared Bust primitives are intentionally overridden inside the DING root so
-   inherited geometry can remain while orange production styling cannot leak. */
+/* Shared primitives are restyled inside the DING root and portalled drawers. */
 .ding-root .mf-frame,
 .drawer-layer .mf-frame,
 .ding-detail.mf-frame,
