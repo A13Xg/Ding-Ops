@@ -1,3 +1,4 @@
+import { GAME_CONFIG } from './gameConfig.js';
 import { INACTIVITY_MESSAGE_CATALOG } from './notificationMessages.js';
 
 /**
@@ -27,15 +28,16 @@ import { INACTIVITY_MESSAGE_CATALOG } from './notificationMessages.js';
  */
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const REMINDER_CONFIG = GAME_CONFIG.reminderCadence;
 
 /*
- * Cadence: the first nag lands 5-7 days after a user's last Ding, and every
- * follow-up re-rolls another 5-7 days out. The window is randomized per user so
- * the whole crew is not pinged in lockstep.
+ * Explicit product configuration, shared by client tests and the scheduled
+ * Edge Function through this module. Future cadence changes now have one source
+ * instead of hidden magic numbers in the reminder engine.
  */
-export const FIRST_REMINDER_DELAY_MS = 5 * DAY_MS;
-export const REMINDER_WINDOW_MS = 2 * DAY_MS;
-export const MIN_REMINDER_INTERVAL_MS = 5 * DAY_MS;
+export const FIRST_REMINDER_DELAY_MS = REMINDER_CONFIG.firstDelayDays * DAY_MS;
+export const REMINDER_WINDOW_MS = REMINDER_CONFIG.randomWindowDays * DAY_MS;
+export const MIN_REMINDER_INTERVAL_MS = REMINDER_CONFIG.followupMinDays * DAY_MS;
 export const REMINDER_CALL_TO_ACTION = 'GO MAKE THE NUMBER BIGGER.';
 
 export { INACTIVITY_MESSAGE_CATALOG };
