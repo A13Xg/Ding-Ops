@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import {
   Bell,
   Check,
+  Download,
   KeyRound,
   LogOut,
   RotateCw,
@@ -18,7 +19,7 @@ import {
 } from 'lucide-react';
 import { BadgeMedal } from './BadgeToast.jsx';
 import { backend } from './backend.js';
-import { dingAchievements } from './dingAchievements.js';
+import { dingAchievementById, dingAchievements } from './dingAchievements.js';
 import { achievementXpForUser, parseShowcase, rankForUser, serializeShowcase } from './dingProgression.js';
 import { hapticsEnabled, setHapticsEnabled } from './haptics.js';
 import {
@@ -27,6 +28,7 @@ import {
   PUSH_REASON_MESSAGE,
   rotatePushEndpoint,
 } from './notifications.js';
+import { usePwaInstall } from './usePwaInstall.js';
 
 function initials(value) {
   return String(value || '?')
