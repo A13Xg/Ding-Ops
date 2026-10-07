@@ -22,6 +22,11 @@ export const GAME_CONFIG = Object.freeze({
   minLevel: 1,
   regions: Object.freeze(['US', 'EU', 'KR', 'TW']),
   factions: Object.freeze(['Alliance', 'Horde', 'Neutral']),
+  reminderCadence: Object.freeze({
+    firstDelayDays: 5,
+    randomWindowDays: 2,
+    followupMinDays: 5,
+  }),
   activityTypes: Object.freeze([
     Object.freeze({ id: 'questing', label: 'Questing' }),
     Object.freeze({ id: 'dungeon', label: 'Dungeon' }),
