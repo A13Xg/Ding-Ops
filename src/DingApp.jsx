@@ -579,7 +579,11 @@ function DingDashboard({ user, setUser }) {
   const [phase, setPhase] = useState('idle');
   const [pending, setPending] = useState(() => readPendingDing(sessionStorage, user.id));
   const [selected, setSelected] = useState(null);
-  const [overlay, setOverlay] = useState(null);
+  const [overlay, setOverlay] = useState(() => {
+    if (import.meta.env.VITE_DEMO_MODE !== 'true') return null;
+    const requested = new URLSearchParams(window.location.search).get('panel');
+    return ['analytics', 'profile', 'crew', 'trophy', 'feed', 'characters', 'ops'].includes(requested) ? requested : null;
+  });
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [burstId, setBurstId] = useState(null);
