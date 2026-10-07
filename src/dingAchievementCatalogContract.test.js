@@ -16,6 +16,6 @@ describe('DING achievement catalog migration contract', () => {
   });
 
   it('keeps the catalog at production breadth', () => {
-    expect(dingAchievements.length).toBe(133);
+    expect(dingAchievements.length).toBe(136);
   });
 });
