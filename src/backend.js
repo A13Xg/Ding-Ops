@@ -5,6 +5,7 @@
  */
 import { fetchAllPages } from './fetchAllPages.js';
 import { normalizeCharacterDraft } from './dingDomain.js';
+import { normalizeDingUsername, syntheticAuthEmail } from './authIdentity.js';
 
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPA_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -36,7 +37,6 @@ async function getSupa() {
  * bundle either way, so guarding its capitalisation buys nothing and only makes
  * it annoying to type. */
 const INVITE_CODE = 'ding4me';
-const synthEmail = u => `${String(u).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}@ding-ops.dev`;
 function toUser(p) {
   return p
     ? {
@@ -70,29 +70,39 @@ const staticBackend = {
   async me() { const sb = await getSupa(); return myProfile(sb); },
   async login({ username, password }) {
     const sb = await getSupa();
-    const { error } = await sb.auth.signInWithPassword({ email: synthEmail(username), password });
+    const { error } = await sb.auth.signInWithPassword({ email: syntheticAuthEmail(username), password });
     if (error) throw new Error('Invalid username or password');
     return myProfile(sb);
   },
   async signup({ username, password, inviteCode }) {
     if (String(inviteCode).trim().toLowerCase() !== INVITE_CODE) throw new Error('That secret handshake is not on the list.');
-    if (!/^[a-zA-Z0-9_ -]{2,32}$/.test(username)) throw new Error('Username must be 2-32 simple characters');
+    const wanted = normalizeDingUsername(username);
     if (String(password).length < 6) throw new Error('Password must be at least 6 characters');
     const sb = await getSupa();
     // Not ilike: '_' and '%' are wildcards there and the username pattern permits
     // '_', so 'Alex_' matched an existing 'AlexG' and was wrongly reported taken.
     // This is a courtesy check only — the unique index on lower(username) is the
     // real guard, and it is what closes the race between check and insert.
-    const wanted = username.trim();
-    const taken = await sb.from('profiles').select('id').eq('username', wanted).maybeSingle();
+    const taken = await sb.from('profiles').select('id').ilike('username', wanted.replaceAll('%', '\\%').replaceAll('_', '\\_')).maybeSingle();
     if (taken.data) throw new Error('Username already exists');
-    const { data, error } = await sb.auth.signUp({ email: synthEmail(username), password });
+    const { data, error } = await sb.auth.signUp({ email: syntheticAuthEmail(wanted), password });
     if (error) throw new Error(/already/i.test(error.message) ? 'Username already exists' : error.message);
     const uid = data.user?.id;
     if (!uid) throw new Error('Signup failed — is email confirmation disabled in Supabase Auth settings?');
-    const profile = { id: uid, username: username.trim(), avatar_seed: `${username}-${Date.now()}` };
+    const profile = { id: uid, username: wanted, avatar_seed: `${wanted}-${Date.now()}` };
     const ins = await sb.from('profiles').insert(profile).select().single();
-    if (ins.error) { await sb.auth.signOut(); throw new Error(ins.error.code === '23505' || /profiles_username_lower_key/.test(ins.error.message || '') ? 'Username already exists' : ins.error.message); }
+    if (ins.error) {
+      try {
+        await sb.functions.invoke('delete-account', { body: {} });
+      } catch {
+        await sb.auth.signOut();
+      }
+      throw new Error(
+        ins.error.code === '23505' || /profiles_username_lower_key/.test(ins.error.message || '')
+          ? 'Username already exists'
+          : ins.error.message
+      );
+    }
     return toUser(ins.data);
   },
   async logout() { const sb = await getSupa(); await sb.auth.signOut(); },
