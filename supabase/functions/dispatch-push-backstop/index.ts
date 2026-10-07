@@ -1,12 +1,12 @@
 /*
  * dispatch-push-backstop — scheduled sweep for anything notify-event missed.
  *
- * The busting client normally announces its own bust the moment it lands. That
- * call can still be lost (tab closed mid-request, offline, an old build). This
- * runs on a schedule, finds recent busts/achievements with no push_events row,
+ * The client normally announces its own Ding the moment it lands. That call can
+ * still be lost (tab closed mid-request, offline, an old build). This runs on
+ * a schedule, finds recent Dings/achievements with no push_events row,
  * and announces them. The ledger guarantees it never double-sends.
  *
- * The lookback window is deliberately short: a two-hour-old "someone busted"
+ * The lookback window is deliberately short: an hour-old "someone dinged"
  * notification is noise, not news.
  */
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     // Apple accepts pushes to an endpoint it has already invalidated — 201, not
     // 410 — so isGoneError never fires and bump_push_failure never records a
     // strike. Those rows would otherwise accumulate forever, inflating every
-    // recipients/delivered count and multiplying each burst across a device's
+    // recipients/delivered count and multiplying each Ding across a device's
     // ghost endpoints. Unacknowledged sends are the only evidence they are dead;
     // prune_dead_push_subscriptions is deliberately conservative about acting on
     // it (see the migration).
