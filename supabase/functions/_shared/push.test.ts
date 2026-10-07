@@ -77,7 +77,7 @@ Deno.test('claimPushEvent returns the new row id on a successful claim', async (
   };
   const id = await claimPushEvent(
     admin as unknown as Parameters<typeof claimPushEvent>[0],
-    'bust',
+    'ding',
     'source-1',
     'actor-1',
   );
@@ -96,7 +96,7 @@ Deno.test('claimPushEvent returns null when another caller already holds the cla
   };
   const id = await claimPushEvent(
     admin as unknown as Parameters<typeof claimPushEvent>[0],
-    'bust',
+    'ding',
     'source-1',
     'actor-1',
   );
@@ -114,7 +114,7 @@ Deno.test('claimPushEvent throws on a real (non-duplicate) database error', asyn
     }),
   };
   await assertRejects(
-    () => claimPushEvent(admin as unknown as Parameters<typeof claimPushEvent>[0], 'bust', 'source-1', 'actor-1'),
+    () => claimPushEvent(admin as unknown as Parameters<typeof claimPushEvent>[0], 'ding', 'source-1', 'actor-1'),
     Error,
     'permission denied',
   );
