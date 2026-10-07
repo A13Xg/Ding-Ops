@@ -780,7 +780,13 @@ function DingDashboard({ user, setUser }) {
 
       {overlay === 'analytics' && (
         <Overlay title="SWEAT ANALYTICS" onClose={() => setOverlay(null)} showScrollTop>
-          <DingAnalyticsView events={events} users={users} characters={characters} achievements={achievements} viewerId={user.id} />
+          <DingAnalyticsView
+            events={events}
+            users={users}
+            characters={characters}
+            achievements={achievements}
+            viewerId={user.id}
+          />
         </Overlay>
       )}
 
