@@ -113,6 +113,27 @@ function DingLogin({ onAuthed }) {
   );
 }
 
+function FirstRunIntro({ config }) {
+  return (
+    <section className="ding-first-run">
+      <div className="ding-first-run-copy">
+        <span className="mf-kicker">FIRST LOGIN</span>
+        <h1>Pick a character. Make the number bigger.</h1>
+        <p>
+          DING tracks one-level progression events, crew activity, achievements and leveling pace.
+          Manual characters are fully supported; no Battle.net account is required.
+        </p>
+      </div>
+      <div className="ding-first-run-steps">
+        <div className="mf-frame"><b>1</b><span><strong>ADD A CHARACTER</strong><small>Name, realm, class and current level.</small></span></div>
+        <div className="mf-frame"><b>2</b><span><strong>PRESS DING</strong><small>Each press advances exactly one server-validated level.</small></span></div>
+        <div className="mf-frame"><b>3</b><span><strong>GET JUDGED</strong><small>Realtime crew feed, app XP, awards and analytics.</small></span></div>
+      </div>
+      <small className="ding-muted">Current configured cap: {config.levelCap} · {config.expansionName}</small>
+    </section>
+  );
+}
+
 function CharacterForm({ config, initial = null, onCreated, onSaved, onArchived, onCancel }) {
   const editing = Boolean(initial?.id);
   const [form, setForm] = useState(() => ({
@@ -957,7 +978,10 @@ function DingDashboard({ user, setUser }) {
             />
           </>
         ) : (
-          <CharacterForm config={config} onCreated={createCharacter} />
+          <div className="ding-first-run-wrap">
+            <FirstRunIntro config={config} />
+            <CharacterForm config={config} onCreated={createCharacter} />
+          </div>
         )}
       </section>
 
