@@ -9,7 +9,13 @@ import { DingAnalyticsView } from './DingAnalyticsView.jsx';
 import { DingAdmin } from './DingAdmin.jsx';
 import { useAchievementQueue } from './useAchievementQueue.js';
 import { GAME_CONFIG, WOW_CLASSES, mergeGameConfig } from './gameConfig.js';
-import { createDingRequest, isMaxLevel, MAX_DEATHS_PER_LEVEL, MAX_SESSION_MINUTES, validateCharacterDraft } from './dingDomain.js';
+import {
+  createDingRequest,
+  isMaxLevel,
+  MAX_DEATHS_PER_LEVEL,
+  MAX_SESSION_MINUTES,
+  validateCharacterDraft,
+} from './dingDomain.js';
 import {
   checkPendingDing,
   clearPendingDing,
