@@ -271,6 +271,18 @@ begin
   if not found or v_character.user_id <> v_actor then raise exception 'DING_CHARACTER_NOT_FOUND'; end if;
   if v_character.is_archived then raise exception 'DING_CHARACTER_ARCHIVED'; end if;
 
+  -- A retry with the same UUID may have raced us between the optimistic lookup
+  -- above and this character lock. READ COMMITTED gives this statement a fresh
+  -- snapshot after the lock wait, so re-check before interpreting the now-
+  -- advanced character level as a stale client.
+  select * into v_existing from public.level_events where id = p_event_id;
+  if found then
+    if v_existing.user_id <> v_actor or v_existing.character_id <> p_character_id then
+      raise exception 'DING_EVENT_ID_CONFLICT';
+    end if;
+    return v_existing;
+  end if;
+
   select level_cap into v_cap from public.game_config where id = 'current';
   if v_cap is null then raise exception 'DING_CONFIG_MISSING'; end if;
   if v_character.current_level >= v_cap then raise exception 'DING_MAX_LEVEL'; end if;
