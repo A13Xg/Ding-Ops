@@ -21,6 +21,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
       - name: Format check
         run: npm run format:check
       - name: Lint
@@ -62,3 +64,22 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
+      - name: Verify production bundle isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          forbidden=(
+            "demo-alex"
+            "Smoke Zone"
+            "yuorggekucycvxrtqvvp"
+            "bust4me"
+            "bust-push"
+            "bust-sw-version"
+            "bust_haptics"
+          )
+          for token in "${forbidden[@]}"; do
+            if grep -R --fixed-strings --quiet -- "$token" dist; then
+              echo "::error::Forbidden development/legacy token leaked into production bundle: $token"
+              exit 1
+            fi
+          done
