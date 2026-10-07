@@ -112,15 +112,18 @@ function DingLogin({ onAuthed }) {
   );
 }
 
-function CharacterForm({ config, onCreated, onCancel }) {
-  const [form, setForm] = useState({
-    name: '',
-    realm: '',
-    region: 'US',
-    className: 'Warrior',
-    currentLevel: Math.min(80, config.levelCap),
-    faction: 'Alliance',
-  });
+function CharacterForm({ config, initial = null, onCreated, onSaved, onArchived, onCancel }) {
+  const editing = Boolean(initial?.id);
+  const [form, setForm] = useState(() => ({
+    name: initial?.name || '',
+    realm: initial?.realm || '',
+    region: initial?.region || 'US',
+    className: initial?.class_name || 'Warrior',
+    currentLevel: Number(initial?.current_level) || Math.min(80, config.levelCap),
+    faction: initial?.faction || 'Alliance',
+    spec: initial?.spec || '',
+    race: initial?.race || '',
+  }));
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
   const [serverError, setServerError] = useState('');
@@ -134,8 +137,26 @@ function CharacterForm({ config, onCreated, onCancel }) {
     setBusy(true);
     setServerError('');
     try {
-      const character = await backend.createCharacter(result.value);
-      await onCreated(character);
+      if (editing) {
+        const character = await backend.updateCharacter(initial.id, result.value);
+        await onSaved?.(character);
+      } else {
+        const character = await backend.createCharacter(result.value);
+        await onCreated?.(character);
+      }
+    } catch (err) {
+      setServerError(err.message);
+      setBusy(false);
+    }
+  }
+
+  async function archive() {
+    if (!editing || !window.confirm(`Archive ${initial.name}? Level history stays intact.`)) return;
+    setBusy(true);
+    setServerError('');
+    try {
+      const character = await backend.updateCharacter(initial.id, { ...form, is_archived: true });
+      await onArchived?.(character);
     } catch (err) {
       setServerError(err.message);
       setBusy(false);
@@ -144,8 +165,12 @@ function CharacterForm({ config, onCreated, onCancel }) {
 
   return (
     <form className="ding-character-form mf-frame" onSubmit={submit}>
-      <h2>ADD CHARACTER</h2>
-      <p>Pick the poor soul whose XP bar is about to become your personality.</p>
+      <h2>{editing ? 'EDIT CHARACTER' : 'ADD CHARACTER'}</h2>
+      <p>
+        {editing
+          ? 'Metadata can change. Level progression stays server-authoritative because we are not animals.'
+          : 'Pick the poor soul whose XP bar is about to become your personality.'}
+      </p>
       <div className="ding-form-grid">
         <label>
           Character
@@ -180,6 +205,7 @@ function CharacterForm({ config, onCreated, onCancel }) {
             min={config.minLevel}
             max={config.levelCap}
             value={form.currentLevel}
+            disabled={editing}
             onChange={event => setForm({ ...form, currentLevel: Number(event.target.value) })}
           />
           {errors.current_level && <small>{errors.current_level}</small>}
@@ -192,17 +218,44 @@ function CharacterForm({ config, onCreated, onCancel }) {
             ))}
           </select>
         </label>
+        <label>
+          Spec
+          <input
+            maxLength={40}
+            value={form.spec}
+            placeholder="Optional"
+            onChange={event => setForm({ ...form, spec: event.target.value })}
+          />
+        </label>
+        <label>
+          Race
+          <input
+            maxLength={40}
+            value={form.race}
+            placeholder="Optional"
+            onChange={event => setForm({ ...form, race: event.target.value })}
+          />
+        </label>
       </div>
       {serverError && <div className="error">{serverError}</div>}
-      <div className="ding-form-actions">
-        {onCancel && (
-          <button className="mf-button ghost" type="button" onClick={onCancel} disabled={busy}>
-            CANCEL
+      <div className="ding-form-actions split">
+        <div>
+          {editing && (
+            <button className="mf-button danger" type="button" onClick={archive} disabled={busy}>
+              ARCHIVE
+            </button>
+          )}
+        </div>
+        <div>
+          {onCancel && (
+            <button className="mf-button ghost" type="button" onClick={onCancel} disabled={busy}>
+              CANCEL
+            </button>
+          )}
+          <button className="mf-button" disabled={busy}>
+            {busy ? 'SAVING…' : editing ? 'SAVE CHARACTER' : 'ADD CHARACTER'}
           </button>
-        )}
-        <button className="mf-button" disabled={busy}>
-          {busy ? 'SUMMONING…' : 'ADD CHARACTER'}
-        </button>
+        </div>
       </div>
     </form>
   );
@@ -410,9 +463,10 @@ function EventDetail({ event, character, viewerId, onClose, onUpdated }) {
   );
 }
 
-function CharacterPane({ user, characters, config, onSelected, onCreated }) {
+function CharacterPane({ user, characters, config, onSelected, onCreated, onUpdated, onArchived }) {
   const own = characters.filter(character => character.user_id === user.id && !character.is_archived);
   const [adding, setAdding] = useState(own.length === 0);
+  const [editing, setEditing] = useState(null);
 
   if (adding) {
     return (
@@ -427,26 +481,48 @@ function CharacterPane({ user, characters, config, onSelected, onCreated }) {
     );
   }
 
+  if (editing) {
+    return (
+      <CharacterForm
+        config={config}
+        initial={editing}
+        onSaved={async character => {
+          await onUpdated(character);
+          setEditing(null);
+        }}
+        onArchived={async character => {
+          await onArchived(character);
+          setEditing(null);
+        }}
+        onCancel={() => setEditing(null)}
+      />
+    );
+  }
+
   return (
     <div className="ding-character-list">
       <button className="mf-button" type="button" onClick={() => setAdding(true)}>
         <Plus /> ADD CHARACTER
       </button>
       {own.map(character => (
-        <button
+        <article
           className={'ding-character-row mf-frame' + (user.active_character_id === character.id ? ' active' : '')}
-          type="button"
           key={character.id}
-          onClick={() => onSelected(character)}
         >
-          <div>
-            <strong>{character.name}</strong>
+          <button className="ding-character-select" type="button" onClick={() => onSelected(character)}>
             <span>
-              {character.class_name} · {character.realm} · {character.region}
+              <strong>{character.name}</strong>
+              <small>
+                {character.class_name}
+                {character.spec ? ` · ${character.spec}` : ''} · {character.realm} · {character.region}
+              </small>
             </span>
-          </div>
-          <b>LVL {character.current_level}</b>
-        </button>
+            <b>LVL {character.current_level}</b>
+          </button>
+          <button className="ding-character-manage" type="button" onClick={() => setEditing(character)}>
+            MANAGE
+          </button>
+        </article>
       ))}
     </div>
   );
@@ -776,6 +852,21 @@ function DingDashboard({ user, setUser }) {
     void reconcileLocalAchievements();
   }
 
+  async function updateCharacter(character) {
+    setCharacters(previous => mergeRow(previous, character));
+    void reconcileLocalAchievements();
+  }
+
+  async function archiveCharacter(character) {
+    setCharacters(previous => mergeRow(previous, character));
+    if (user.active_character_id === character.id) {
+      const next = ownCharacters.find(row => row.id !== character.id) || null;
+      const updated = await backend.setActiveCharacter(next?.id || null);
+      setUser(updated);
+    }
+    void reconcileLocalAchievements();
+  }
+
   if (loading) {
     return <main className="ding-root ding-loading">OPENING THE BASEMENT DOOR…</main>;
   }
@@ -948,6 +1039,8 @@ function DingDashboard({ user, setUser }) {
             config={config}
             onSelected={selectCharacter}
             onCreated={createCharacter}
+            onUpdated={updateCharacter}
+            onArchived={archiveCharacter}
           />
           <div className="ding-account-actions">
             <button
