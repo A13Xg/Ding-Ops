@@ -72,8 +72,8 @@ create table if not exists public.level_events (
   time_bucket text not null,
   zone text check (zone is null or char_length(zone) <= 80),
   activity_type text,
-  deaths integer check (deaths is null or deaths >= 0),
-  session_minutes integer check (session_minutes is null or session_minutes >= 0),
+  deaths integer check (deaths is null or deaths between 0 and 10000),
+  session_minutes integer check (session_minutes is null or session_minutes between 0 and 525600),
   note text not null default '' check (char_length(note) <= 240),
   created_at timestamptz not null default now(),
   check (to_level = from_level + 1),
@@ -290,8 +290,12 @@ begin
     raise exception 'DING_STALE_LEVEL' using detail =
       format('expected current level %s, server has %s', p_expected_from_level, v_character.current_level);
   end if;
-  if p_deaths is not null and p_deaths < 0 then raise exception 'DING_DEATHS_INVALID'; end if;
-  if p_session_minutes is not null and p_session_minutes < 0 then raise exception 'DING_SESSION_INVALID'; end if;
+  if p_deaths is not null and (p_deaths < 0 or p_deaths > 10000) then
+    raise exception 'DING_DEATHS_INVALID';
+  end if;
+  if p_session_minutes is not null and (p_session_minutes < 0 or p_session_minutes > 525600) then
+    raise exception 'DING_SESSION_INVALID';
+  end if;
 
   v_now := clock_timestamp();
   v_tz := coalesce(nullif(trim(p_time_zone),''),'UTC');
