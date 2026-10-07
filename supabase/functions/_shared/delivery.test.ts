@@ -223,7 +223,7 @@ Deno.test('backstop advances past the newest 50 handled achievements on the next
   await withTransports(async (sent) => {
     const achievements = Array.from({ length: 60 }, (_, index) => ({ ...achievement, id: `a${index}` }));
     const { admin, tables } = database({
-      dings: [],
+      level_events: [],
       achievements,
       push_events: achievements.map((row, id) => ({ id, kind: 'achievement', source_id: row.id })),
     });
