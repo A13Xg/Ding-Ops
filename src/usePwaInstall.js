@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { installState } from './pwaInstall.js';
 
 export function usePwaInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [installedTick, setInstalledTick] = useState(0);
+  const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
     const onBeforeInstall = event => {
@@ -12,7 +12,7 @@ export function usePwaInstall() {
     };
     const onInstalled = () => {
       setDeferredPrompt(null);
-      setInstalledTick(value => value + 1);
+      setInstalled(true);
     };
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
     window.addEventListener('appinstalled', onInstalled);
@@ -22,10 +22,9 @@ export function usePwaInstall() {
     };
   }, []);
 
-  const state = useMemo(
-    () => installState({ hasNativePrompt: Boolean(deferredPrompt) }),
-    [deferredPrompt, installedTick]
-  );
+  const state = installed
+    ? { kind: 'installed', label: 'INSTALLED' }
+    : installState({ hasNativePrompt: Boolean(deferredPrompt) });
 
   async function install() {
     if (!deferredPrompt) return { ok: false, state };
