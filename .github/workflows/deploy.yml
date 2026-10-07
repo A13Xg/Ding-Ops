@@ -1,0 +1,107 @@
+name: Deploy DING
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: ding-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Supabase then Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_WEB_PUSH_PUBLIC_KEY: ${{ secrets.VITE_WEB_PUSH_PUBLIC_KEY }}
+      VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+      VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+      VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+      REMINDER_CRON_SECRET: ${{ secrets.REMINDER_CRON_SECRET }}
+      BROADCAST_ADMINS: ${{ secrets.BROADCAST_ADMINS }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate required production secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in             SUPABASE_ACCESS_TOKEN             SUPABASE_DB_PASSWORD             SUPABASE_PROJECT_REF             VITE_SUPABASE_URL             VITE_SUPABASE_ANON_KEY             VITE_WEB_PUSH_PUBLIC_KEY             VAPID_PUBLIC_KEY             VAPID_PRIVATE_KEY             VAPID_SUBJECT             REMINDER_CRON_SECRET
+          do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing required GitHub secret: $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link dedicated DING Supabase project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Apply DING migrations
+        run: supabase db push --linked --include-all
+
+      - name: Configure Edge Function secrets
+        shell: bash
+        env:
+          DING_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          args=(
+            "VAPID_PUBLIC_KEY=$VAPID_PUBLIC_KEY"
+            "VAPID_PRIVATE_KEY=$VAPID_PRIVATE_KEY"
+            "VAPID_SUBJECT=$VAPID_SUBJECT"
+            "REMINDER_CRON_SECRET=$REMINDER_CRON_SECRET"
+            "SITE_URL=$DING_SITE_URL"
+          )
+          if [ -n "${BROADCAST_ADMINS:-}" ]; then args+=("BROADCAST_ADMINS=$BROADCAST_ADMINS"); fi
+          if [ -n "${DISCORD_WEBHOOK_URL:-}" ]; then args+=("DISCORD_WEBHOOK_URL=$DISCORD_WEBHOOK_URL"); fi
+          supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" "${args[@]}"
+
+      - name: Deploy DING Edge Functions
+        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Live Supabase integration smoke
+        run: npm run test:integration
+
+      - name: Build GitHub Pages artifact
+        env:
+          GHPAGES_BASE: /${{ github.event.repository.name }}/
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
