@@ -13,7 +13,7 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import type { Database } from './database.types.ts';
 import { dingAchievements } from '../../../src/dingAchievements.js';
 import { buildAchievementNotification, buildDingNotification } from '../../../src/notificationMessages.js';
-import { achievementSlotId } from '../../../src/pushCooldown.js';
+import { achievementBurstSlotId } from '../../../src/achievementPushSlot.js';
 import { sendDiscordNotification } from './discord.ts';
 import {
   claimPushEvent,
@@ -62,7 +62,7 @@ const BURST_WINDOW_MS = 2 * 60 * 1000;
  * announce and simply drops the rest — but those rows are still sitting in
  * `achievements` inside dispatch-push-backstop's lookback with no `push_events`
  * row, so the next sweep treats one of them as un-announced and pushes it. The
- * ten-minute cooldown slot does not stop that: the slot the client used has
+ * ten-minute reconciliation-burst slot does not stop that: the slot the client used has
  * already expired by the time the sweep runs, so the sweep claims a fresh one.
  * Net effect was two achievement pushes per Ding, ten minutes apart.
  *
@@ -105,7 +105,7 @@ async function announce(
   sourceId: string,
   actorId: string,
   payload: { title: string; body: string; tag: string; kind: string },
-  // A cooldown slot held on the caller's behalf. Released alongside the row's own
+  // A reconciliation-burst slot held on the caller's behalf. Released alongside the row's own
   // claim if the send fails, so one transient failure does not burn the whole
   // window and lock the backstop out of retrying.
   slotEventId: number | null = null,
@@ -245,14 +245,14 @@ export async function announceAchievement(
     pushBody: payload.body,
   };
 
-  // A Discord-only retry must not reserve a fresh push cooldown slot or
+  // A Discord-only retry must not reserve a fresh push reconciliation-burst slot or
   // resurrect a sibling that was deliberately suppressed on mobile.
   if (skipPush) {
     await sendDiscordNotification(admin, 'achievement', discordContext);
     return { status: 'duplicate' as const, kind: 'achievement', sourceId: achievement.id };
   }
 
-  // One achievement PUSH per actor per cooldown window — a lock-screen pacing
+  // One achievement PUSH per actor per reconciliation burst — a lock-screen pacing
   // rule that has nothing to do with Discord, so a suppressed slot still gets
   // its own Discord message below. Claiming the slot is what makes the push
   // side safe under concurrency: the client fires its announcements in
@@ -261,7 +261,7 @@ export async function announceAchievement(
   const slotEventId = await claimPushEvent(
     admin,
     'achievement',
-    achievementSlotId(achievement.user_id, Date.now()),
+    achievementBurstSlotId(achievement.user_id, achievement.unlocked_at, achievement.id),
     achievement.user_id,
   );
   if (slotEventId == null) {
