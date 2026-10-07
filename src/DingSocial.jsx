@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Check, Save, Shield, Swords, Trophy, UsersRound, X } from 'lucide-react';
 import { BadgeMedal } from './BadgeToast.jsx';
 import { backend } from './backend.js';
-import { dingAchievementById, dingAchievements } from './dingAchievements.js';
+import { dingAchievements } from './dingAchievements.js';
 import { achievementXpForUser, parseShowcase, rankForUser, serializeShowcase } from './dingProgression.js';
 import { hapticsEnabled, setHapticsEnabled } from './haptics.js';
 
