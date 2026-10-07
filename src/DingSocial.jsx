@@ -2,12 +2,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { Check, Save, Shield, Swords, Trophy, UsersRound, X } from 'lucide-react';
+import { Bell, Check, RotateCw, Save, Shield, Swords, Trophy, UsersRound, X } from 'lucide-react';
 import { BadgeMedal } from './BadgeToast.jsx';
 import { backend } from './backend.js';
 import { dingAchievements } from './dingAchievements.js';
 import { achievementXpForUser, parseShowcase, rankForUser, serializeShowcase } from './dingProgression.js';
 import { hapticsEnabled, setHapticsEnabled } from './haptics.js';
+import { enablePushNotifications, getNotificationPermission, PUSH_REASON_MESSAGE, rotatePushEndpoint } from './notifications.js';
 
 function initials(value) {
   return String(value || '?')
@@ -33,6 +34,78 @@ export function RankBlock({ achievements, userId }) {
       </div>
       <div className="ding-rank-progress" aria-label={`${Math.round(rank.progress * 100)} percent to next app rank`}>
         <i style={{ width: `${Math.round(rank.progress * 100)}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function PushControl() {
+  const [busy, setBusy] = useState(false);
+  const [state, setState] = useState(() => ({
+    permission: getNotificationPermission(),
+    message: '',
+    ok: getNotificationPermission() === 'granted',
+  }));
+
+  async function arm(interactive = true) {
+    setBusy(true);
+    try {
+      const result = await enablePushNotifications({
+        backend,
+        workerPath: `${import.meta.env.BASE_URL}sw.js`,
+        interactive,
+      });
+      setState({
+        permission: result.permission || getNotificationPermission(),
+        ok: Boolean(result.ok),
+        message: result.message || PUSH_REASON_MESSAGE[result.reason] || result.reason || '',
+      });
+    } catch (error) {
+      setState({ permission: getNotificationPermission(), ok: false, message: error.message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function rotate() {
+    setBusy(true);
+    try {
+      const result = await rotatePushEndpoint({
+        backend,
+        workerPath: `${import.meta.env.BASE_URL}sw.js`,
+      });
+      setState({
+        permission: getNotificationPermission(),
+        ok: Boolean(result.ok),
+        message: result.ok ? 'Push endpoint rotated and re-registered.' : PUSH_REASON_MESSAGE[result.reason] || result.reason || 'Rotation failed.',
+      });
+    } catch (error) {
+      setState({ permission: getNotificationPermission(), ok: false, message: error.message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="ding-push-control">
+      <div>
+        <Bell />
+        <span>
+          <b>Crew push alerts</b>
+          <small>
+            {state.message || (state.permission === 'granted' ? 'Browser permission granted. Arm this device with the DING backend.' : 'Get Dings and achievement alerts when the app is closed.')}
+          </small>
+        </span>
+      </div>
+      <div className="ding-push-actions">
+        <button className="mf-button" type="button" disabled={busy} onClick={() => arm(true)}>
+          <Bell /> {busy ? 'WORKING…' : state.ok ? 'RE-ARM DEVICE' : 'ENABLE ALERTS'}
+        </button>
+        {state.permission === 'granted' && (
+          <button className="mf-button ghost" type="button" disabled={busy} onClick={rotate}>
+            <RotateCw /> ROTATE ENDPOINT
+          </button>
+        )}
       </div>
     </div>
   );
@@ -144,6 +217,7 @@ export function ProfilePane({ user, characters, events, achievements, onUserUpda
           <span>Haptic feedback</span>
           <small>Best-effort vibration where the browser supports it.</small>
         </label>
+        <PushControl />
       </section>
 
       <section className="ding-panel mf-frame">
