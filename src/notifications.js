@@ -34,7 +34,7 @@ export const PUSH_REASON_MESSAGE = {
   [PUSH_REASON.OK]: 'Push alerts are armed.',
   [PUSH_REASON.UNSUPPORTED]: 'This browser cannot receive push notifications.',
   [PUSH_REASON.IOS_NEEDS_INSTALL]:
-    'On iPhone/iPad you must first add BUST to your Home Screen (Share → Add to Home Screen), then open it from there.',
+    'On iPhone/iPad you must first add DING to your Home Screen (Share → Add to Home Screen), then open it from there.',
   [PUSH_REASON.PERMISSION_DENIED]:
     'Notifications are blocked for this site. Re-enable them in your browser/OS site settings, then try again.',
   [PUSH_REASON.PERMISSION_DISMISSED]: 'Permission prompt was dismissed. Tap again to retry.',
@@ -132,11 +132,11 @@ export async function showNotification(title, options = {}, deps = {}) {
 }
 
 function withNotificationDefaults(options = {}, baseUrl = '/') {
-  const icon = options.icon || `${baseUrl}icons/icon-192.png`;
+  const icon = options.icon || `${baseUrl}ding-icon.svg`;
   return {
     // Android renders `badge` as a monochrome alpha mask, so it gets its own
     // single-colour asset rather than the full-colour icon.
-    badge: `${baseUrl}icons/badge-96.png`,
+    badge: `${baseUrl}ding-badge.svg`,
     icon,
     ...options,
     // `renotify` is invalid without a tag and makes Chrome throw.

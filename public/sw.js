@@ -1,5 +1,5 @@
 /*
- * BUST service worker — web push receiver.
+ * DING service worker — web push receiver.
  *
  * Deliberately NOT a caching/offline worker. Its only jobs are:
  *   - render pushes that arrive while the app is closed,
@@ -11,7 +11,7 @@
  *
  * Bump SW_VERSION whenever this file changes so the update is obvious in logs.
  */
-const SW_VERSION = '2026-09-13.1';
+const SW_VERSION = '2026-10-06.1';
 
 const scopeUrl = () => new URL(self.registration.scope);
 const scoped = path => new URL(String(path).replace(/^\//, ''), scopeUrl()).toString();
@@ -39,15 +39,15 @@ function parsePushPayload(event) {
 }
 
 function buildNotification(payload) {
-  const icon = payload.icon ? scoped(payload.icon) : scoped('icons/icon-192.png');
+  const icon = payload.icon ? scoped(payload.icon) : scoped('ding-icon.svg');
   // Android draws `badge` as a monochrome alpha mask in the status bar, so it
   // needs a dedicated single-colour asset — a full-colour icon renders as a blob.
-  const badge = scoped('icons/badge-96.png');
-  const tag = payload.tag || `bust-${payload.kind || 'event'}-${Date.now()}`;
+  const badge = scoped('ding-badge.svg');
+  const tag = payload.tag || `ding-${payload.kind || 'event'}-${Date.now()}`;
   return [
-    payload.title || 'BUST',
+    payload.title || 'DING',
     {
-      body: payload.body || 'Pressure event received.',
+      body: payload.body || 'Crew activity received.',
       tag,
       icon,
       badge,
@@ -101,7 +101,7 @@ self.addEventListener('push', event => {
       // Let any open tab react (bump the unread badge, refresh the feed).
       const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       for (const client of clients) {
-        client.postMessage({ type: 'bust-push', payload });
+        client.postMessage({ type: 'ding-push', payload });
       }
       // Last, and awaited only to keep the worker alive for it: a slow or
       // hanging network must not delay anything the user can see.
@@ -118,7 +118,7 @@ self.addEventListener('notificationclick', event => {
       const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       for (const client of clients) {
         if (client.url.startsWith(scopeUrl().toString()) && 'focus' in client) {
-          client.postMessage({ type: 'bust-notification-click', data: event.notification.data || {} });
+          client.postMessage({ type: 'ding-notification-click', data: event.notification.data || {} });
           return client.focus();
         }
       }
@@ -151,7 +151,7 @@ self.addEventListener('pushsubscriptionchange', event => {
       }
       const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       for (const client of clients) {
-        client.postMessage({ type: 'bust-push-resubscribed', subscription: subscription.toJSON() });
+        client.postMessage({ type: 'ding-push-resubscribed', subscription: subscription.toJSON() });
       }
     })()
   );
@@ -160,16 +160,16 @@ self.addEventListener('pushsubscriptionchange', event => {
 /* The open tab delegates local notifications here (see src/notifications.js). */
 self.addEventListener('message', event => {
   const data = event.data || {};
-  if (data.type === 'bust-show-notification') {
+  if (data.type === 'ding-show-notification') {
     const [title, options] = buildNotification(data.payload || {});
     event.waitUntil?.(self.registration.showNotification(title, options));
   }
-  if (data.type === 'bust-sw-version') {
+  if (data.type === 'ding-sw-version') {
     // Reply down the MessageChannel port when the caller supplied one, so it can
     // await a specific answer instead of racing every message the worker posts.
     // `event.source` stays as the fallback for a caller that just fires and
     // listens on the global handler.
-    const reply = { type: 'bust-sw-version', version: SW_VERSION };
+    const reply = { type: 'ding-sw-version', version: SW_VERSION };
     if (event.ports && event.ports[0]) event.ports[0].postMessage(reply);
     else event.source?.postMessage(reply);
   }

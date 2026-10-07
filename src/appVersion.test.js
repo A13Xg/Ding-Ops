@@ -112,7 +112,7 @@ describe('readServiceWorkerVersion', () => {
       serviceWorker: {
         controller: {
           postMessage(_message, [port]) {
-            port.postMessage({ type: 'bust-sw-version', version: '2026-09-13.1' });
+            port.postMessage({ type: 'ding-sw-version', version: '2026-09-13.1' });
           },
         },
       },

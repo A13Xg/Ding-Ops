@@ -132,7 +132,7 @@ export function readServiceWorkerVersion(nav = globalThis.navigator, timeoutMs =
     try {
       const channel = new MessageChannel();
       channel.port1.onmessage = event => finish(event.data?.version || null);
-      worker.postMessage({ type: 'bust-sw-version' }, [channel.port2]);
+      worker.postMessage({ type: 'ding-sw-version' }, [channel.port2]);
     } catch {
       finish(null);
     }
