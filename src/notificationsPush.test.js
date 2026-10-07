@@ -44,7 +44,7 @@ describe('local notification delivery path', () => {
     const notificationApi = makeNotificationApi({ permission: 'granted' });
 
     await expect(
-      showNotification('Crew alert', { body: 'Incoming.', tag: 'bust-1' }, { navigator: nav, notificationApi })
+      showNotification('Crew alert', { body: 'Incoming.', tag: 'ding-1' }, { navigator: nav, notificationApi })
     ).resolves.toBe(true);
     expect(showNotificationSpy).toHaveBeenCalledTimes(1);
     expect(showNotificationSpy.mock.calls[0][0]).toBe('Crew alert');
