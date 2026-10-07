@@ -96,8 +96,8 @@ export function saveInactivityReminderState(storage = globalThis.localStorage, u
   }
 }
 
-function firstReminderWindow(cycleBustMs) {
-  const start = cycleBustMs + FIRST_REMINDER_DELAY_MS;
+function firstReminderWindow(cycleDingMs) {
+  const start = cycleDingMs + FIRST_REMINDER_DELAY_MS;
   return [start, start + REMINDER_WINDOW_MS];
 }
 
@@ -115,11 +115,11 @@ function scheduleInWindow(windowStart, windowEnd, random) {
  * @returns {ReconciledReminderState | null} null when the user has never dinged.
  */
 export function reconcileInactivityReminderState({ state, latestDingAt, now = Date.now(), random = Math.random }) {
-  const cycleBustMs = toEpochMs(latestDingAt);
-  if (cycleBustMs == null) return null;
+  const cycleDingMs = toEpochMs(latestDingAt);
+  if (cycleDingMs == null) return null;
 
   const normalized = {
-    cycleDingAt: isoAt(cycleBustMs),
+    cycleDingAt: isoAt(cycleDingMs),
     scheduledFor: null,
     lastSentAt: null,
     lastMessageIndex: null,
@@ -129,7 +129,7 @@ export function reconcileInactivityReminderState({ state, latestDingAt, now = Da
   // "…12:00:00.123456+00:00" while Date#toISOString gives "…12:00:00.123Z", so a
   // string compare is false for every row read back from the database — which
   // silently discards lastSentAt and re-fires the reminder on every dispatch.
-  if (toEpochMs(state?.cycleDingAt) === cycleBustMs) {
+  if (toEpochMs(state?.cycleDingAt) === cycleDingMs) {
     normalized.scheduledFor = typeof state.scheduledFor === 'string' ? state.scheduledFor : null;
     normalized.lastSentAt = typeof state.lastSentAt === 'string' ? state.lastSentAt : null;
     normalized.lastMessageIndex = Number.isInteger(state.lastMessageIndex) ? state.lastMessageIndex : null;
@@ -138,10 +138,10 @@ export function reconcileInactivityReminderState({ state, latestDingAt, now = Da
   const lastSentMs = toEpochMs(normalized.lastSentAt);
   let minMs;
   let maxMs;
-  if (lastSentMs != null && lastSentMs >= cycleBustMs) {
+  if (lastSentMs != null && lastSentMs >= cycleDingMs) {
     [minMs, maxMs] = followupReminderWindow(lastSentMs);
   } else {
-    [minMs, maxMs] = firstReminderWindow(cycleBustMs);
+    [minMs, maxMs] = firstReminderWindow(cycleDingMs);
   }
 
   const scheduledMs = toEpochMs(normalized.scheduledFor);
@@ -155,10 +155,10 @@ export function reconcileInactivityReminderState({ state, latestDingAt, now = Da
 }
 
 export function isInactivityReminderDue(state, latestDingAt, now = Date.now()) {
-  const cycleBustMs = toEpochMs(latestDingAt);
-  if (cycleBustMs == null || !state) return false;
+  const cycleDingMs = toEpochMs(latestDingAt);
+  if (cycleDingMs == null || !state) return false;
   const stateCycleMs = toEpochMs(state.cycleDingAt);
-  if (stateCycleMs == null || stateCycleMs !== cycleBustMs) return false;
+  if (stateCycleMs == null || stateCycleMs !== cycleDingMs) return false;
   const scheduledMs = toEpochMs(state.scheduledFor);
   if (scheduledMs == null || now < scheduledMs) return false;
   const lastSentMs = toEpochMs(state.lastSentAt);
@@ -212,11 +212,11 @@ export function buildInactivityReminderMessage(random = Math.random, lastMessage
  * @returns {ReconciledReminderState | null}
  */
 export function markInactivityReminderSent(state, { now = Date.now(), random = Math.random, messageIndex = null } = {}) {
-  const cycleBustMs = toEpochMs(state?.cycleDingAt);
-  if (cycleBustMs == null) return state || null;
+  const cycleDingMs = toEpochMs(state?.cycleDingAt);
+  if (cycleDingMs == null) return state || null;
   const [minMs, maxMs] = followupReminderWindow(now);
   return {
-    cycleDingAt: isoAt(cycleBustMs),
+    cycleDingAt: isoAt(cycleDingMs),
     lastSentAt: isoAt(now),
     scheduledFor: scheduleInWindow(minMs, maxMs, random),
     lastMessageIndex: Number.isInteger(messageIndex) ? messageIndex : null,
