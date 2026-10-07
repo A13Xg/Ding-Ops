@@ -1043,3 +1043,88 @@ button.ding-award-card {
     animation: none;
   }
 }
+
+
+.ding-context {
+  width: min(620px, calc(100vw - 32px));
+  padding: 0;
+  overflow: hidden;
+}
+
+.ding-context summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  color: #bfdbfe;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  list-style: none;
+}
+
+.ding-context summary::-webkit-details-marker {
+  display: none;
+}
+
+.ding-context summary::after {
+  content: '+';
+  color: #a78bfa;
+  font-size: 18px;
+}
+
+.ding-context[open] summary::after {
+  content: '−';
+}
+
+.ding-context summary span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.ding-context-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.ding-context-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.ding-context-grid input,
+.ding-context-grid select {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--line);
+  background: rgba(5, 9, 17, 0.86);
+  color: var(--ink);
+  padding: 10px;
+  outline: none;
+}
+
+.ding-context-grid input:focus,
+.ding-context-grid select:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+}
+
+@media (max-width: 760px) {
+  .ding-context-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ding-context summary span {
+    display: none;
+  }
+}
