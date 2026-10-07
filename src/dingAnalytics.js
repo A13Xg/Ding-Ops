@@ -1,5 +1,7 @@
 import { rankForUser } from './dingProgression.js';
 
+// Pure analytics derivation: no viewer-state mutation, network access, or fabricated fields.
+
 const DAY_MS = 86_400_000;
 
 function dayKeyFromDate(date) {
