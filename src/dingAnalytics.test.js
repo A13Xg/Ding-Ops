@@ -22,14 +22,24 @@ describe('DING analytics', () => {
     const result = deriveDingAnalytics({
       now,
       viewerId: 'u1',
-      users: [{ id: 'u1', username: 'A' }, { id: 'u2', username: 'B' }],
+      users: [
+        { id: 'u1', username: 'A' },
+        { id: 'u2', username: 'B' },
+      ],
       characters: [
         { id: 'c1', user_id: 'u1', name: 'One', is_archived: false },
         { id: 'c2', user_id: 'u2', name: 'Two', is_archived: false },
       ],
       events: [
         event({ id: 'e1', session_minutes: 20, deaths: 0 }),
-        event({ id: 'e2', user_id: 'u2', character_id: 'c2', activity_type: 'dungeon', local_hour: 21, time_bucket: 'Prime Night' }),
+        event({
+          id: 'e2',
+          user_id: 'u2',
+          character_id: 'c2',
+          activity_type: 'dungeon',
+          local_hour: 21,
+          time_bucket: 'Prime Night',
+        }),
       ],
     });
     expect(result.summary.groupDings).toBe(2);

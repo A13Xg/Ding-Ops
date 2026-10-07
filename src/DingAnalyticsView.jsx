@@ -70,7 +70,11 @@ function Heatmap({ cells }) {
         ))}
       </div>
       <div className="ding-heatmap-hours">
-        <span>00</span><span>06</span><span>12</span><span>18</span><span>23</span>
+        <span>00</span>
+        <span>06</span>
+        <span>12</span>
+        <span>18</span>
+        <span>23</span>
       </div>
     </div>
   );
@@ -80,7 +84,11 @@ function Record({ icon: Icon, label, value, hint }) {
   return (
     <div className="ding-record mf-frame">
       <Icon />
-      <div><span>{label}</span><strong>{value}</strong><small>{hint}</small></div>
+      <div>
+        <span>{label}</span>
+        <strong>{value}</strong>
+        <small>{hint}</small>
+      </div>
     </div>
   );
 }
@@ -100,10 +108,26 @@ export function DingAnalyticsView({ events, users, characters, achievements, vie
   return (
     <div className="ding-analytics">
       <div className="ding-stat-grid">
-        <div className="stat mf-frame"><span>GROUP DINGS</span><strong>{analytics.summary.groupDings}</strong><small>all tracked levels</small></div>
-        <div className="stat mf-frame"><span>ACTIVE GRINDERS</span><strong>{analytics.summary.activeGrinders}</strong><small>last 7 days</small></div>
-        <div className="stat mf-frame"><span>TODAY</span><strong>{analytics.summary.today}</strong><small>viewer-local day</small></div>
-        <div className="stat mf-frame"><span>YOUR RANK</span><strong>{analytics.summary.viewerRank ? `#${analytics.summary.viewerRank}` : '—'}</strong><small>{analytics.summary.viewerStreak} day best streak</small></div>
+        <div className="stat mf-frame">
+          <span>GROUP DINGS</span>
+          <strong>{analytics.summary.groupDings}</strong>
+          <small>all tracked levels</small>
+        </div>
+        <div className="stat mf-frame">
+          <span>ACTIVE GRINDERS</span>
+          <strong>{analytics.summary.activeGrinders}</strong>
+          <small>last 7 days</small>
+        </div>
+        <div className="stat mf-frame">
+          <span>TODAY</span>
+          <strong>{analytics.summary.today}</strong>
+          <small>viewer-local day</small>
+        </div>
+        <div className="stat mf-frame">
+          <span>YOUR RANK</span>
+          <strong>{analytics.summary.viewerRank ? `#${analytics.summary.viewerRank}` : '—'}</strong>
+          <small>{analytics.summary.viewerStreak} day best streak</small>
+        </div>
       </div>
 
       <div className="ding-analytics-grid">
@@ -141,7 +165,11 @@ export function DingAnalyticsView({ events, users, characters, achievements, vie
             {analytics.hours.map(row => {
               const max = maxValue(analytics.hours);
               return (
-                <i key={row.hour} title={`${row.hour}:00 — ${row.count}`} style={{ height: `${Math.max(3, (row.count / max) * 100)}%` }}>
+                <i
+                  key={row.hour}
+                  title={`${row.hour}:00 — ${row.count}`}
+                  style={{ height: `${Math.max(3, (row.count / max) * 100)}%` }}
+                >
                   <span>{row.hour % 6 === 0 ? row.hour : ''}</span>
                 </i>
               );
@@ -166,7 +194,10 @@ export function DingAnalyticsView({ events, users, characters, achievements, vie
             {analytics.xpRanking.map((row, index) => (
               <div className="ding-ranking-row" key={row.user.id}>
                 <b>#{index + 1}</b>
-                <span><strong>{row.user.username}</strong><small>{row.rank.name}</small></span>
+                <span>
+                  <strong>{row.user.username}</strong>
+                  <small>{row.rank.name}</small>
+                </span>
                 <em>{row.rank.xp} XP</em>
               </div>
             ))}

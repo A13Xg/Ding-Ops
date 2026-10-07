@@ -146,9 +146,8 @@ export function deriveDingAnalytics({
   const measured = events.filter(event => Number.isInteger(event.session_minutes));
   const fastest = [...measured].sort((a, b) => a.session_minutes - b.session_minutes)[0] || null;
   const slowest = [...measured].sort((a, b) => b.session_minutes - a.session_minutes)[0] || null;
-  const highestDeaths = [...events]
-    .filter(event => Number.isInteger(event.deaths))
-    .sort((a, b) => b.deaths - a.deaths)[0] || null;
+  const highestDeaths =
+    [...events].filter(event => Number.isInteger(event.deaths)).sort((a, b) => b.deaths - a.deaths)[0] || null;
   const mostInDay = maxEntry(countBy(events.map(eventDay).filter(Boolean)));
   const mostActiveCharacter = characterContribution[0] || null;
   const userCharacterCounts = users.map(user => ({
