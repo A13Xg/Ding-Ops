@@ -5,7 +5,6 @@
  */
 import { fetchAllPages } from './fetchAllPages.js';
 import { normalizeCharacterDraft } from './dingDomain.js';
-import { demoBackend } from './demoBackend.js';
 
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPA_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -422,4 +421,36 @@ const staticBackend = {
   },
 };
 
-export const backend = import.meta.env.VITE_DEMO_MODE === 'true' ? demoBackend : staticBackend;
+function createDemoBackendProxy() {
+  let modulePromise = null;
+  const load = () => {
+    if (!modulePromise) modulePromise = import('./demoBackend.js').then(module => module.demoBackend);
+    return modulePromise;
+  };
+
+  return new Proxy(
+    {},
+    {
+      get(_target, property) {
+        if (property === 'webPushPublicKey') return () => '';
+        if (property === 'subscribeDing') {
+          return handlers => {
+            let cancelled = false;
+            let unsubscribe = () => {};
+            void load().then(demo => {
+              if (cancelled) return;
+              unsubscribe = demo.subscribeDing(handlers);
+            });
+            return () => {
+              cancelled = true;
+              unsubscribe();
+            };
+          };
+        }
+        return (...args) => load().then(demo => demo[property](...args));
+      },
+    }
+  );
+}
+
+export const backend = import.meta.env.VITE_DEMO_MODE === 'true' ? createDemoBackendProxy() : staticBackend;
