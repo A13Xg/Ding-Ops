@@ -15,6 +15,9 @@ on:
       - src/dingAnalytics.js
       - src/dingAnalytics.test.js
       - src/DingAnalyticsView.jsx
+      - src/discordTemplate.js
+      - src/broadcastTemplate.js
+      - src/templateTokens.js
   workflow_dispatch:
 
 permissions:
@@ -33,7 +36,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Format new DING social files
-        run: npx prettier --write src/DingApp.jsx src/DingSocial.jsx src/dingProgression.js src/dingProgression.test.js src/dingAchievements.js src/dingAchievements.test.js src/dingAchievementCatalogContract.test.js src/dingShell.css src/dingAnalytics.js src/dingAnalytics.test.js src/DingAnalyticsView.jsx
+        run: npx prettier --write src/DingApp.jsx src/DingSocial.jsx src/dingProgression.js src/dingProgression.test.js src/dingAchievements.js src/dingAchievements.test.js src/dingAchievementCatalogContract.test.js src/dingShell.css src/dingAnalytics.js src/dingAnalytics.test.js src/DingAnalyticsView.jsx src/templateTokens.js src/broadcastTemplate.js src/discordTemplate.js
       - name: Commit formatting if needed
         run: |
           if git diff --quiet; then
@@ -41,6 +44,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/DingApp.jsx src/DingSocial.jsx src/dingProgression.js src/dingProgression.test.js src/dingAchievements.js src/dingAchievements.test.js src/dingAchievementCatalogContract.test.js src/dingShell.css src/dingAnalytics.js src/dingAnalytics.test.js src/DingAnalyticsView.jsx
+          git add src/DingApp.jsx src/DingSocial.jsx src/dingProgression.js src/dingProgression.test.js src/dingAchievements.js src/dingAchievements.test.js src/dingAchievementCatalogContract.test.js src/dingShell.css src/dingAnalytics.js src/dingAnalytics.test.js src/DingAnalyticsView.jsx src/templateTokens.js src/broadcastTemplate.js src/discordTemplate.js
           git commit -m "style: format DING social progression"
           git push origin HEAD:main
