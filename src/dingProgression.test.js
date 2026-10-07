@@ -11,9 +11,7 @@ import {
 describe('DING app progression', () => {
   it('keeps rank thresholds ordered', () => {
     expect(DING_RANKS.length).toBeGreaterThanOrEqual(8);
-    expect(DING_RANKS.map(rank => rank.minXp)).toEqual(
-      [...DING_RANKS].map(rank => rank.minXp).sort((a, b) => a - b)
-    );
+    expect(DING_RANKS.map(rank => rank.minXp)).toEqual([...DING_RANKS].map(rank => rank.minXp).sort((a, b) => a - b));
   });
 
   it('derives XP only from the requested player awards', () => {

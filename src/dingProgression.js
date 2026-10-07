@@ -36,9 +36,7 @@ export function dingRankForXp(value) {
     next,
     nextXp: next?.minXp ?? current.minXp,
     remaining: next ? Math.max(0, next.minXp - xp) : 0,
-    progress: next
-      ? Math.max(0, Math.min(1, (xp - current.minXp) / Math.max(1, next.minXp - current.minXp)))
-      : 1,
+    progress: next ? Math.max(0, Math.min(1, (xp - current.minXp) / Math.max(1, next.minXp - current.minXp))) : 1,
   };
 }
 

@@ -6,12 +6,7 @@ import { Check, Save, Shield, Swords, Trophy, UsersRound, X } from 'lucide-react
 import { BadgeMedal } from './BadgeToast.jsx';
 import { backend } from './backend.js';
 import { dingAchievementById, dingAchievements } from './dingAchievements.js';
-import {
-  achievementXpForUser,
-  parseShowcase,
-  rankForUser,
-  serializeShowcase,
-} from './dingProgression.js';
+import { achievementXpForUser, parseShowcase, rankForUser, serializeShowcase } from './dingProgression.js';
 import { hapticsEnabled, setHapticsEnabled } from './haptics.js';
 
 function initials(value) {
@@ -70,9 +65,7 @@ export function ProfilePane({ user, characters, events, achievements, onUserUpda
   }
 
   async function toggleShowcase(id) {
-    const next = showcase.includes(id)
-      ? showcase.filter(item => item !== id)
-      : [...showcase, id].slice(-3);
+    const next = showcase.includes(id) ? showcase.filter(item => item !== id) : [...showcase, id].slice(-3);
     setShowcase(next);
     try {
       await saveProfile({ showcase: serializeShowcase(next) });
@@ -84,7 +77,9 @@ export function ProfilePane({ user, characters, events, achievements, onUserUpda
   return (
     <div className="ding-profile">
       <section className="ding-profile-hero mf-frame">
-        <div className="ding-avatar" aria-hidden="true">{initials(user.username)}</div>
+        <div className="ding-avatar" aria-hidden="true">
+          {initials(user.username)}
+        </div>
         <div>
           <span className="mf-kicker">OPERATOR</span>
           <h2>{user.username}</h2>
@@ -95,10 +90,26 @@ export function ProfilePane({ user, characters, events, achievements, onUserUpda
       <RankBlock achievements={achievements} userId={user.id} />
 
       <div className="ding-stat-grid">
-        <div className="stat mf-frame"><span>DINGS</span><strong>{ownEvents.length}</strong><small>tracked levels</small></div>
-        <div className="stat mf-frame"><span>CHARACTERS</span><strong>{ownCharacters.length}</strong><small>active alts</small></div>
-        <div className="stat mf-frame"><span>AWARDS</span><strong>{ownedAwards.length}</strong><small>questionable honors</small></div>
-        <div className="stat mf-frame"><span>APP XP</span><strong>{achievementXpForUser(achievements, user.id)}</strong><small>separate from WoW XP</small></div>
+        <div className="stat mf-frame">
+          <span>DINGS</span>
+          <strong>{ownEvents.length}</strong>
+          <small>tracked levels</small>
+        </div>
+        <div className="stat mf-frame">
+          <span>CHARACTERS</span>
+          <strong>{ownCharacters.length}</strong>
+          <small>active alts</small>
+        </div>
+        <div className="stat mf-frame">
+          <span>AWARDS</span>
+          <strong>{ownedAwards.length}</strong>
+          <small>questionable honors</small>
+        </div>
+        <div className="stat mf-frame">
+          <span>APP XP</span>
+          <strong>{achievementXpForUser(achievements, user.id)}</strong>
+          <small>separate from WoW XP</small>
+        </div>
       </div>
 
       <section className="ding-panel mf-frame">
@@ -139,21 +150,28 @@ export function ProfilePane({ user, characters, events, achievements, onUserUpda
         <h2>Showcase</h2>
         <p className="ding-muted">Pick up to three earned awards for your profile.</p>
         <div className="ding-award-grid compact">
-          {dingAchievements.filter(item => unlocked.has(item.id)).map(item => {
-            const selected = showcase.includes(item.id);
-            return (
-              <button
-                type="button"
-                className={'ding-award-card' + (selected ? ' selected' : '')}
-                key={item.id}
-                onClick={() => toggleShowcase(item.id)}
-              >
-                <BadgeMedal icon={item.micon || item.icon} accent={item.accent} tier={item.tier} />
-                <span><b>{item.name}</b><small>{item.tier} · {item.points} XP</small></span>
-                {selected && <Check />}
-              </button>
-            );
-          })}
+          {dingAchievements
+            .filter(item => unlocked.has(item.id))
+            .map(item => {
+              const selected = showcase.includes(item.id);
+              return (
+                <button
+                  type="button"
+                  className={'ding-award-card' + (selected ? ' selected' : '')}
+                  key={item.id}
+                  onClick={() => toggleShowcase(item.id)}
+                >
+                  <BadgeMedal icon={item.micon || item.icon} accent={item.accent} tier={item.tier} />
+                  <span>
+                    <b>{item.name}</b>
+                    <small>
+                      {item.tier} · {item.points} XP
+                    </small>
+                  </span>
+                  {selected && <Check />}
+                </button>
+              );
+            })}
           {!ownedAwards.length && <div className="ding-empty">Earn something first. Revolutionary concept.</div>}
         </div>
       </section>
@@ -169,8 +187,16 @@ export function TrophyPane({ userId, achievements }) {
     <div className="ding-trophies">
       <div className="ding-trophy-summary mf-frame">
         <Trophy />
-        <div><strong>{unlocked.size} / {dingAchievements.length}</strong><span>awards unlocked</span></div>
-        <div><strong>{xp}</strong><span>app XP</span></div>
+        <div>
+          <strong>
+            {unlocked.size} / {dingAchievements.length}
+          </strong>
+          <span>awards unlocked</span>
+        </div>
+        <div>
+          <strong>{xp}</strong>
+          <span>app XP</span>
+        </div>
       </div>
       <div className="ding-award-grid">
         {dingAchievements.map(item => {
@@ -182,7 +208,9 @@ export function TrophyPane({ userId, achievements }) {
                 <span className="mf-kicker">{item.tier}</span>
                 <h3>{item.name}</h3>
                 <p>{item.desc}</p>
-                <small>{item.points} XP · {earned ? 'UNLOCKED' : 'LOCKED'}</small>
+                <small>
+                  {item.points} XP · {earned ? 'UNLOCKED' : 'LOCKED'}
+                </small>
               </div>
             </article>
           );
@@ -198,9 +226,10 @@ export function CrewPane({ users, characters, events, achievements, viewerId }) 
     () =>
       users
         .map(user => {
-          const active = characters.find(character => character.id === user.active_character_id)
-            || characters.find(character => character.user_id === user.id && !character.is_archived)
-            || null;
+          const active =
+            characters.find(character => character.id === user.active_character_id) ||
+            characters.find(character => character.user_id === user.id && !character.is_archived) ||
+            null;
           const dings = events.filter(event => event.user_id === user.id).length;
           const awards = achievements.filter(row => row.user_id === user.id).length;
           return { user, active, dings, awards, rank: rankForUser(achievements, user.id) };
@@ -213,9 +242,13 @@ export function CrewPane({ users, characters, events, achievements, viewerId }) 
     <div className="ding-crew-list">
       {rows.map((row, index) => (
         <article className={'ding-crew-card mf-frame' + (row.user.id === viewerId ? ' self' : '')} key={row.user.id}>
-          <div className="ding-avatar small" aria-hidden="true">{initials(row.user.username)}</div>
+          <div className="ding-avatar small" aria-hidden="true">
+            {initials(row.user.username)}
+          </div>
           <div className="ding-crew-copy">
-            <span className="mf-kicker">#{index + 1} · {row.rank.name}</span>
+            <span className="mf-kicker">
+              #{index + 1} · {row.rank.name}
+            </span>
             <h3>{row.user.username}</h3>
             <p>{row.user.tagline || 'No public excuse provided.'}</p>
             <small>
@@ -225,17 +258,31 @@ export function CrewPane({ users, characters, events, achievements, viewerId }) 
             </small>
           </div>
           <div className="ding-crew-numbers">
-            <b>{row.dings}<small>DINGS</small></b>
-            <b>{row.awards}<small>AWARDS</small></b>
+            <b>
+              {row.dings}
+              <small>DINGS</small>
+            </b>
+            <b>
+              {row.awards}
+              <small>AWARDS</small>
+            </b>
             {row.user.id !== viewerId && (
               <span className={row.dings >= viewerDings ? 'ahead' : 'behind'}>
-                {row.dings === viewerDings ? 'TIED' : row.dings > viewerDings ? `+${row.dings - viewerDings}` : `-${viewerDings - row.dings}`}
+                {row.dings === viewerDings
+                  ? 'TIED'
+                  : row.dings > viewerDings
+                    ? `+${row.dings - viewerDings}`
+                    : `-${viewerDings - row.dings}`}
               </span>
             )}
           </div>
         </article>
       ))}
-      {!rows.length && <div className="ding-empty mf-frame"><UsersRound /> Nobody else has emerged from the basement.</div>}
+      {!rows.length && (
+        <div className="ding-empty mf-frame">
+          <UsersRound /> Nobody else has emerged from the basement.
+        </div>
+      )}
     </div>
   );
 }
@@ -259,8 +306,14 @@ export function CrewToast({ toast, onClose }) {
         aria-live="polite"
       >
         <Icon />
-        <div><span>{toast.kind === 'achievement' ? 'CREW ACHIEVEMENT' : 'CREW DING'}</span><b>{toast.title}</b><small>{toast.body}</small></div>
-        <button type="button" onClick={onClose} aria-label="Dismiss activity notification"><X /></button>
+        <div>
+          <span>{toast.kind === 'achievement' ? 'CREW ACHIEVEMENT' : 'CREW DING'}</span>
+          <b>{toast.title}</b>
+          <small>{toast.body}</small>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Dismiss activity notification">
+          <X />
+        </button>
       </motion.div>
     </div>,
     document.body
