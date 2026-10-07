@@ -1,56 +1,81 @@
-/*
- * Achievement glyphs shared by DING trophy surfaces.
- * Material Symbols is bundled through material-symbols/outlined.css in main.jsx,
- * so render the ligature directly instead of depending on an external
- * font-readiness side channel from the retired legacy entrypoint.
- */
+import {
+  Activity,
+  AlarmClock,
+  BadgeCheck,
+  Bed,
+  Bolt,
+  CalendarDays,
+  Castle,
+  Clock3,
+  Compass,
+  Crown,
+  Flame,
+  Gauge,
+  MapPinned,
+  Medal,
+  Moon,
+  NotebookPen,
+  Repeat2,
+  Shield,
+  Skull,
+  Snowflake,
+  Sparkles,
+  Sun,
+  Sunrise,
+  Swords,
+  Trophy,
+  UsersRound,
+} from 'lucide-react';
+
 export const TIERS = ['bronze', 'silver', 'gold', 'platinum', 'mythic'];
 
-export const matMap = {
-  Activity: 'monitoring',
-  AlarmClock: 'alarm',
-  Clock3: 'schedule',
-  Sparkles: 'auto_awesome',
-  Repeat2: 'repeat',
-  Moon: 'dark_mode',
-  Sun: 'light_mode',
-  Sunrise: 'wb_twilight',
-  Flame: 'local_fire_department',
-  Snowflake: 'ac_unit',
-  Gauge: 'speed',
-  NotebookPen: 'edit_note',
-  BadgeCheck: 'verified',
-  CalendarDays: 'calendar_month',
-  MapPinned: 'location_on',
-  Crown: 'crown',
-  Medal: 'military_tech',
-  Trophy: 'trophy',
-  Shield: 'shield',
-  Swords: 'swords',
-  Castle: 'castle',
-  Groups: 'groups',
-  Skull: 'skull',
-  Bolt: 'bolt',
-  Bedtime: 'bedtime',
-  Explore: 'explore',
+const iconMap = {
+  Activity,
+  AlarmClock,
+  Clock3,
+  Sparkles,
+  Repeat2,
+  Moon,
+  Sun,
+  Sunrise,
+  Flame,
+  Snowflake,
+  Gauge,
+  NotebookPen,
+  BadgeCheck,
+  CalendarDays,
+  MapPinned,
+  Crown,
+  Medal,
+  Trophy,
+  Shield,
+  Swords,
+  Castle,
+  Groups: UsersRound,
+  UsersRound,
+  Skull,
+  Bolt,
+  Bedtime: Bed,
+  Explore: Compass,
 };
 
-export const prettyIcon = n =>
-  String(n || 'shield')
+export const prettyIcon = name =>
+  String(name || 'Shield')
     .replace(/_/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase());
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, character => character.toUpperCase());
 
 export function MIcon({ name, className = '' }) {
-  const key = name || 'shield';
+  const key = name || 'Shield';
+  const Icon = iconMap[key] || Shield;
+  const label = prettyIcon(key);
   return (
-    <span className={`icon-stack ${className}`} title={prettyIcon(key)} aria-label={prettyIcon(key)}>
-      <span className="msym material-symbols-outlined" aria-hidden="true">
-        {key}
-      </span>
+    <span className={`icon-stack ${className}`} title={label} aria-label={label}>
+      <Icon aria-hidden="true" />
     </span>
   );
 }
 
 export function BadgeIcon({ name }) {
-  return <MIcon name={matMap[name] || name || 'shield'} />;
+  return <MIcon name={name || 'Shield'} />;
 }
