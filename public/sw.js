@@ -39,10 +39,10 @@ function parsePushPayload(event) {
 }
 
 function buildNotification(payload) {
-  const icon = payload.icon ? scoped(payload.icon) : scoped('ding-icon.svg');
+  const icon = payload.icon ? scoped(payload.icon) : scoped('icons/icon-192.png');
   // Android draws `badge` as a monochrome alpha mask in the status bar, so it
   // needs a dedicated single-colour asset — a full-colour icon renders as a blob.
-  const badge = scoped('ding-badge.svg');
+  const badge = scoped('icons/badge-96.png');
   const tag = payload.tag || `ding-${payload.kind || 'event'}-${Date.now()}`;
   return [
     payload.title || 'DING',
