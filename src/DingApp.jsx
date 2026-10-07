@@ -9,7 +9,7 @@ import { DingAnalyticsView } from './DingAnalyticsView.jsx';
 import { DingAdmin } from './DingAdmin.jsx';
 import { useAchievementQueue } from './useAchievementQueue.js';
 import { GAME_CONFIG, WOW_CLASSES, mergeGameConfig } from './gameConfig.js';
-import { createDingRequest, isMaxLevel, validateCharacterDraft } from './dingDomain.js';
+import { createDingRequest, isMaxLevel, MAX_DEATHS_PER_LEVEL, MAX_SESSION_MINUTES, validateCharacterDraft } from './dingDomain.js';
 import {
   checkPendingDing,
   clearPendingDing,
@@ -386,6 +386,7 @@ function DingContextEditor({ value, onChange, config, disabled }) {
           <input
             type="number"
             min="0"
+            max={MAX_SESSION_MINUTES}
             inputMode="numeric"
             value={value.sessionMinutes}
             disabled={disabled}
@@ -398,6 +399,7 @@ function DingContextEditor({ value, onChange, config, disabled }) {
           <input
             type="number"
             min="0"
+            max={MAX_DEATHS_PER_LEVEL}
             inputMode="numeric"
             value={value.deaths}
             disabled={disabled}
