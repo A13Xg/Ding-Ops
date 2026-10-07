@@ -14,21 +14,20 @@
  * Generate a digest with:
  *   node -e "console.log(require('crypto').createHash('sha256').update('VALUE').digest('hex'))"
  *
- * The default is the digest of the project owner's username, so a deploy that
- * forgets the secret fails closed to one account rather than open to everyone.
+ * There is deliberately no baked-in default administrator. If
+ * BROADCAST_ADMINS is absent or empty, every privileged admin request is
+ * denied. This keeps a fresh deployment fail-closed until its owner explicitly
+ * configures the allowlist.
  */
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import type { Database } from './database.types.ts';
 
-const DEFAULT_ADMIN_HASHES = ['c796c9789455782ec850c0fe2d0e843efd7f27d31b8c1623298ecb8b91e77d0a'];
-
 export function adminAllowlist() {
   const raw = Deno.env.get('BROADCAST_ADMINS') || '';
-  const entries = raw
+  return raw
     .split(',')
     .map((entry) => entry.trim().toLowerCase())
     .filter(Boolean);
-  return entries.length ? entries : DEFAULT_ADMIN_HASHES;
 }
 
 export async function sha256Hex(value: string) {
