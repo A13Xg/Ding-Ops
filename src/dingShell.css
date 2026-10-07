@@ -2243,3 +2243,42 @@ button.ding-award-card {
     justify-self: stretch;
   }
 }
+
+
+@media (max-width: 430px) {
+  .ding-topbar {
+    padding-inline: 10px;
+  }
+
+  .ding-actions {
+    gap: 3px;
+  }
+
+  .ding-actions button {
+    width: 34px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .ding-actions button svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .ding-player-chip {
+    max-width: 38vw;
+    gap: 6px;
+    padding: 6px 8px;
+    border-radius: 10px;
+  }
+
+  .ding-player-chip > svg {
+    width: 17px;
+    height: 17px;
+    flex: none;
+  }
+
+  .ding-player-chip small {
+    display: none;
+  }
+}
