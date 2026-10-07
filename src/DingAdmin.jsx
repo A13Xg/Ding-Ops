@@ -106,16 +106,43 @@ function DeliveryTab() {
         </button>
       </div>
       {state.error && <AdminStatus value={{ ok: false, message: state.error }} />}
-      {state.unavailable && <AdminStatus value={{ ok: false, message: 'Delivery table unavailable: ' + state.unavailable }} />}
+      {state.unavailable && (
+        <AdminStatus value={{ ok: false, message: 'Delivery table unavailable: ' + state.unavailable }} />
+      )}
       <div className="ding-stat-grid">
-        <div className="stat mf-frame"><span>ROWS</span><strong>{summary.total}</strong><small>latest 1000</small></div>
-        <div className="stat mf-frame"><span>ACKED</span><strong>{summary.acked}</strong><small>device receipts</small></div>
-        <div className="stat mf-frame"><span>UNACKED</span><strong>{summary.unacked}</strong><small>needs context</small></div>
-        <div className="stat mf-frame"><span>DEVICES/USERS</span><strong>{summary.recipients}</strong><small>named recipients</small></div>
+        <div className="stat mf-frame">
+          <span>ROWS</span>
+          <strong>{summary.total}</strong>
+          <small>latest 1000</small>
+        </div>
+        <div className="stat mf-frame">
+          <span>ACKED</span>
+          <strong>{summary.acked}</strong>
+          <small>device receipts</small>
+        </div>
+        <div className="stat mf-frame">
+          <span>UNACKED</span>
+          <strong>{summary.unacked}</strong>
+          <small>needs context</small>
+        </div>
+        <div className="stat mf-frame">
+          <span>DEVICES/USERS</span>
+          <strong>{summary.recipients}</strong>
+          <small>named recipients</small>
+        </div>
       </div>
       <div className="ding-admin-table-wrap mf-frame">
         <table className="ding-admin-table">
-          <thead><tr><th>Sent</th><th>Kind</th><th>Actor</th><th>Recipient</th><th>Title</th><th>ACK</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Sent</th>
+              <th>Kind</th>
+              <th>Actor</th>
+              <th>Recipient</th>
+              <th>Title</th>
+              <th>ACK</th>
+            </tr>
+          </thead>
           <tbody>
             {state.rows.slice(0, 250).map((row, index) => (
               <tr key={row.batchId + ':' + row.recipientName + ':' + index}>
@@ -127,7 +154,11 @@ function DeliveryTab() {
                 <td>{row.ackedAt ? 'YES' : 'NO'}</td>
               </tr>
             ))}
-            {!state.rows.length && !state.loading && <tr><td colSpan="6">No delivery rows returned.</td></tr>}
+            {!state.rows.length && !state.loading && (
+              <tr>
+                <td colSpan="6">No delivery rows returned.</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -166,16 +197,22 @@ function BroadcastTab({ users }) {
     <div className="ding-admin-stack">
       <section className="ding-panel mf-frame">
         <h2>Manual push broadcast</h2>
-        <p className="ding-muted">Admin-gated server-side. This deliberately bypasses the event ledger so repeated test sends are possible.</p>
-        <label className="ding-admin-field">TITLE
+        <p className="ding-muted">
+          Admin-gated server-side. This deliberately bypasses the event ledger so repeated test sends are possible.
+        </p>
+        <label className="ding-admin-field">
+          TITLE
           <input maxLength={120} value={title} onChange={event => setTitle(event.target.value)} />
         </label>
-        <label className="ding-admin-field">BODY
+        <label className="ding-admin-field">
+          BODY
           <textarea maxLength={300} value={body} onChange={event => setBody(event.target.value)} />
         </label>
         <div className="ding-admin-targets">
           <strong>Targets</strong>
-          <button type="button" onClick={() => setTargets([])}>ALL REGISTERED DEVICES</button>
+          <button type="button" onClick={() => setTargets([])}>
+            ALL REGISTERED DEVICES
+          </button>
           {users.map(user => {
             const checked = targets.includes(user.id);
             return (
@@ -184,9 +221,7 @@ function BroadcastTab({ users }) {
                   type="checkbox"
                   checked={checked}
                   onChange={() =>
-                    setTargets(previous =>
-                      checked ? previous.filter(id => id !== user.id) : [...previous, user.id]
-                    )
+                    setTargets(previous => (checked ? previous.filter(id => id !== user.id) : [...previous, user.id]))
                   }
                 />
                 {user.username}
@@ -202,7 +237,12 @@ function BroadcastTab({ users }) {
       <section className="ding-panel mf-frame">
         <h2>Template tokens</h2>
         <div className="ding-token-grid">
-          {describeTokens().map(token => <div key={token.token}><code>{token.token}</code><span>{token.hint}</span></div>)}
+          {describeTokens().map(token => (
+            <div key={token.token}>
+              <code>{token.token}</code>
+              <span>{token.hint}</span>
+            </div>
+          ))}
         </div>
       </section>
     </div>
@@ -232,13 +272,21 @@ function AccountsTab({ users }) {
   return (
     <section className="ding-panel mf-frame">
       <h2>Account administration</h2>
-      <p className="ding-muted">This endpoint can take over another account and is intentionally restricted by the server admin allowlist.</p>
-      <label className="ding-admin-field">ACCOUNT
+      <p className="ding-muted">
+        This endpoint can take over another account and is intentionally restricted by the server admin allowlist.
+      </p>
+      <label className="ding-admin-field">
+        ACCOUNT
         <select value={selected} onChange={event => setSelected(event.target.value)}>
-          {users.map(user => <option value={user.id} key={user.id}>{user.username}</option>)}
+          {users.map(user => (
+            <option value={user.id} key={user.id}>
+              {user.username}
+            </option>
+          ))}
         </select>
       </label>
-      <label className="ding-admin-field">NEW PASSWORD
+      <label className="ding-admin-field">
+        NEW PASSWORD
         <input
           type="password"
           minLength={6}
@@ -248,7 +296,12 @@ function AccountsTab({ users }) {
           onChange={event => setPassword(event.target.value)}
         />
       </label>
-      <button className="mf-button danger" type="button" disabled={busy || !selected || password.length < 6} onClick={save}>
+      <button
+        className="mf-button danger"
+        type="button"
+        disabled={busy || !selected || password.length < 6}
+        onClick={save}
+      >
         <KeyRound /> {busy ? 'UPDATING…' : 'SET PASSWORD'}
       </button>
       <AdminStatus value={status} />
@@ -361,17 +414,35 @@ function DiscordTab() {
           ))}
         </div>
         <div className="ding-admin-toolbar">
-          <button className="mf-button" type="button" disabled={busy || !settings} onClick={save}><Database /> SAVE SETTINGS</button>
-          <button className="mf-button ghost" type="button" disabled={busy || !settings} onClick={() => test('ding')}><Bot /> TEST DING</button>
-          <button className="mf-button ghost" type="button" disabled={busy || !settings} onClick={() => test('achievement')}><Bot /> TEST AWARD</button>
-          <button className="mf-button ghost" type="button" disabled={busy} onClick={load}><RefreshCw /> RELOAD</button>
+          <button className="mf-button" type="button" disabled={busy || !settings} onClick={save}>
+            <Database /> SAVE SETTINGS
+          </button>
+          <button className="mf-button ghost" type="button" disabled={busy || !settings} onClick={() => test('ding')}>
+            <Bot /> TEST DING
+          </button>
+          <button
+            className="mf-button ghost"
+            type="button"
+            disabled={busy || !settings}
+            onClick={() => test('achievement')}
+          >
+            <Bot /> TEST AWARD
+          </button>
+          <button className="mf-button ghost" type="button" disabled={busy} onClick={load}>
+            <RefreshCw /> RELOAD
+          </button>
         </div>
         <AdminStatus value={status} />
       </section>
       <section className="ding-panel mf-frame">
         <h2>Discord tokens</h2>
         <div className="ding-token-grid">
-          {describeDiscordTokens().map(token => <div key={token.token}><code>{token.token}</code><span>{token.hint}</span></div>)}
+          {describeDiscordTokens().map(token => (
+            <div key={token.token}>
+              <code>{token.token}</code>
+              <span>{token.hint}</span>
+            </div>
+          ))}
         </div>
       </section>
     </div>
@@ -389,14 +460,24 @@ function SandboxTab() {
     <div className="ding-admin-stack">
       <section className="ding-panel mf-frame">
         <h2>Local-only sandbox</h2>
-        <p className="ding-muted">Nothing in this tab writes to Supabase or crew state. It exists for safe visual/progression checks.</p>
+        <p className="ding-muted">
+          Nothing in this tab writes to Supabase or crew state. It exists for safe visual/progression checks.
+        </p>
         <div className="ding-admin-sim-controls">
-          <button type="button" onClick={() => setDings(value => Math.max(0, value - 1))}>− DING</button>
+          <button type="button" onClick={() => setDings(value => Math.max(0, value - 1))}>
+            − DING
+          </button>
           <strong>{dings} simulated Dings</strong>
-          <button type="button" onClick={() => setDings(value => value + 1)}>+ DING</button>
-          <button type="button" onClick={() => setXp(value => Math.max(0, value - 50))}>− 50 XP</button>
+          <button type="button" onClick={() => setDings(value => value + 1)}>
+            + DING
+          </button>
+          <button type="button" onClick={() => setXp(value => Math.max(0, value - 50))}>
+            − 50 XP
+          </button>
           <strong>{xp} simulated XP</strong>
-          <button type="button" onClick={() => setXp(value => value + 50)}>+ 50 XP</button>
+          <button type="button" onClick={() => setXp(value => value + 50)}>
+            + 50 XP
+          </button>
         </div>
         <div className="ding-admin-sim-card">
           <FlaskConical />
@@ -406,15 +487,22 @@ function SandboxTab() {
             <small>{rank.maxed ? 'MAX RANK' : `${rank.remaining} XP to ${rank.next.name}`}</small>
           </div>
         </div>
-        <label className="ding-admin-field">ACHIEVEMENT PREVIEW
+        <label className="ding-admin-field">
+          ACHIEVEMENT PREVIEW
           <select value={achievementId} onChange={event => setAchievementId(event.target.value)}>
-            {dingAchievements.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}
+            {dingAchievements.map(item => (
+              <option value={item.id} key={item.id}>
+                {item.name}
+              </option>
+            ))}
           </select>
         </label>
         {award && (
           <div className="ding-admin-award-preview">
             <b>{award.name}</b>
-            <span>{award.tier.toUpperCase()} · {award.points} XP</span>
+            <span>
+              {award.tier.toUpperCase()} · {award.points} XP
+            </span>
             <small>{award.desc}</small>
           </div>
         )}

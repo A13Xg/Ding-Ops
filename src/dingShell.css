@@ -1558,7 +1558,6 @@ button.ding-award-card {
   }
 }
 
-
 .ding-admin {
   display: grid;
   gap: 14px;
@@ -1579,17 +1578,17 @@ button.ding-award-card {
   gap: 7px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: rgba(11, 15, 24, .78);
+  background: rgba(11, 15, 24, 0.78);
   color: var(--muted);
   padding: 9px 11px;
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
 }
 
 .ding-admin-tabs button.active {
-  border-color: rgba(96, 165, 250, .52);
-  background: linear-gradient(180deg, rgba(59, 130, 246, .22), rgba(124, 58, 237, .14));
+  border-color: rgba(96, 165, 250, 0.52);
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.22), rgba(124, 58, 237, 0.14));
   color: #dbeafe;
 }
 
@@ -1622,7 +1621,7 @@ button.ding-award-card {
   color: var(--muted);
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: .1em;
+  letter-spacing: 0.1em;
 }
 
 .ding-admin-metric strong {
@@ -1643,14 +1642,14 @@ button.ding-award-card {
 }
 
 .ding-admin-status.ok {
-  border: 1px solid rgba(34, 197, 94, .28);
-  background: rgba(34, 197, 94, .08);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  background: rgba(34, 197, 94, 0.08);
   color: #86efac;
 }
 
 .ding-admin-status.error {
-  border: 1px solid rgba(248, 113, 113, .28);
-  background: rgba(127, 29, 29, .18);
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  background: rgba(127, 29, 29, 0.18);
   color: #fecaca;
 }
 
@@ -1672,7 +1671,7 @@ button.ding-award-card {
   color: var(--muted);
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
 }
 
 .ding-admin-field input,
@@ -1682,7 +1681,7 @@ button.ding-award-card {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: rgba(5, 9, 17, .86);
+  background: rgba(5, 9, 17, 0.86);
   color: var(--ink);
   padding: 10px 11px;
   outline: none;
@@ -1701,7 +1700,7 @@ button.ding-award-card {
 .ding-admin-field textarea:focus,
 .ding-admin-field select:focus {
   border-color: #60a5fa;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, .14);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
 }
 
 .ding-admin-form-grid {
@@ -1740,13 +1739,13 @@ button.ding-award-card {
   width: 100%;
   color: var(--muted);
   font-size: 10px;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
 }
 
 .ding-admin-targets button {
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: rgba(15, 23, 42, .8);
+  background: rgba(15, 23, 42, 0.8);
   color: #bfdbfe;
   padding: 6px 8px;
   font-size: 10px;
@@ -1776,10 +1775,10 @@ button.ding-award-card {
 .ding-admin-table th {
   position: sticky;
   top: 0;
-  background: rgba(11, 15, 24, .98);
+  background: rgba(11, 15, 24, 0.98);
   color: #93c5fd;
   font-size: 9px;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
   z-index: 1;
 }
 
@@ -1798,7 +1797,7 @@ button.ding-award-card {
   gap: 10px;
   align-items: baseline;
   padding: 7px 0;
-  border-bottom: 1px solid rgba(148, 163, 184, .08);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
 }
 
 .ding-token-grid code {
@@ -1822,7 +1821,7 @@ button.ding-award-card {
 .ding-admin-sim-controls button {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(15, 23, 42, .9);
+  background: rgba(15, 23, 42, 0.9);
   color: #bfdbfe;
   padding: 8px 10px;
   font-weight: 900;
@@ -1839,9 +1838,9 @@ button.ding-award-card {
   gap: 5px;
   margin: 12px 0;
   padding: 14px;
-  border: 1px solid rgba(96, 165, 250, .25);
+  border: 1px solid rgba(96, 165, 250, 0.25);
   border-radius: 11px;
-  background: linear-gradient(145deg, rgba(30, 64, 175, .14), rgba(91, 33, 182, .12));
+  background: linear-gradient(145deg, rgba(30, 64, 175, 0.14), rgba(91, 33, 182, 0.12));
 }
 
 .ding-admin-sim-card {
@@ -1873,7 +1872,7 @@ button.ding-award-card {
 }
 
 .mf-button.danger {
-  border-color: rgba(248, 113, 113, .38) !important;
+  border-color: rgba(248, 113, 113, 0.38) !important;
   background: linear-gradient(180deg, #b91c1c, #7f1d1d) !important;
   color: #fff !important;
   box-shadow: none !important;
@@ -1926,12 +1925,12 @@ button.ding-award-card {
 .ding-character-manage {
   border: 0;
   border-left: 1px solid var(--line);
-  background: rgba(15, 23, 42, .72);
+  background: rgba(15, 23, 42, 0.72);
   color: #a78bfa;
   padding: 0 12px;
   font-size: 9px;
   font-weight: 900;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
 }
 
 @media (max-width: 760px) {
@@ -1963,9 +1962,8 @@ button.ding-award-card {
   }
 }
 
-
 .ding-account-panel {
-  border-color: rgba(96, 165, 250, .18);
+  border-color: rgba(96, 165, 250, 0.18);
 }
 
 .ding-account-row {
@@ -1979,13 +1977,13 @@ button.ding-award-card {
   gap: 8px;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid rgba(248, 113, 113, .2);
+  border-top: 1px solid rgba(248, 113, 113, 0.2);
 }
 
 .ding-danger-zone > strong {
   color: #fca5a5;
   font-size: 11px;
-  letter-spacing: .1em;
+  letter-spacing: 0.1em;
 }
 
 .ding-danger-zone > small {
@@ -2020,7 +2018,7 @@ button.ding-award-card {
   display: grid;
   gap: 16px;
   padding: 18px;
-  border-color: rgba(167, 139, 250, .38);
+  border-color: rgba(167, 139, 250, 0.38);
 }
 
 .ding-crew-profile-close {
@@ -2034,7 +2032,7 @@ button.ding-award-card {
   place-items: center;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: rgba(11, 15, 24, .84);
+  background: rgba(11, 15, 24, 0.84);
   color: var(--muted);
 }
 
@@ -2055,7 +2053,7 @@ button.ding-award-card {
   margin: 0 0 8px;
   color: #c4b5fd;
   font-size: 11px;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -2065,7 +2063,7 @@ button.ding-award-card {
   gap: 12px;
   align-items: center;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(148, 163, 184, .08);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
 }
 
 .ding-mini-row > span {

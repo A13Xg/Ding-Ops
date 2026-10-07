@@ -2,7 +2,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { Bell, Check, KeyRound, LogOut, RotateCw, Save, Shield, Swords, Trash2, Trophy, UsersRound, X } from 'lucide-react';
+import {
+  Bell,
+  Check,
+  KeyRound,
+  LogOut,
+  RotateCw,
+  Save,
+  Shield,
+  Swords,
+  Trash2,
+  Trophy,
+  UsersRound,
+  X,
+} from 'lucide-react';
 import { BadgeMedal } from './BadgeToast.jsx';
 import { backend } from './backend.js';
 import { dingAchievements } from './dingAchievements.js';
@@ -265,7 +278,9 @@ export function ProfilePane({ user, characters, events, achievements, onUserUpda
       </section>
       <section className="ding-panel mf-frame ding-account-panel">
         <h2>Account</h2>
-        <p className="ding-muted">Username is your immutable crew identity. Password and account lifecycle stay under your control.</p>
+        <p className="ding-muted">
+          Username is your immutable crew identity. Password and account lifecycle stay under your control.
+        </p>
         <label className="ding-admin-field">
           NEW PASSWORD
           <input
@@ -318,7 +333,9 @@ export function ProfilePane({ user, characters, events, achievements, onUserUpda
         {accountStatus && <div className="ding-muted">{accountStatus}</div>}
         <div className="ding-danger-zone">
           <strong>DELETE ACCOUNT</strong>
-          <small>Permanent. Characters, Dings, achievements, push registrations and auth identity are removed by cascade.</small>
+          <small>
+            Permanent. Characters, Dings, achievements, push registrations and auth identity are removed by cascade.
+          </small>
           <label className="ding-admin-field">
             TYPE {user.username} TO CONFIRM
             <input value={deletePhrase} onChange={event => setDeletePhrase(event.target.value)} />
@@ -390,7 +407,9 @@ export function TrophyPane({ userId, achievements }) {
 }
 
 function CrewProfileDetail({ row, viewerId, characters, events, achievements, onClose }) {
-  const viewerAwards = new Set(achievements.filter(item => item.user_id === viewerId).map(item => item.achievement_type));
+  const viewerAwards = new Set(
+    achievements.filter(item => item.user_id === viewerId).map(item => item.achievement_type)
+  );
   const targetRows = achievements
     .filter(item => item.user_id === row.user.id)
     .sort((a, b) => new Date(b.unlocked_at || 0) - new Date(a.unlocked_at || 0));
@@ -398,9 +417,7 @@ function CrewProfileDetail({ row, viewerId, characters, events, achievements, on
   const shared = [...targetAwards].filter(id => viewerAwards.has(id)).length;
   const theirsOnly = [...targetAwards].filter(id => !viewerAwards.has(id)).length;
   const yoursOnly = [...viewerAwards].filter(id => !targetAwards.has(id)).length;
-  const showcase = parseShowcase(row.user.showcase)
-    .map(dingAchievementById)
-    .filter(Boolean);
+  const showcase = parseShowcase(row.user.showcase).map(dingAchievementById).filter(Boolean);
   const ownedCharacters = characters.filter(character => character.user_id === row.user.id && !character.is_archived);
   const recent = events
     .filter(event => event.user_id === row.user.id)
@@ -410,9 +427,13 @@ function CrewProfileDetail({ row, viewerId, characters, events, achievements, on
 
   return (
     <section className="ding-crew-profile mf-frame">
-      <button className="ding-crew-profile-close" type="button" onClick={onClose} aria-label="Close crew profile"><X /></button>
+      <button className="ding-crew-profile-close" type="button" onClick={onClose} aria-label="Close crew profile">
+        <X />
+      </button>
       <div className="ding-profile-hero">
-        <div className="ding-avatar" aria-hidden="true">{initials(row.user.username)}</div>
+        <div className="ding-avatar" aria-hidden="true">
+          {initials(row.user.username)}
+        </div>
         <div>
           <span className="mf-kicker">{row.rank.name}</span>
           <h2>{row.user.username}</h2>
@@ -420,17 +441,41 @@ function CrewProfileDetail({ row, viewerId, characters, events, achievements, on
         </div>
       </div>
       <div className="ding-stat-grid">
-        <div className="stat"><span>DINGS</span><strong>{row.dings}</strong><small>tracked levels</small></div>
-        <div className="stat"><span>AWARDS</span><strong>{row.awards}</strong><small>{row.rank.xp} app XP</small></div>
-        <div className="stat"><span>SHARED</span><strong>{shared}</strong><small>same bad decisions</small></div>
-        <div className="stat"><span>DIFFERENCE</span><strong>{theirsOnly}/{yoursOnly}</strong><small>theirs / yours unique</small></div>
+        <div className="stat">
+          <span>DINGS</span>
+          <strong>{row.dings}</strong>
+          <small>tracked levels</small>
+        </div>
+        <div className="stat">
+          <span>AWARDS</span>
+          <strong>{row.awards}</strong>
+          <small>{row.rank.xp} app XP</small>
+        </div>
+        <div className="stat">
+          <span>SHARED</span>
+          <strong>{shared}</strong>
+          <small>same bad decisions</small>
+        </div>
+        <div className="stat">
+          <span>DIFFERENCE</span>
+          <strong>
+            {theirsOnly}/{yoursOnly}
+          </strong>
+          <small>theirs / yours unique</small>
+        </div>
       </div>
       <div className="ding-crew-profile-grid">
         <div>
           <h3>Characters</h3>
           {ownedCharacters.map(character => (
             <div className="ding-mini-row" key={character.id}>
-              <span><b>{character.name}</b><small>{character.class_name}{character.spec ? ' · ' + character.spec : ''} · {character.realm}</small></span>
+              <span>
+                <b>{character.name}</b>
+                <small>
+                  {character.class_name}
+                  {character.spec ? ' · ' + character.spec : ''} · {character.realm}
+                </small>
+              </span>
               <strong>LVL {character.current_level}</strong>
             </div>
           ))}
@@ -442,7 +487,10 @@ function CrewProfileDetail({ row, viewerId, characters, events, achievements, on
             {showcase.map(item => (
               <div key={item.id}>
                 <BadgeMedal icon={item.micon || item.icon} accent={item.accent} tier={item.tier} />
-                <span><b>{item.name}</b><small>{item.tier}</small></span>
+                <span>
+                  <b>{item.name}</b>
+                  <small>{item.tier}</small>
+                </span>
               </div>
             ))}
             {!showcase.length && <div className="ding-muted">Nothing pinned yet.</div>}
@@ -456,7 +504,15 @@ function CrewProfileDetail({ row, viewerId, characters, events, achievements, on
             const character = byId.get(event.character_id);
             return (
               <div className="ding-mini-row" key={event.id}>
-                <span><b>{character?.name || 'Character'} → {event.to_level}</b><small>{event.activity_type || 'other'}{event.zone ? ' · ' + event.zone : ''}</small></span>
+                <span>
+                  <b>
+                    {character?.name || 'Character'} → {event.to_level}
+                  </b>
+                  <small>
+                    {event.activity_type || 'other'}
+                    {event.zone ? ' · ' + event.zone : ''}
+                  </small>
+                </span>
                 <small>{event.timestamp ? new Date(event.timestamp).toLocaleDateString() : ''}</small>
               </div>
             );
@@ -469,7 +525,12 @@ function CrewProfileDetail({ row, viewerId, characters, events, achievements, on
             const item = dingAchievementById(rowItem.achievement_type);
             return item ? (
               <div className="ding-mini-row" key={rowItem.id}>
-                <span><b>{item.name}</b><small>{item.tier} · {item.points} XP</small></span>
+                <span>
+                  <b>{item.name}</b>
+                  <small>
+                    {item.tier} · {item.points} XP
+                  </small>
+                </span>
               </div>
             ) : null;
           })}
@@ -515,9 +576,13 @@ export function CrewPane({ users, characters, events, achievements, viewerId }) 
       {rows.map((row, index) => (
         <article className={'ding-crew-card mf-frame' + (row.user.id === viewerId ? ' self' : '')} key={row.user.id}>
           <button className="ding-crew-open" type="button" onClick={() => setSelectedId(row.user.id)}>
-            <div className="ding-avatar small" aria-hidden="true">{initials(row.user.username)}</div>
+            <div className="ding-avatar small" aria-hidden="true">
+              {initials(row.user.username)}
+            </div>
             <div className="ding-crew-copy">
-              <span className="mf-kicker">#{index + 1} · {row.rank.name}</span>
+              <span className="mf-kicker">
+                #{index + 1} · {row.rank.name}
+              </span>
               <h3>{row.user.username}</h3>
               <p>{row.user.tagline || 'No public excuse provided.'}</p>
               <small>
@@ -527,18 +592,32 @@ export function CrewPane({ users, characters, events, achievements, viewerId }) 
               </small>
             </div>
             <div className="ding-crew-numbers">
-              <b>{row.dings}<small>DINGS</small></b>
-              <b>{row.awards}<small>AWARDS</small></b>
+              <b>
+                {row.dings}
+                <small>DINGS</small>
+              </b>
+              <b>
+                {row.awards}
+                <small>AWARDS</small>
+              </b>
               {row.user.id !== viewerId && (
                 <span className={row.dings >= viewerDings ? 'ahead' : 'behind'}>
-                  {row.dings === viewerDings ? 'TIED' : row.dings > viewerDings ? `+${row.dings - viewerDings}` : `-${viewerDings - row.dings}`}
+                  {row.dings === viewerDings
+                    ? 'TIED'
+                    : row.dings > viewerDings
+                      ? `+${row.dings - viewerDings}`
+                      : `-${viewerDings - row.dings}`}
                 </span>
               )}
             </div>
           </button>
         </article>
       ))}
-      {!rows.length && <div className="ding-empty mf-frame"><UsersRound /> Nobody else has emerged from the basement.</div>}
+      {!rows.length && (
+        <div className="ding-empty mf-frame">
+          <UsersRound /> Nobody else has emerged from the basement.
+        </div>
+      )}
     </div>
   );
 }
