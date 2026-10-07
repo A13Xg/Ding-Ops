@@ -1133,7 +1133,6 @@ button.ding-award-card {
   }
 }
 
-
 .ding-analytics-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1338,7 +1337,7 @@ button.ding-award-card {
 .ding-record span {
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: .1em;
+  letter-spacing: 0.1em;
 }
 
 .ding-record strong {
