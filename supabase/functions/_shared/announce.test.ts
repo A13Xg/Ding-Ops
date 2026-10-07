@@ -37,8 +37,8 @@ Deno.test('announceAchievement claims but does not push an id outside the catalo
   assertEquals(outcome.status, 'unknown');
 });
 
-Deno.test('announceAchievement suppresses a second unlock inside the same cooldown slot', async () => {
-  // First insert is the per-actor cooldown slot claim — 23505 means someone
+Deno.test('announceAchievement suppresses a sibling unlock inside the same reconciliation burst', async () => {
+  // First insert is the per-reconciliation burst slot claim — 23505 means someone
   // else (or an earlier unlock in this same burst) already holds it. Second
   // insert is claimWithoutSending's claim of this row itself, which must
   // still succeed so the backstop never re-evaluates it.
@@ -50,6 +50,7 @@ Deno.test('announceAchievement suppresses a second unlock inside the same cooldo
     id: 'ach-row-2',
     user_id: 'user-1',
     achievement_type: 'first_ding',
+    unlocked_at: '2026-10-06T20:00:00Z',
   }, 'test-user');
   assertEquals(outcome.status, 'suppressed');
 });
