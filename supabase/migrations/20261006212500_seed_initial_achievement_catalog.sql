@@ -135,5 +135,8 @@ values
   ('measured_5'),
   ('measured_10'),
   ('measured_25'),
-  ('measured_50')
+  ('measured_50'),
+  ('sync_pair'),
+  ('sync_trio'),
+  ('sync_raid')
 on conflict (id) do nothing;
