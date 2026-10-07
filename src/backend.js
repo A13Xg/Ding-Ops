@@ -52,6 +52,7 @@ function toUser(p) {
 }
 function toCharacter(row) { return row ? { ...row, current_level: Number(row.current_level), tracked_from_level: Number(row.tracked_from_level) } : null; }
 function joinLevelEvent(row) { const p = profileCache.get(row.user_id) || {}; return { ...row, username: p.username || 'Unknown', avatar_seed: p.avatar_seed || 'ding' }; }
+function joinAchievement(row) { const p = profileCache.get(row.user_id) || {}; return { ...row, username: p.username || 'Unknown' }; }
 async function refreshProfiles(sb) {
   const data = await fetchAllPages((from, to) => sb.from('profiles').select('*').order('created_at', { ascending: true }).order('id', { ascending: true }).range(from, to));
   profileCache = new Map(data.map(p => [p.id, p]));
@@ -212,7 +213,7 @@ const staticBackend = {
       users: profiles.map(toUser),
       characters: characters.map(toCharacter),
       levelEvents: levelEvents.map(joinLevelEvent),
-      achievements,
+      achievements: achievements.map(joinAchievement),
     };
   },
   async reconcileAchievements() {
@@ -389,10 +390,14 @@ const staticBackend = {
           profileCache.delete(payload.old.id);
           onProfile?.(payload.old, 'deleted');
         })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'achievements' }, payload => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'achievements' }, async payload => {
           if (unsubscribed) return;
+          const row = payload.eventType === 'DELETE' ? payload.old : payload.new;
+          if (row?.user_id && !profileCache.has(row.user_id)) {
+            try { await refreshProfiles(sb); } catch {}
+          }
           onAchievement?.(
-            payload.eventType === 'DELETE' ? payload.old : payload.new,
+            payload.eventType === 'DELETE' ? row : joinAchievement(row),
             payload.eventType.toLowerCase()
           );
         })
