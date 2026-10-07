@@ -18,6 +18,8 @@ import {
 } from './dingPending.js';
 import { Overlay } from './Overlay.jsx';
 import { haptic } from './haptics.js';
+import { CURRENT_BUILD_ID, checkForUpdate, shouldCheckNow } from './appVersion.js';
+import { enablePushNotifications, getNotificationPermission } from './notifications.js';
 import './dingShell.css';
 
 const asset = path => import.meta.env.BASE_URL + String(path).replace(/^\//, '');
@@ -464,6 +466,7 @@ function DingDashboard({ user, setUser }) {
   const [loading, setLoading] = useState(true);
   const [burstId, setBurstId] = useState(null);
   const [crewToast, setCrewToast] = useState(null);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
   const [dingContext, setDingContext] = useState({
     activityType: 'other',
     zone: '',
@@ -547,6 +550,50 @@ function DingDashboard({ user, setUser }) {
     const timer = setTimeout(() => setBurstId(null), 1300);
     return () => clearTimeout(timer);
   }, [burstId]);
+
+  useEffect(() => {
+    if (getNotificationPermission() !== 'granted') return;
+    void enablePushNotifications({
+      backend,
+      workerPath: asset('sw.js'),
+      interactive: false,
+    }).catch(error => {
+      console.warn('[push rearm]', error);
+    });
+  }, [user.id]);
+
+  useEffect(() => {
+    let live = true;
+    let lastCheckedAt = null;
+    let timer = null;
+
+    const check = async () => {
+      const now = Date.now();
+      if (!shouldCheckNow(lastCheckedAt, now)) return;
+      lastCheckedAt = now;
+      const stale = await checkForUpdate({
+        url: asset('version.json'),
+        currentBuildId: CURRENT_BUILD_ID,
+      });
+      if (live && stale) setUpdateAvailable(true);
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') void check();
+    };
+
+    void check();
+    timer = setInterval(check, 15 * 60 * 1000);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('online', check);
+    return () => {
+      live = false;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('online', check);
+    };
+  }, [user.id]);
+
 
   const ownCharacters = useMemo(
     () => characters.filter(character => character.user_id === user.id && !character.is_archived),
@@ -727,6 +774,12 @@ function DingDashboard({ user, setUser }) {
         </div>
       </header>
 
+      {updateAvailable && (
+        <div className="ding-update-banner" role="status">
+          <span><b>NEW BUILD AVAILABLE</b><small>The raid leader patched DING while this tab was asleep.</small></span>
+          <button type="button" onClick={() => window.location.reload()}>RELOAD</button>
+        </div>
+      )}
       {status && <div className="ding-status">{status}</div>}
       {pending && (
         <div className="ding-pending">
