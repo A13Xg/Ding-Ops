@@ -12,9 +12,9 @@
  *      check itself lives in _shared/adminAuth.ts, shared with
  *      admin-set-password so the two cannot drift apart.
  *   2. It does NOT go through the push_events ledger. The ledger exists to make
- *      a bust announce exactly once; a manual test send has no row behind it and
+ *      a Ding announce exactly once; a manual test send has no row behind it and
  *      is something you may legitimately want to repeat. (The ledger's `kind`
- *      column is also constrained to 'bust' | 'achievement'.)
+ *      column is constrained to DING event kinds.)
  */
 import { renderBroadcast } from '../../../src/broadcastTemplate.js';
 import { corsHeaders, json, sendToSubscriptions, subscriptionsForCrew } from '../_shared/push.ts';
