@@ -83,7 +83,6 @@ Deno.serve(async req => {
       throw new Error(configResult.error?.message || 'DING game configuration is missing');
     }
 
-    const newlyEarnedByUser = new Map<string, string[]>();
     const rowsToInsert: { user_id: string; achievement_type: string }[] = [];
 
     for (const profile of profiles) {
@@ -100,15 +99,17 @@ Deno.serve(async req => {
       }).filter(id => validAchievementIds.has(id));
 
       if (!earned.length) continue;
-      newlyEarnedByUser.set(userId, earned);
       rowsToInsert.push(...earned.map(achievement_type => ({ user_id: userId, achievement_type })));
     }
 
+    let insertedRows: { user_id: string; achievement_type: string }[] = [];
     if (rowsToInsert.length) {
-      const { error } = await admin
+      const { data, error } = await admin
         .from('achievements')
-        .upsert(rowsToInsert, { onConflict: 'user_id,achievement_type', ignoreDuplicates: true });
+        .upsert(rowsToInsert, { onConflict: 'user_id,achievement_type', ignoreDuplicates: true })
+        .select('user_id,achievement_type');
       if (error) throw new Error(error.message);
+      insertedRows = data || [];
     }
 
     const achievementRows = await fetchAllPages((from, to) =>
@@ -123,7 +124,9 @@ Deno.serve(async req => {
     return new Response(
       JSON.stringify({
         achievements: achievementRows,
-        newlyEarned: newlyEarnedByUser.get(callerId) || [],
+        newlyEarned: insertedRows
+          .filter(row => row.user_id === callerId)
+          .map(row => row.achievement_type),
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
