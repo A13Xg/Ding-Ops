@@ -49,7 +49,7 @@ describe('browser notifications', () => {
   it('does not try to request permission while handling a realtime event', async () => {
     const notificationApi = makeNotificationApi({ permission: 'default' });
 
-    await expect(sendBrowserNotification('Crew alert', { body: 'Incoming bust.' }, notificationApi)).resolves.toBe(
+    await expect(sendBrowserNotification('Crew alert', { body: 'Incoming Ding.' }, notificationApi)).resolves.toBe(
       false
     );
     expect(notificationApi.requestPermission).not.toHaveBeenCalled();
