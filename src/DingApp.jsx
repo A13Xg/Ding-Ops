@@ -994,6 +994,8 @@ function DingDashboard({ user, setUser }) {
               setUser(updated);
               setUsers(previous => mergeRow(previous, updated));
             }}
+            onLoggedOut={() => setUser(null)}
+            onDeleted={() => setUser(null)}
           />
         </Overlay>
       )}
