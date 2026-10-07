@@ -25,7 +25,7 @@ describe('DING platform migration contract', () => {
   });
 
   it('does not expose push subscription key material through browser RLS policies', () => {
-    expect(sql).toContain('No browser policies');
+    expect(sql).toContain('no browser policies');
     expect(sql).not.toContain('create policy push_subscriptions_select');
     expect(sql).not.toContain('create policy push_subscriptions_insert');
     expect(sql).not.toContain('create policy push_subscriptions_update');
