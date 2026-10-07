@@ -20,7 +20,9 @@
     "typecheck:functions": "deno check --config supabase/functions/deno.json supabase/functions/*/index.ts",
     "test:functions": "deno test --config supabase/functions/deno.json --allow-env supabase/functions",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:integration": "node scripts/supabase-smoke.mjs",
+    "generate:vapid": "npx --yes web-push generate-vapid-keys --json"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2",
