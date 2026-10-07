@@ -174,7 +174,10 @@ export function nextInactivityReminderDelayMs(state, now = Date.now()) {
 }
 
 function chooseWeightedMessageIndex(random = Math.random) {
-  const totalWeight = INACTIVITY_MESSAGE_CATALOG.reduce((sum, entry) => sum + Math.max(1, Number(entry.weight) || 1), 0);
+  const totalWeight = INACTIVITY_MESSAGE_CATALOG.reduce(
+    (sum, entry) => sum + Math.max(1, Number(entry.weight) || 1),
+    0
+  );
   let ticket = Math.floor(random() * totalWeight);
   for (let index = 0; index < INACTIVITY_MESSAGE_CATALOG.length; index += 1) {
     const entry = INACTIVITY_MESSAGE_CATALOG[index];
@@ -189,10 +192,12 @@ function chooseWeightedMessageIndex(random = Math.random) {
  * @returns {{ index: number, text: string }}
  */
 export function pickInactivityReminderMessage({ random = Math.random, lastMessageIndex = null } = {}) {
-  if (!INACTIVITY_MESSAGE_CATALOG.length) return { index: -1, text: `Reminder: log a Ding. ${REMINDER_CALL_TO_ACTION}` };
+  if (!INACTIVITY_MESSAGE_CATALOG.length)
+    return { index: -1, text: `Reminder: log a Ding. ${REMINDER_CALL_TO_ACTION}` };
   let index = chooseWeightedMessageIndex(random);
   if (INACTIVITY_MESSAGE_CATALOG.length > 1 && Number.isInteger(lastMessageIndex) && index === lastMessageIndex) {
-    index = (index + 1 + Math.floor(random() * (INACTIVITY_MESSAGE_CATALOG.length - 1))) % INACTIVITY_MESSAGE_CATALOG.length;
+    index =
+      (index + 1 + Math.floor(random() * (INACTIVITY_MESSAGE_CATALOG.length - 1))) % INACTIVITY_MESSAGE_CATALOG.length;
   }
   const text = INACTIVITY_MESSAGE_CATALOG[index]?.text || 'Reminder: log a Ding.';
   return { index, text: `${text} ${REMINDER_CALL_TO_ACTION}` };
@@ -211,7 +216,10 @@ export function buildInactivityReminderMessage(random = Math.random, lastMessage
  * @param {{ now?: number, random?: () => number, messageIndex?: number | null }} [options]
  * @returns {ReconciledReminderState | null}
  */
-export function markInactivityReminderSent(state, { now = Date.now(), random = Math.random, messageIndex = null } = {}) {
+export function markInactivityReminderSent(
+  state,
+  { now = Date.now(), random = Math.random, messageIndex = null } = {}
+) {
   const cycleDingMs = toEpochMs(state?.cycleDingAt);
   if (cycleDingMs == null) return state || null;
   const [minMs, maxMs] = followupReminderWindow(now);

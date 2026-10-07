@@ -8,7 +8,7 @@
   --accent: #60a5fa;
   --accent2: #7c3aed;
   --danger: #ef4444;
-  font-family: Tahoma, Verdana, "Segoe UI", sans-serif;
+  font-family: Tahoma, Verdana, 'Segoe UI', sans-serif;
   color: var(--ink);
   background: var(--bg);
   color-scheme: dark;
@@ -197,9 +197,7 @@ button:disabled {
 }
 
 .overlay {
-  background:
-    radial-gradient(circle at 50% 0, rgba(59, 130, 246, 0.12), transparent 36%),
-    #0b0f18;
+  background: radial-gradient(circle at 50% 0, rgba(59, 130, 246, 0.12), transparent 36%), #0b0f18;
   border: 1px solid var(--line);
   color: var(--ink);
 }
@@ -231,9 +229,7 @@ button:disabled {
   align-content: center;
   gap: 12px;
   padding: 24px;
-  background:
-    radial-gradient(circle at center, rgba(124, 58, 237, 0.2), transparent 42%),
-    var(--bg);
+  background: radial-gradient(circle at center, rgba(124, 58, 237, 0.2), transparent 42%), var(--bg);
   color: var(--ink);
   text-align: center;
 }

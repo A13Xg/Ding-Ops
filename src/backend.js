@@ -50,16 +50,35 @@ function toUser(p) {
       }
     : null;
 }
-function toCharacter(row) { return row ? { ...row, current_level: Number(row.current_level), tracked_from_level: Number(row.tracked_from_level) } : null; }
-function joinLevelEvent(row) { const p = profileCache.get(row.user_id) || {}; return { ...row, username: p.username || 'Unknown', avatar_seed: p.avatar_seed || 'ding' }; }
-function joinAchievement(row) { const p = profileCache.get(row.user_id) || {}; return { ...row, username: p.username || 'Unknown' }; }
+function toCharacter(row) {
+  return row
+    ? { ...row, current_level: Number(row.current_level), tracked_from_level: Number(row.tracked_from_level) }
+    : null;
+}
+function joinLevelEvent(row) {
+  const p = profileCache.get(row.user_id) || {};
+  return { ...row, username: p.username || 'Unknown', avatar_seed: p.avatar_seed || 'ding' };
+}
+function joinAchievement(row) {
+  const p = profileCache.get(row.user_id) || {};
+  return { ...row, username: p.username || 'Unknown' };
+}
 async function refreshProfiles(sb) {
-  const data = await fetchAllPages((from, to) => sb.from('profiles').select('*').order('created_at', { ascending: true }).order('id', { ascending: true }).range(from, to));
+  const data = await fetchAllPages((from, to) =>
+    sb
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, to)
+  );
   profileCache = new Map(data.map(p => [p.id, p]));
   return data;
 }
 async function myProfile(sb) {
-  const { data: { user } } = await sb.auth.getUser();
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
   if (!user) throw new Error('Not signed in');
   const { data, error } = await sb.from('profiles').select('*').eq('id', user.id).single();
   if (error) throw new Error(error.message);
@@ -67,7 +86,10 @@ async function myProfile(sb) {
 }
 
 const staticBackend = {
-  async me() { const sb = await getSupa(); return myProfile(sb); },
+  async me() {
+    const sb = await getSupa();
+    return myProfile(sb);
+  },
   async login({ username, password }) {
     const sb = await getSupa();
     const { error } = await sb.auth.signInWithPassword({ email: syntheticAuthEmail(username), password });
@@ -75,7 +97,8 @@ const staticBackend = {
     return myProfile(sb);
   },
   async signup({ username, password, inviteCode }) {
-    if (String(inviteCode).trim().toLowerCase() !== INVITE_CODE) throw new Error('That secret handshake is not on the list.');
+    if (String(inviteCode).trim().toLowerCase() !== INVITE_CODE)
+      throw new Error('That secret handshake is not on the list.');
     const wanted = normalizeDingUsername(username);
     if (String(password).length < 6) throw new Error('Password must be at least 6 characters');
     const sb = await getSupa();
@@ -83,7 +106,11 @@ const staticBackend = {
     // '_', so 'Alex_' matched an existing 'AlexG' and was wrongly reported taken.
     // This is a courtesy check only — the unique index on lower(username) is the
     // real guard, and it is what closes the race between check and insert.
-    const taken = await sb.from('profiles').select('id').ilike('username', wanted.replaceAll('%', '\\%').replaceAll('_', '\\_')).maybeSingle();
+    const taken = await sb
+      .from('profiles')
+      .select('id')
+      .ilike('username', wanted.replaceAll('%', '\\%').replaceAll('_', '\\_'))
+      .maybeSingle();
     if (taken.data) throw new Error('Username already exists');
     const { data, error } = await sb.auth.signUp({ email: syntheticAuthEmail(wanted), password });
     if (error) throw new Error(/already/i.test(error.message) ? 'Username already exists' : error.message);
@@ -105,7 +132,10 @@ const staticBackend = {
     }
     return toUser(ins.data);
   },
-  async logout() { const sb = await getSupa(); await sb.auth.signOut(); },
+  async logout() {
+    const sb = await getSupa();
+    await sb.auth.signOut();
+  },
   async updateOwnPassword(password) {
     const value = String(password || '');
     if (value.length < 6) throw new Error('Password must be at least 6 characters');
@@ -125,7 +155,9 @@ const staticBackend = {
   },
   async characters({ includeArchived = false } = {}) {
     const sb = await getSupa();
-    const { data: { user } } = await sb.auth.getUser();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
     if (!user) throw new Error('Not signed in');
     let query = sb.from('characters').select('*').eq('user_id', user.id).order('created_at', { ascending: true });
     if (!includeArchived) query = query.eq('is_archived', false);
@@ -135,7 +167,9 @@ const staticBackend = {
   },
   async createCharacter(input) {
     const sb = await getSupa();
-    const { data: { user } } = await sb.auth.getUser();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
     if (!user) throw new Error('Not signed in');
     const draft = normalizeCharacterDraft(input);
     const row = { ...draft, user_id: user.id };
@@ -170,9 +204,18 @@ const staticBackend = {
   },
   async levelEvents(limit = 200) {
     const sb = await getSupa();
-    const result = await sb.from('level_events').select('*').order('timestamp', { ascending: false }).order('id', { ascending: false }).limit(Math.max(1, Math.min(1000, Number(limit) || 200)));
+    const result = await sb
+      .from('level_events')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(Math.max(1, Math.min(1000, Number(limit) || 200)));
     if (result.error) throw new Error(result.error.message);
-    if (!profileCache.size) { try { await refreshProfiles(sb); } catch {} }
+    if (!profileCache.size) {
+      try {
+        await refreshProfiles(sb);
+      } catch {}
+    }
     return (result.data || []).map(joinLevelEvent);
   },
   async levelEventById(id, actorId) {
@@ -192,7 +235,10 @@ const staticBackend = {
   },
   async patchLevelEventNote(id, note) {
     const sb = await getSupa();
-    const { data, error } = await sb.rpc('update_level_event_note', { p_event_id: id, p_note: String(note || '').slice(0, 240) });
+    const { data, error } = await sb.rpc('update_level_event_note', {
+      p_event_id: id,
+      p_note: String(note || '').slice(0, 240),
+    });
     if (error) throw new Error(error.message);
     const row = Array.isArray(data) ? data[0] : data;
     return row ? joinLevelEvent(row) : null;
@@ -203,7 +249,9 @@ const staticBackend = {
    * Deleting the auth user cascades the profile away and frees the name. */
   async deleteAccount() {
     const sb = await getSupa();
-    const { data: { user } } = await sb.auth.getUser();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
     if (!user) throw new Error('Not signed in');
     const { data, error } = await sb.functions.invoke('delete-account', { body: {} });
     if (error) {
@@ -218,13 +266,28 @@ const staticBackend = {
     const [profiles, characters, levelEvents, achievements] = await Promise.all([
       refreshProfiles(sb),
       fetchAllPages((from, to) =>
-        sb.from('characters').select('*').order('created_at', { ascending: true }).order('id', { ascending: true }).range(from, to)
+        sb
+          .from('characters')
+          .select('*')
+          .order('created_at', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to)
       ),
       fetchAllPages((from, to) =>
-        sb.from('level_events').select('*').order('timestamp', { ascending: false }).order('id', { ascending: false }).range(from, to)
+        sb
+          .from('level_events')
+          .select('*')
+          .order('timestamp', { ascending: false })
+          .order('id', { ascending: false })
+          .range(from, to)
       ),
       fetchAllPages((from, to) =>
-        sb.from('achievements').select('*').order('unlocked_at', { ascending: false }).order('id', { ascending: false }).range(from, to)
+        sb
+          .from('achievements')
+          .select('*')
+          .order('unlocked_at', { ascending: false })
+          .order('id', { ascending: false })
+          .range(from, to)
       ),
     ]);
     return {
@@ -236,7 +299,9 @@ const staticBackend = {
   },
   async reconcileAchievements() {
     const sb = await getSupa();
-    const { data: { user } } = await sb.auth.getUser();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
     if (!user) throw new Error('Not signed in');
     const { data, error } = await sb.functions.invoke('reconcile-achievements', { body: {} });
     if (error) throw new Error(error.message || 'Achievement reconciliation failed');
@@ -247,7 +312,9 @@ const staticBackend = {
       newlyEarned: Array.isArray(data?.newlyEarned) ? data.newlyEarned : [],
     };
   },
-  async saveAchievements() { return (await this.reconcileAchievements()).achievements; },
+  async saveAchievements() {
+    return (await this.reconcileAchievements()).achievements;
+  },
   async registerPushSubscription(subscription, meta = {}) {
     if (!subscription) return { ok: false, reason: 'missing_subscription' };
     const sb = await getSupa();
@@ -263,7 +330,9 @@ const staticBackend = {
       const detail = await readFunctionError(error);
       const status = error?.context?.status;
       throw new Error(
-        detail || (status ? `Push registration failed (HTTP ${status})` : error.message) || 'Push subscription registration failed'
+        detail ||
+          (status ? `Push registration failed (HTTP ${status})` : error.message) ||
+          'Push subscription registration failed'
       );
     }
     if (data?.error) throw new Error(data.error);
@@ -299,7 +368,9 @@ const staticBackend = {
   async broadcastTestNotification({ title, body, userIds } = {}) {
     if (!String(title || '').trim() && !String(body || '').trim()) return { ok: false, reason: 'empty_message' };
     const sb = await getSupa();
-    const { data, error } = await sb.functions.invoke('broadcast-test-notification', { body: { title, body, userIds } });
+    const { data, error } = await sb.functions.invoke('broadcast-test-notification', {
+      body: { title, body, userIds },
+    });
     if (error) {
       // The function returns 403 for a non-allowlisted caller; surface the
       // function's own message rather than the SDK's generic wrapper.
@@ -357,10 +428,14 @@ const staticBackend = {
     if (data?.error) throw new Error(data.error);
     return data || { ok: true };
   },
-  webPushPublicKey() { return WEB_PUSH_PUBLIC_KEY; },
+  webPushPublicKey() {
+    return WEB_PUSH_PUBLIC_KEY;
+  },
   async patchProfile(patch) {
     const sb = await getSupa();
-    const { data: { user } } = await sb.auth.getUser();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
     if (!user) throw new Error('Not signed in');
     const upd = {};
     if (patch.tagline != null) upd.tagline = String(patch.tagline).slice(0, 80);
@@ -376,13 +451,22 @@ const staticBackend = {
     let unsubscribed = false;
     getSupa().then(sb => {
       if (unsubscribed) return;
-      channel = sb.channel('ding-feed')
+      channel = sb
+        .channel('ding-feed')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'level_events' }, async payload => {
-          if (!profileCache.has(payload.new.user_id)) { try { await refreshProfiles(sb); } catch {} }
+          if (!profileCache.has(payload.new.user_id)) {
+            try {
+              await refreshProfiles(sb);
+            } catch {}
+          }
           if (!unsubscribed) onLevelEvent?.(joinLevelEvent(payload.new), 'created');
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'level_events' }, async payload => {
-          if (!profileCache.has(payload.new.user_id)) { try { await refreshProfiles(sb); } catch {} }
+          if (!profileCache.has(payload.new.user_id)) {
+            try {
+              await refreshProfiles(sb);
+            } catch {}
+          }
           if (!unsubscribed) onLevelEvent?.(joinLevelEvent(payload.new), 'updated');
         })
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'level_events' }, payload => {
@@ -412,12 +496,11 @@ const staticBackend = {
           if (unsubscribed) return;
           const row = payload.eventType === 'DELETE' ? payload.old : payload.new;
           if (row?.user_id && !profileCache.has(row.user_id)) {
-            try { await refreshProfiles(sb); } catch {}
+            try {
+              await refreshProfiles(sb);
+            } catch {}
           }
-          onAchievement?.(
-            payload.eventType === 'DELETE' ? row : joinAchievement(row),
-            payload.eventType.toLowerCase()
-          );
+          onAchievement?.(payload.eventType === 'DELETE' ? row : joinAchievement(row), payload.eventType.toLowerCase());
         })
         .subscribe(status => {
           if (!unsubscribed) onStatus?.(status);

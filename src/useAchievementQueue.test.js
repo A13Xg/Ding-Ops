@@ -138,7 +138,6 @@ describe('useAchievementQueue', () => {
   });
 });
 
-
 describe('achievement queue under StrictMode', () => {
   it('never duplicates queued items when React replays state updaters', () => {
     const wrapper = ({ children }) => createElement(StrictMode, null, children);

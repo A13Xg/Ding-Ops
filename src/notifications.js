@@ -330,7 +330,12 @@ function result(reason, extra = {}) {
  *
  * @returns {Promise<{ok: boolean, reason?: string, endpoint?: string, previousEndpoint?: string|null}>}
  */
-export async function rotatePushEndpoint({ backend, workerPath = '/sw.js', nav = globalThis.navigator, win = globalThis } = {}) {
+export async function rotatePushEndpoint({
+  backend,
+  workerPath = '/sw.js',
+  nav = globalThis.navigator,
+  win = globalThis,
+} = {}) {
   const platform = detectPushPlatform(nav, win);
   const blocked = pushBlockedReason(platform);
   if (blocked) return { ok: false, reason: blocked };

@@ -1,8 +1,5 @@
 export function isStandalonePwa(win = globalThis.window, nav = globalThis.navigator) {
-  return Boolean(
-    win?.matchMedia?.('(display-mode: standalone)')?.matches ||
-      nav?.standalone === true
-  );
+  return Boolean(win?.matchMedia?.('(display-mode: standalone)')?.matches || nav?.standalone === true);
 }
 
 export function isIosDevice(nav = globalThis.navigator) {

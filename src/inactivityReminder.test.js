@@ -115,9 +115,7 @@ describe('inactivity reminder storage', () => {
   });
 
   it('avoids immediately repeating the previous reminder message', () => {
-    const previousIndex = INACTIVITY_MESSAGE_CATALOG.findIndex(item =>
-      item.text.includes('XP bar has filed')
-    );
+    const previousIndex = INACTIVITY_MESSAGE_CATALOG.findIndex(item => item.text.includes('XP bar has filed'));
     const selected = pickInactivityReminderMessage({ random: () => 0, lastMessageIndex: previousIndex });
     expect(selected.index).not.toBe(previousIndex);
     expect(typeof selected.text).toBe('string');
