@@ -1,5 +1,4 @@
 import { createRoot } from 'react-dom/client';
-import 'material-symbols/outlined.css';
 import './styles.css';
 import './mobileFeedback.css';
 import { ErrorBoundary } from './ErrorBoundary.jsx';
