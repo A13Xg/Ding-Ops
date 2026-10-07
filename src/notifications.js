@@ -132,11 +132,11 @@ export async function showNotification(title, options = {}, deps = {}) {
 }
 
 function withNotificationDefaults(options = {}, baseUrl = '/') {
-  const icon = options.icon || `${baseUrl}ding-icon.svg`;
+  const icon = options.icon || `${baseUrl}icons/icon-192.png`;
   return {
     // Android renders `badge` as a monochrome alpha mask, so it gets its own
     // single-colour asset rather than the full-colour icon.
-    badge: `${baseUrl}ding-badge.svg`,
+    badge: `${baseUrl}icons/badge-96.png`,
     icon,
     ...options,
     // `renotify` is invalid without a tag and makes Chrome throw.
