@@ -1962,3 +1962,173 @@ button.ding-award-card {
     flex-direction: column;
   }
 }
+
+
+.ding-account-panel {
+  border-color: rgba(96, 165, 250, .18);
+}
+
+.ding-account-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ding-danger-zone {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(248, 113, 113, .2);
+}
+
+.ding-danger-zone > strong {
+  color: #fca5a5;
+  font-size: 11px;
+  letter-spacing: .1em;
+}
+
+.ding-danger-zone > small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.ding-crew-card {
+  padding: 0;
+}
+
+.ding-crew-open {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 16px;
+  text-align: left;
+}
+
+.ding-crew-open:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: -3px;
+}
+
+.ding-crew-profile {
+  position: relative;
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-color: rgba(167, 139, 250, .38);
+}
+
+.ding-crew-profile-close {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(11, 15, 24, .84);
+  color: var(--muted);
+}
+
+.ding-crew-profile .ding-profile-hero {
+  padding: 0 42px 0 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ding-crew-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.ding-crew-profile-grid h3 {
+  margin: 0 0 8px;
+  color: #c4b5fd;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ding-mini-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, .08);
+}
+
+.ding-mini-row > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.ding-mini-row b {
+  color: #eaf1ff;
+  overflow-wrap: anywhere;
+}
+
+.ding-mini-row small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.ding-mini-row > strong {
+  flex: none;
+  color: #93c5fd;
+}
+
+.ding-mini-awards {
+  display: grid;
+  gap: 8px;
+}
+
+.ding-mini-awards > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 9px;
+  align-items: center;
+}
+
+.ding-mini-awards .badge-medal {
+  width: 44px;
+  height: 44px;
+}
+
+.ding-mini-awards > div > span {
+  display: grid;
+}
+
+.ding-mini-awards small {
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+@media (max-width: 760px) {
+  .ding-crew-open {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .ding-crew-open .ding-crew-numbers {
+    grid-column: 1 / -1;
+  }
+
+  .ding-crew-profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ding-account-row {
+    flex-direction: column;
+  }
+}
