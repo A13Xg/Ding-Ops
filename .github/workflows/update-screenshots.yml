@@ -37,8 +37,8 @@ jobs:
 
       - run: npm ci
 
-      - name: Install Chromium for Playwright
-        run: npx --yes playwright@1.55.0 install --with-deps chromium
+      - name: Install screenshot browsers
+        run: npx --yes playwright@1.55.0 install --with-deps chromium webkit
 
       - name: Start deterministic DING demo
         shell: bash
