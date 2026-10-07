@@ -5,6 +5,9 @@ const trim = (value, max) =>
     .trim()
     .slice(0, max);
 
+export const MAX_DEATHS_PER_LEVEL = 10_000;
+export const MAX_SESSION_MINUTES = 525_600;
+
 const intOrNull = value => {
   if (value === '' || value === null || value === undefined) return null;
   const parsed = Number(value);
@@ -98,8 +101,12 @@ export function createDingRequest({
   const activityIds = new Set(config.activityTypes.map(item => item.id));
   const deathCount = intOrNull(deaths);
   const minutes = intOrNull(sessionMinutes);
-  if (deathCount != null && deathCount < 0) throw new Error('Deaths cannot be negative.');
-  if (minutes != null && minutes < 0) throw new Error('Session minutes cannot be negative.');
+  if (deathCount != null && (deathCount < 0 || deathCount > MAX_DEATHS_PER_LEVEL)) {
+    throw new Error(`Deaths must be between 0 and ${MAX_DEATHS_PER_LEVEL}.`);
+  }
+  if (minutes != null && (minutes < 0 || minutes > MAX_SESSION_MINUTES)) {
+    throw new Error(`Session minutes must be between 0 and ${MAX_SESSION_MINUTES}.`);
+  }
 
   let resolvedTimeZone = trim(timeZone, 80);
   if (!resolvedTimeZone) {
