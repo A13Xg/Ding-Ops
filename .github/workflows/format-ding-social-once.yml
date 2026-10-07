@@ -1,33 +1,19 @@
-name: One-shot DING social formatter
+name: DING source formatter
 
 on:
   push:
     branches: [main]
     paths:
-      - src/DingApp.jsx
-      - src/DingSocial.jsx
-      - src/dingProgression.js
-      - src/dingProgression.test.js
-      - src/dingAchievements.js
-      - src/dingAchievements.test.js
-      - src/dingAchievementCatalogContract.test.js
-      - src/dingShell.css
-      - src/dingAnalytics.js
-      - src/dingAnalytics.test.js
-      - src/DingAnalyticsView.jsx
-      - src/DingAdmin.jsx
-      - src/usePwaInstall.js
-      - src/pwaInstall.test.js
-      - src/pwaInstall.js
-      - src/characterImport.test.js
-      - src/characterImport.js
-      - src/discordTemplate.js
-      - src/broadcastTemplate.js
-      - src/templateTokens.js
+      - 'src/**'
+      - '.github/workflows/format-ding-social-once.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: ding-source-formatter
+  cancel-in-progress: true
 
 jobs:
   format:
@@ -41,15 +27,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Format new DING social files
-        run: npx prettier --write src/DingApp.jsx src/DingSocial.jsx src/dingProgression.js src/dingProgression.test.js src/dingAchievements.js src/dingAchievements.test.js src/dingAchievementCatalogContract.test.js src/dingShell.css src/dingAnalytics.js src/dingAnalytics.test.js src/DingAnalyticsView.jsx src/DingAdmin.jsx src/characterImport.js src/characterImport.test.js src/pwaInstall.js src/pwaInstall.test.js src/usePwaInstall.js src/templateTokens.js src/broadcastTemplate.js src/discordTemplate.js
+      - name: Format all active DING source
+        run: npx prettier --write "src/**/*.{js,jsx,css}"
       - name: Commit formatting if needed
         run: |
-          if git diff --quiet; then
+          if git diff --quiet -- src; then
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/DingApp.jsx src/DingSocial.jsx src/dingProgression.js src/dingProgression.test.js src/dingAchievements.js src/dingAchievements.test.js src/dingAchievementCatalogContract.test.js src/dingShell.css src/dingAnalytics.js src/dingAnalytics.test.js src/DingAnalyticsView.jsx src/DingAdmin.jsx src/characterImport.js src/characterImport.test.js src/pwaInstall.js src/pwaInstall.test.js src/usePwaInstall.js src/templateTokens.js src/broadcastTemplate.js src/discordTemplate.js
-          git commit -m "style: format DING social progression"
+          git add src
+          git commit -m "style: format DING source"
           git push origin HEAD:main
