@@ -113,11 +113,15 @@ Keep game configuration centralized. At minimum:
 
 Do not scatter literal level-cap assumptions throughout UI/rules/SQL.
 
-## 7. Current migration state
+## 7. Current implementation state
 
-`supabase/migrations/` intentionally contains no deployable schema yet. Phase 2/3 creates DING migrations from scratch. The copied Edge Functions and generated Bust database types are scaffolding only until translated.
+The DING schema and platform services are implemented under `supabase/migrations/` and the active Edge Functions are DING-native. Legacy Bust SQL remains isolated under `supabase/legacy_bust_migrations/` and must never be applied to a DING project.
 
-Do not deploy the functions against a new project until the DING schema/types conversion is complete.
+The checked-in database types mirror the repository migrations so Edge Functions typecheck before a live project exists. After the dedicated DING Supabase project is linked and migrated, regenerate the types from that project and compare them against the checked-in contract.
+
+Production deployment is intentionally credential-gated by `.github/workflows/deploy.yml`. It applies migrations before functions, configures secrets, runs the live concurrency smoke test, then deploys GitHub Pages.
+
+The only remaining release blockers should be external project linkage/secrets and hosted/physical-device verification, not unfinished repository architecture.
 
 ## 8. Testing philosophy
 
@@ -131,6 +135,10 @@ Carry forward or improve Bust's tests. DING additionally requires adversarial te
 - parallel characters
 - account switching
 - achievement reconciliation and announcement pacing
+- synchronized cross-user achievement reconciliation
+- exact reconciliation-burst sibling suppression under rapid separate Dings
+- production bundle isolation from demo/legacy identity
+- installed PWA push delivery and endpoint ACK recovery
 
 ## 9. Execution ledger
 
