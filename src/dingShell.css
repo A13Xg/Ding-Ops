@@ -2130,3 +2130,117 @@ button.ding-award-card {
     flex-direction: column;
   }
 }
+
+
+.ding-install-control {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.ding-install-control > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.ding-install-control > div > svg {
+  color: #60a5fa;
+}
+
+.ding-install-control span {
+  display: grid;
+  gap: 3px;
+}
+
+.ding-install-control small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.ding-install-control .mf-button {
+  justify-self: start;
+}
+
+.ding-first-run-wrap {
+  width: min(760px, calc(100vw - 28px));
+  display: grid;
+  gap: 16px;
+}
+
+.ding-first-run {
+  display: grid;
+  gap: 14px;
+}
+
+.ding-first-run-copy {
+  text-align: center;
+}
+
+.ding-first-run-copy h1 {
+  margin: 5px 0 8px;
+  color: #eaf1ff;
+  font-size: clamp(26px, 6vw, 44px);
+  line-height: .98;
+}
+
+.ding-first-run-copy p {
+  max-width: 650px;
+  margin: 0 auto;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.ding-first-run-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ding-first-run-steps > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+}
+
+.ding-first-run-steps > div > b {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(96, 165, 250, .42);
+  border-radius: 50%;
+  background: rgba(59, 130, 246, .12);
+  color: #bfdbfe;
+}
+
+.ding-first-run-steps span {
+  display: grid;
+  gap: 2px;
+}
+
+.ding-first-run-steps strong {
+  color: #dbeafe;
+  font-size: 10px;
+  letter-spacing: .06em;
+}
+
+.ding-first-run-steps small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+@media (max-width: 700px) {
+  .ding-first-run-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .ding-install-control .mf-button {
+    justify-self: stretch;
+  }
+}
