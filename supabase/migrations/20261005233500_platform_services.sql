@@ -47,22 +47,9 @@ create index if not exists push_subscriptions_user_idx
   on public.push_subscriptions (user_id);
 
 alter table public.push_subscriptions enable row level security;
-
-drop policy if exists push_subscriptions_select on public.push_subscriptions;
-create policy push_subscriptions_select on public.push_subscriptions
-for select to authenticated using (user_id = auth.uid());
-
-drop policy if exists push_subscriptions_insert on public.push_subscriptions;
-create policy push_subscriptions_insert on public.push_subscriptions
-for insert to authenticated with check (user_id = auth.uid());
-
-drop policy if exists push_subscriptions_update on public.push_subscriptions;
-create policy push_subscriptions_update on public.push_subscriptions
-for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
-
-drop policy if exists push_subscriptions_delete on public.push_subscriptions;
-create policy push_subscriptions_delete on public.push_subscriptions
-for delete to authenticated using (user_id = auth.uid());
+-- No browser policies. Endpoint/key material is registered and rotated only by
+-- register-push-subscription after JWT validation, and all delivery/liveness
+-- mutations are service-role operations.
 
 create table if not exists public.push_events (
   id bigint generated always as identity primary key,
