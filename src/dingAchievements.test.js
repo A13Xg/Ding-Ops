@@ -128,6 +128,31 @@ describe('DING achievement catalog', () => {
     expect(fresh).toEqual(expect.arrayContaining(['streak_7', 'daily_10']));
   });
 
+  it('awards synchronized Dings only when another crew member is actually nearby in server time', () => {
+    const anchor = event({ id: 'mine', timestamp: '2026-10-06T20:00:00Z' });
+    const near = event({ id: 'near', user_id: 'u2', timestamp: '2026-10-06T20:01:30Z' });
+    const far = event({ id: 'far', user_id: 'u3', timestamp: '2026-10-06T21:00:00Z' });
+    const fresh = computeDingAchievementUnlocks({
+      userId: 'u1',
+      events: [anchor],
+      allEvents: [anchor, near, far],
+    });
+    expect(fresh).toContain('sync_pair');
+    expect(fresh).not.toContain('sync_trio');
+  });
+
+  it('recognizes a synchronized crew cluster using distinct users, not duplicate events', () => {
+    const rows = [
+      event({ id: 'mine', timestamp: '2026-10-06T20:00:00Z' }),
+      event({ id: 'u2a', user_id: 'u2', timestamp: '2026-10-06T20:01:00Z' }),
+      event({ id: 'u2b', user_id: 'u2', timestamp: '2026-10-06T20:02:00Z' }),
+      event({ id: 'u3', user_id: 'u3', timestamp: '2026-10-06T20:03:00Z' }),
+      event({ id: 'u4', user_id: 'u4', timestamp: '2026-10-06T20:08:00Z' }),
+    ];
+    const fresh = computeDingAchievementUnlocks({ userId: 'u1', events: [rows[0]], allEvents: rows });
+    expect(fresh).toEqual(expect.arrayContaining(['sync_pair', 'sync_trio', 'sync_raid']));
+  });
+
   it('does not use another player history', () => {
     const fresh = computeDingAchievementUnlocks({
       userId: 'u1',
