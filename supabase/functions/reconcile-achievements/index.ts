@@ -46,15 +46,17 @@ Deno.serve(async req => {
     }
 
     const admin = createClient<Database>(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
-    const userId = authData.user.id;
+    const callerId = authData.user.id;
 
-    const [configResult, events, characters, existing] = await Promise.all([
+    const [configResult, profiles, allEvents, allCharacters, existing] = await Promise.all([
       admin.from('game_config').select('level_cap').eq('id', 'current').single(),
+      fetchAllPages((from, to) =>
+        admin.from('profiles').select('id').order('created_at', { ascending: true }).order('id', { ascending: true }).range(from, to)
+      ),
       fetchAllPages((from, to) =>
         admin
           .from('level_events')
           .select('*')
-          .eq('user_id', userId)
           .order('timestamp', { ascending: true })
           .order('id', { ascending: true })
           .range(from, to)
@@ -63,7 +65,6 @@ Deno.serve(async req => {
         admin
           .from('characters')
           .select('*')
-          .eq('user_id', userId)
           .order('created_at', { ascending: true })
           .order('id', { ascending: true })
           .range(from, to)
@@ -82,19 +83,31 @@ Deno.serve(async req => {
       throw new Error(configResult.error?.message || 'DING game configuration is missing');
     }
 
-    const earned = computeDingAchievementUnlocks({
-      userId,
-      events,
-      characters,
-      existing,
-      levelCap: configResult.data.level_cap,
-    }).filter(id => validAchievementIds.has(id));
+    const newlyEarnedByUser = new Map<string, string[]>();
+    const rowsToInsert: { user_id: string; achievement_type: string }[] = [];
 
-    if (earned.length) {
-      const { error } = await admin.from('achievements').upsert(
-        earned.map(achievement_type => ({ user_id: userId, achievement_type })),
-        { onConflict: 'user_id,achievement_type', ignoreDuplicates: true }
-      );
+    for (const profile of profiles) {
+      const userId = profile.id;
+      const ownedEvents = allEvents.filter(event => event.user_id === userId);
+      const ownedCharacters = allCharacters.filter(character => character.user_id === userId);
+      const earned = computeDingAchievementUnlocks({
+        userId,
+        events: ownedEvents,
+        allEvents,
+        characters: ownedCharacters,
+        existing,
+        levelCap: configResult.data.level_cap,
+      }).filter(id => validAchievementIds.has(id));
+
+      if (!earned.length) continue;
+      newlyEarnedByUser.set(userId, earned);
+      rowsToInsert.push(...earned.map(achievement_type => ({ user_id: userId, achievement_type })));
+    }
+
+    if (rowsToInsert.length) {
+      const { error } = await admin
+        .from('achievements')
+        .upsert(rowsToInsert, { onConflict: 'user_id,achievement_type', ignoreDuplicates: true });
       if (error) throw new Error(error.message);
     }
 
@@ -107,9 +120,15 @@ Deno.serve(async req => {
         .range(from, to)
     );
 
-    return new Response(JSON.stringify({ achievements: achievementRows, newlyEarned: earned }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        achievements: achievementRows,
+        newlyEarned: newlyEarnedByUser.get(callerId) || [],
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   } catch (error) {
     console.error('[reconcile-achievements]', error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Reconciliation failed' }), {
