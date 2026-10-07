@@ -1,14 +1,26 @@
 const item = (id, name, desc, tier, points, icon, criterion) =>
-  Object.freeze({ id, name, desc, tier, kind: tier === 'mythic' ? 'trophy' : 'achievement', points, accent: tierAccent(tier), icon, criterion });
+  Object.freeze({
+    id,
+    name,
+    desc,
+    tier,
+    kind: tier === 'mythic' ? 'trophy' : 'achievement',
+    points,
+    accent: tierAccent(tier),
+    icon,
+    criterion,
+  });
 
 function tierAccent(tier) {
-  return {
-    bronze: '#60a5fa',
-    silver: '#818cf8',
-    gold: '#a78bfa',
-    platinum: '#c084fc',
-    mythic: '#f4c95d',
-  }[tier] || '#60a5fa';
+  return (
+    {
+      bronze: '#60a5fa',
+      silver: '#818cf8',
+      gold: '#a78bfa',
+      platinum: '#c084fc',
+      mythic: '#f4c95d',
+    }[tier] || '#60a5fa'
+  );
 }
 
 const volumeAwards = [
@@ -53,10 +65,18 @@ const dailyAwards = [
   [10, 'Ten in a Day', 'platinum', 140],
   [15, 'Please Stand Up', 'mythic', 220],
 ].map(([threshold, name, tier, points]) =>
-  item(`daily_${threshold}`, name, `Record ${threshold} Dings on one local calendar day.`, tier, points, 'CalendarDays', {
-    type: 'daily_max',
-    threshold,
-  })
+  item(
+    `daily_${threshold}`,
+    name,
+    `Record ${threshold} Dings on one local calendar day.`,
+    tier,
+    points,
+    'CalendarDays',
+    {
+      type: 'daily_max',
+      threshold,
+    }
+  )
 );
 
 const streakAwards = [
@@ -69,10 +89,18 @@ const streakAwards = [
   [21, 'Habit Formed', 'platinum', 180],
   [30, 'Monthly Tenant', 'mythic', 260],
 ].map(([threshold, name, tier, points]) =>
-  item(`streak_${threshold}`, name, `Record at least one Ding on ${threshold} consecutive local days.`, tier, points, 'Repeat2', {
-    type: 'streak_days',
-    threshold,
-  })
+  item(
+    `streak_${threshold}`,
+    name,
+    `Record at least one Ding on ${threshold} consecutive local days.`,
+    tier,
+    points,
+    'Repeat2',
+    {
+      type: 'streak_days',
+      threshold,
+    }
+  )
 );
 
 const timeBucketAwards = [
@@ -91,8 +119,22 @@ const timeBucketAwards = [
 );
 
 const repeatedTimeAwards = [
-  ['Late Night', 'late_night', 'Moon', [5, 'five', 'Night Shift Regular', 'silver'], [10, 'ten', 'Circadian Raider', 'gold'], [25, 'twenty_five', 'Sleep Schedule Deleted', 'platinum']],
-  ['Early Morning', 'early_morning', 'Sunrise', [5, 'five', 'Dawn Patrol', 'silver'], [10, 'ten', 'Breakfast Raid Leader', 'gold'], [25, 'twenty_five', 'Sunrise Is a Mechanic', 'platinum']],
+  [
+    'Late Night',
+    'late_night',
+    'Moon',
+    [5, 'five', 'Night Shift Regular', 'silver'],
+    [10, 'ten', 'Circadian Raider', 'gold'],
+    [25, 'twenty_five', 'Sleep Schedule Deleted', 'platinum'],
+  ],
+  [
+    'Early Morning',
+    'early_morning',
+    'Sunrise',
+    [5, 'five', 'Dawn Patrol', 'silver'],
+    [10, 'ten', 'Breakfast Raid Leader', 'gold'],
+    [25, 'twenty_five', 'Sunrise Is a Mechanic', 'platinum'],
+  ],
 ].flatMap(([bucket, prefix, icon, ...rows]) =>
   rows.map(([threshold, suffix, name, tier]) =>
     item(
@@ -168,10 +210,18 @@ const deathAwards = [
     [10, 'ten_deaths', 'Spirit Healer Frequent Flyer', 'gold', 65],
     [20, 'twenty_deaths', 'Repair Bill Enjoyer', 'platinum', 110],
   ].map(([threshold, id, name, tier, points]) =>
-    item(id, name, `Record a level with at least ${threshold} death${threshold === 1 ? '' : 's'}.`, tier, points, 'Skull', {
-      type: 'deaths_gte',
-      threshold,
-    })
+    item(
+      id,
+      name,
+      `Record a level with at least ${threshold} death${threshold === 1 ? '' : 's'}.`,
+      tier,
+      points,
+      'Skull',
+      {
+        type: 'deaths_gte',
+        threshold,
+      }
+    )
   ),
 ];
 
@@ -230,10 +280,18 @@ const weekendAwards = [
   [5, 'Saturday Is Gone', 'silver', 35],
   [10, 'Weekend Deleted', 'gold', 70],
 ].map(([threshold, name, tier, points]) =>
-  item(`weekend_${threshold}`, name, `Record ${threshold} Dings on Saturdays or Sundays.`, tier, points, 'CalendarDays', {
-    type: 'weekend_count',
-    threshold,
-  })
+  item(
+    `weekend_${threshold}`,
+    name,
+    `Record ${threshold} Dings on Saturdays or Sundays.`,
+    tier,
+    points,
+    'CalendarDays',
+    {
+      type: 'weekend_count',
+      threshold,
+    }
+  )
 );
 
 const maxCharacterAwards = [
@@ -271,10 +329,18 @@ const activeDayAwards = [
   [60, 'Sixty Active Days', 'platinum', 160],
   [100, 'Century of Sweat', 'mythic', 260],
 ].map(([threshold, name, tier, points]) =>
-  item(`active_days_${threshold}`, name, `Record Dings on ${threshold} distinct local days.`, tier, points, 'CalendarDays', {
-    type: 'unique_days',
-    threshold,
-  })
+  item(
+    `active_days_${threshold}`,
+    name,
+    `Record Dings on ${threshold} distinct local days.`,
+    tier,
+    points,
+    'CalendarDays',
+    {
+      type: 'unique_days',
+      threshold,
+    }
+  )
 );
 
 const measuredAwards = [
@@ -305,10 +371,18 @@ export const dingAchievements = Object.freeze([
   ...noteAwards,
   ...weekendAwards,
   ...maxCharacterAwards,
-  item('both_factions', 'Factionally Indecisive', 'Track characters from both Alliance and Horde.', 'gold', 70, 'Groups', {
-    type: 'factions_count',
-    threshold: 2,
-  }),
+  item(
+    'both_factions',
+    'Factionally Indecisive',
+    'Track characters from both Alliance and Horde.',
+    'gold',
+    70,
+    'Groups',
+    {
+      type: 'factions_count',
+      threshold: 2,
+    }
+  ),
   ...realmAwards,
   ...activeDayAwards,
   ...measuredAwards,
@@ -349,13 +423,35 @@ function buildMetrics(events, characters, levelCap) {
   const dailyCounts = metricMap(dates);
   const activityCounts = metricMap(events.map(event => event.activity_type || 'other'));
   const bucketCounts = metricMap(events.map(event => event.time_bucket));
-  const uniqueZones = new Set(events.map(event => String(event.zone || '').trim().toLowerCase()).filter(Boolean));
-  const uniqueClasses = new Set(characters.map(character => String(character.class_name || '').trim().toLowerCase()).filter(Boolean));
-  const uniqueRealms = new Set(characters.map(character => String(character.realm || '').trim().toLowerCase()).filter(Boolean));
-  const factions = new Set(
+  const uniqueZones = new Set(
+    events
+      .map(event =>
+        String(event.zone || '')
+          .trim()
+          .toLowerCase()
+      )
+      .filter(Boolean)
+  );
+  const uniqueClasses = new Set(
     characters
-      .map(character => character.faction)
-      .filter(faction => faction === 'Alliance' || faction === 'Horde')
+      .map(character =>
+        String(character.class_name || '')
+          .trim()
+          .toLowerCase()
+      )
+      .filter(Boolean)
+  );
+  const uniqueRealms = new Set(
+    characters
+      .map(character =>
+        String(character.realm || '')
+          .trim()
+          .toLowerCase()
+      )
+      .filter(Boolean)
+  );
+  const factions = new Set(
+    characters.map(character => character.faction).filter(faction => faction === 'Alliance' || faction === 'Horde')
   );
 
   return {

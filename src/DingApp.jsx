@@ -255,7 +255,9 @@ function DingButton({ phase, character, config, onDing }) {
 function DingContextEditor({ value, onChange, config, disabled }) {
   return (
     <details className="ding-context mf-frame">
-      <summary>LEVEL CONTEXT <span>optional · feeds analytics + achievements</span></summary>
+      <summary>
+        LEVEL CONTEXT <span>optional · feeds analytics + achievements</span>
+      </summary>
       <div className="ding-context-grid">
         <label>
           Activity

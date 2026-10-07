@@ -123,9 +123,7 @@ describe('DING achievement catalog', () => {
         local_date: `2026-10-${String(index + 1).padStart(2, '0')}`,
       })
     );
-    const sameDay = Array.from({ length: 10 }, (_, index) =>
-      event({ id: `same-${index}`, local_date: '2026-09-30' })
-    );
+    const sameDay = Array.from({ length: 10 }, (_, index) => event({ id: `same-${index}`, local_date: '2026-09-30' }));
     const fresh = computeDingAchievementUnlocks({ userId: 'u1', events: [...streak, ...sameDay] });
     expect(fresh).toEqual(expect.arrayContaining(['streak_7', 'daily_10']));
   });
