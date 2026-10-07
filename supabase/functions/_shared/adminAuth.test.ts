@@ -1,4 +1,4 @@
-import { assertEquals } from 'jsr:@std/assert';
+import { assertEquals } from 'jsr:@std/assert@1.0.19';
 import { adminAllowlist, isAllowedAdmin, sha256Hex } from './adminAuth.ts';
 
 Deno.test('admin allowlist fails closed until BROADCAST_ADMINS is explicitly configured', async () => {
