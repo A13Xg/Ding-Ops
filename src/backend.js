@@ -106,8 +106,7 @@ const staticBackend = {
     return { ok: true };
   },
   // DING domain methods are intentionally additive during migration. The
-  // inherited Bust UI continues to build until the DING vertical slice owns
-  // the shell, while new screens can use the character/level-event API now.
+  // Character/level-event methods are the authoritative DING domain surface.
   async gameConfig() {
     const sb = await getSupa();
     const { data, error } = await sb.from('game_config').select('*').eq('id', 'current').single();
