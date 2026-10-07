@@ -25,7 +25,8 @@ export function normalizeCharacterImport(input = {}, config = GAME_CONFIG) {
       race: input.race,
       faction: input.faction,
       current_level: input.current_level ?? input.currentLevel,
-      tracked_from_level: input.tracked_from_level ?? input.trackedFromLevel ?? input.current_level ?? input.currentLevel,
+      tracked_from_level:
+        input.tracked_from_level ?? input.trackedFromLevel ?? input.current_level ?? input.currentLevel,
     },
     config
   );
