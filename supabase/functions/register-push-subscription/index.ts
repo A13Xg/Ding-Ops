@@ -35,10 +35,29 @@ Deno.serve(async (req) => {
 
     const payload = await req.json().catch(() => ({}));
     const sub = payload?.subscription;
-    const endpoint = typeof sub?.endpoint === 'string' ? sub.endpoint : '';
-    const p256dh = typeof sub?.keys?.p256dh === 'string' ? sub.keys.p256dh : '';
-    const auth = typeof sub?.keys?.auth === 'string' ? sub.keys.auth : '';
-    if (!endpoint || !p256dh || !auth) return json(400, { error: 'Invalid push subscription payload' });
+    const endpoint = typeof sub?.endpoint === 'string' ? sub.endpoint.trim() : '';
+    const p256dh = typeof sub?.keys?.p256dh === 'string' ? sub.keys.p256dh.trim() : '';
+    const auth = typeof sub?.keys?.auth === 'string' ? sub.keys.auth.trim() : '';
+    const base64Url = /^[A-Za-z0-9_-]+$/;
+    let endpointUrl: URL | null = null;
+    try {
+      endpointUrl = new URL(endpoint);
+    } catch {
+      endpointUrl = null;
+    }
+    if (
+      !endpointUrl ||
+      endpointUrl.protocol !== 'https:' ||
+      endpoint.length > 4096 ||
+      p256dh.length < 40 ||
+      p256dh.length > 256 ||
+      auth.length < 8 ||
+      auth.length > 128 ||
+      !base64Url.test(p256dh) ||
+      !base64Url.test(auth)
+    ) {
+      return json(400, { error: 'Invalid push subscription payload' });
+    }
 
     const admin = createClient<Database>(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
     const userId = authData.user.id;
@@ -63,7 +82,10 @@ Deno.serve(async (req) => {
     // The client rotated away from a deaf endpoint and is telling us which one.
     // Scoped to this user so a caller cannot evict someone else's device, and
     // guarded against deleting the row we just wrote if the two ever match.
-    const replaces = typeof payload?.replacesEndpoint === 'string' ? payload.replacesEndpoint : '';
+    const replaces =
+      typeof payload?.replacesEndpoint === 'string' && payload.replacesEndpoint.length <= 4096
+        ? payload.replacesEndpoint.trim()
+        : '';
     if (replaces && replaces !== endpoint) {
       const { error: replaceError } = await admin
         .from('push_subscriptions')
