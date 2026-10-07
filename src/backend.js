@@ -115,7 +115,12 @@ const staticBackend = {
     const { data, error } = await sb.auth.signUp({ email: syntheticAuthEmail(wanted), password });
     if (error) throw new Error(/already/i.test(error.message) ? 'Username already exists' : error.message);
     const uid = data.user?.id;
-    if (!uid) throw new Error('Signup failed — is email confirmation disabled in Supabase Auth settings?');
+    if (!uid || !data.session) {
+      if (data.user?.identities && data.user.identities.length === 0) {
+        throw new Error('Username already exists');
+      }
+      throw new Error('Signup failed — is email confirmation disabled in Supabase Auth settings?');
+    }
     const profile = { id: uid, username: wanted, avatar_seed: `${wanted}-${Date.now()}` };
     const ins = await sb.from('profiles').insert(profile).select().single();
     if (ins.error) {
