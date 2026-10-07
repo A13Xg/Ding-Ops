@@ -54,8 +54,8 @@
 - [x] Add inactivity reminder state using Ding terminology.
 - [x] Add Discord settings/event ledgers using Ding terminology.
 - [x] Add Realtime publication declarations for profiles/characters/level events/achievements.
-- [~] Translate inherited Edge Functions from Bust rows/event kinds to DING rows/event kinds.
-- [ ] Replace inherited generated Bust database typings with DING schema typings.
+- [~] Translate inherited Edge Functions from Bust rows/event kinds to DING rows/event kinds. Instant notify/backstop/Discord/reminder paths are DING-native; remaining admin/debug/reconciliation cleanup continues.
+- [x] Replace inherited generated Bust database typings with DING schema typings.
 - [ ] Add integration fixtures/scripts for a linked Supabase project.
 
 ### USER CHECKPOINT — DEFERRED UNTIL NEEDED
@@ -85,8 +85,8 @@ This checkpoint is intentionally deferred while repository-only work can continu
 - [x] Post-Ding note editing.
 - [x] Max-level action state.
 - [x] Basic DING analytics surface.
-- [ ] Wire achievement evaluation/reconciliation into a successful Ding.
-- [ ] Wire DING/achievement realtime toasts and announcements into the new shell.
+- [x] Wire achievement evaluation/reconciliation into a successful Ding.
+- [~] Wire DING/achievement realtime toasts and announcements into the new shell. Successful Dings notify and reconcile; fresh achievement toasts/announcements are wired, broader remote-event toast UX still pending.
 - [ ] Add first-run/empty-character onboarding polish.
 - [ ] Add robust account/profile surface to the DING shell.
 - [>] USER CHECKPOINT: real two-account Supabase smoke test once Phase 3 credentials are available.
@@ -107,7 +107,7 @@ This checkpoint is intentionally deferred while repository-only work can continu
 - [ ] Exhaustive source scan for `Bust`, `BUST`, `bust`, `busts`, old URLs, storage keys, notification tags, synthetic domains and old SQL/function names.
 - [ ] Classify every remaining occurrence as remove/translate/reference-only.
 - [ ] Rewrite UI/system/error/empty-state copy into varied WoW/sweaty-gamer language.
-- [ ] Build deterministic DING notification catalogs.
+- [x] Build deterministic DING notification catalogs.
 - [ ] Remove old location/weather/tide/Bitcoin copy and runtime dependencies from the shipped app.
 
 ## 7. Achievement/progression rebuild
@@ -144,8 +144,8 @@ This checkpoint is intentionally deferred while repository-only work can continu
 ## 10. Push notifications
 
 - [~] DING-native database schema/ledger exists.
-- [ ] Translate client event kinds/tags/copy from `bust` to `ding`.
-- [ ] Translate Edge Function dispatch and backstop logic.
+- [~] Translate client event kinds/tags/copy from `bust` to `ding`. Core Ding notification builder and active shell paths are converted; full residue audit remains.
+- [x] Translate Edge Function dispatch and backstop logic.
 - [ ] Preserve VAPID validation, service-worker delivery, ack receipts, ghost-endpoint rotation and delivery diagnostics.
 - [ ] Preserve exactly-once behavior and achievement announcement pacing.
 
@@ -161,8 +161,8 @@ This checkpoint is intentionally deferred while repository-only work can continu
 ## 11. Discord
 
 - [~] DING-native persistence schema exists.
-- [ ] Translate Edge Functions and browser admin UI.
-- [ ] Add tokens: USER, CHARACTER, LEVEL, CLASS, SPEC, REALM, ZONE, ACTIVITY, NOTE, DATE, TIME, ACHIEVEMENT, TIER, POINTS, PUSH_TITLE, PUSH_BODY.
+- [~] Translate Edge Functions and browser admin UI. Shared server Discord pipeline/test endpoint are DING-native; legacy debug/admin React surface still pending.
+- [x] Add tokens: USER, CHARACTER, LEVEL, CLASS, SPEC, REALM, ZONE, ACTIVITY, NOTE, DATE, TIME, ACHIEVEMENT, TIER, POINTS, PUSH_TITLE, PUSH_BODY.
 - [ ] Preserve independent dedupe/retry behavior.
 - [>] USER CHECKPOINT: optional webhook URL after the integration is ready.
 
@@ -170,9 +170,9 @@ This checkpoint is intentionally deferred while repository-only work can continu
 
 - [~] DING-native reminder persistence/reset trigger exists.
 - [ ] Move cadence into explicit configuration.
-- [ ] Translate scheduling code and Edge Function fields from Bust terminology.
-- [ ] Rewrite weighted message catalog around leveling inactivity.
-- [ ] Preserve failed-attempt cycle-advance behavior.
+- [x] Translate scheduling code and Edge Function fields from Bust terminology.
+- [x] Rewrite weighted message catalog around leveling inactivity.
+- [x] Preserve failed-attempt cycle-advance behavior.
 
 ## 13. PWA / install / versioning
 
