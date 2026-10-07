@@ -41,7 +41,7 @@ const levelAwards = [10, 20, 30, 40, 50, 60, 70, 80, 90].map(level => {
     tier,
     isCap ? 300 : 15 + level,
     isCap ? 'Trophy' : 'Bolt',
-    { type: 'level_reached', threshold: level }
+    isCap ? { type: 'configured_cap_reached' } : { type: 'level_reached', threshold: level }
   );
 });
 
@@ -359,6 +359,7 @@ function buildMetrics(events, characters, levelCap) {
   );
 
   return {
+    levelCap: Number(levelCap) || 90,
     eventCount: events.length,
     maxLevelReached: events.reduce((max, event) => Math.max(max, Number(event.to_level) || 0), 0),
     dailyMax: Math.max(0, ...dailyCounts.values()),
@@ -392,6 +393,8 @@ function meets(criterion, metrics) {
       return metrics.eventCount >= threshold;
     case 'level_reached':
       return metrics.maxLevelReached >= threshold;
+    case 'configured_cap_reached':
+      return metrics.maxLevelReached >= metrics.levelCap;
     case 'daily_max':
       return metrics.dailyMax >= threshold;
     case 'streak_days':
