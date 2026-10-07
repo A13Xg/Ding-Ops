@@ -592,7 +592,6 @@ function DingDashboard({ user, setUser }) {
     return () => serviceWorker.removeEventListener('message', onWorkerMessage);
   }, []);
 
-
   useEffect(() => {
     if (getNotificationPermission() !== 'granted') return;
     void enablePushNotifications({

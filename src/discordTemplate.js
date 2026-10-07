@@ -85,7 +85,10 @@ export function badgeImageUrl(_tier, siteUrl) {
 
 export function buildDingDiscordPayload(ctx, settings = {}) {
   const title = renderDiscordTemplate(settings.ding_title_template || DEFAULT_DING_TITLE_TEMPLATE, ctx);
-  const description = renderDiscordTemplate(settings.ding_description_template || DEFAULT_DING_DESCRIPTION_TEMPLATE, ctx);
+  const description = renderDiscordTemplate(
+    settings.ding_description_template || DEFAULT_DING_DESCRIPTION_TEMPLATE,
+    ctx
+  );
   const fields = [
     ['Character', DISCORD_TOKENS.CHARACTER(ctx)],
     ['Level', DISCORD_TOKENS.LEVEL(ctx)],
@@ -94,7 +97,9 @@ export function buildDingDiscordPayload(ctx, settings = {}) {
     ['Realm', DISCORD_TOKENS.REALM(ctx)],
     ['Zone', DISCORD_TOKENS.ZONE(ctx)],
     ['Activity', DISCORD_TOKENS.ACTIVITY(ctx)],
-  ].filter(([, value]) => String(value || '').trim()).map(([name, value]) => ({ name, value: String(value), inline: true }));
+  ]
+    .filter(([, value]) => String(value || '').trim())
+    .map(([name, value]) => ({ name, value: String(value), inline: true }));
   return assemblePayload(settings, {
     title,
     description,
@@ -107,11 +112,17 @@ export function buildDingDiscordPayload(ctx, settings = {}) {
 
 export function buildAchievementDiscordPayload(ctx, settings = {}) {
   const title = renderDiscordTemplate(settings.achievement_title_template || DEFAULT_ACHIEVEMENT_TITLE_TEMPLATE, ctx);
-  const description = renderDiscordTemplate(settings.achievement_description_template || DEFAULT_ACHIEVEMENT_DESCRIPTION_TEMPLATE, ctx);
+  const description = renderDiscordTemplate(
+    settings.achievement_description_template || DEFAULT_ACHIEVEMENT_DESCRIPTION_TEMPLATE,
+    ctx
+  );
   const fields = [];
   if (ctx.tier) fields.push({ name: 'Tier', value: DISCORD_TOKENS.TIER(ctx), inline: true });
   if (Number.isFinite(ctx.points)) fields.push({ name: 'Points', value: String(ctx.points), inline: true });
-  const color = hexToDiscordColor(settings.achievement_color) ?? hexToDiscordColor(ctx.accent) ?? hexToDiscordColor(DEFAULT_ACHIEVEMENT_COLOR);
+  const color =
+    hexToDiscordColor(settings.achievement_color) ??
+    hexToDiscordColor(ctx.accent) ??
+    hexToDiscordColor(DEFAULT_ACHIEVEMENT_COLOR);
   const thumbnailUrl = settings.include_thumbnail === false ? null : badgeImageUrl(ctx.tier, ctx.siteUrl);
   return assemblePayload(settings, { title, description, color, fields, thumbnailUrl, sentAt: ctx.sentAt });
 }
@@ -125,7 +136,10 @@ function assemblePayload(settings, { title, description, color, fields, thumbnai
   };
   const safeTitle = fit(title, 256);
   const safeDescription = fit(description, 4096);
-  const safeFields = fields.slice(0, 25).map(field => ({ ...field, name: fit(field.name, 256), value: fit(field.value, 1024) })).filter(field => field.name && field.value);
+  const safeFields = fields
+    .slice(0, 25)
+    .map(field => ({ ...field, name: fit(field.name, 256), value: fit(field.value, 1024) }))
+    .filter(field => field.name && field.value);
   const footer = fit(settings.footer_text || DEFAULT_FOOTER_TEXT, 2048);
   const embed = {
     title: safeTitle || undefined,
