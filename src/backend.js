@@ -96,6 +96,15 @@ const staticBackend = {
     return toUser(ins.data);
   },
   async logout() { const sb = await getSupa(); await sb.auth.signOut(); },
+  async updateOwnPassword(password) {
+    const value = String(password || '');
+    if (value.length < 6) throw new Error('Password must be at least 6 characters');
+    if (value.length > 200) throw new Error('Password is too long');
+    const sb = await getSupa();
+    const { error } = await sb.auth.updateUser({ password: value });
+    if (error) throw new Error(error.message || 'Password update failed');
+    return { ok: true };
+  },
   // DING domain methods are intentionally additive during migration. The
   // inherited Bust UI continues to build until the DING vertical slice owns
   // the shell, while new screens can use the character/level-event API now.
