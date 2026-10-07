@@ -5,9 +5,10 @@ import { backend } from './backend.js';
 import { BadgeToast } from './BadgeToast.jsx';
 import { dingAchievementById } from './dingAchievements.js';
 import { CrewPane, CrewToast, ProfilePane, TrophyPane } from './DingSocial.jsx';
+import { DingAnalyticsView } from './DingAnalyticsView.jsx';
 import { useAchievementQueue } from './useAchievementQueue.js';
 import { GAME_CONFIG, WOW_CLASSES, mergeGameConfig } from './gameConfig.js';
-import { createDingRequest, deriveLevelDurationSeconds, isMaxLevel, validateCharacterDraft } from './dingDomain.js';
+import { createDingRequest, isMaxLevel, validateCharacterDraft } from './dingDomain.js';
 import {
   checkPendingDing,
   clearPendingDing,
@@ -407,82 +408,6 @@ function EventDetail({ event, character, viewerId, onClose, onUpdated }) {
   );
 }
 
-function AnalyticsPane({ events, users, characters, viewerId }) {
-  const today = new Date().toDateString();
-  const own = events.filter(event => event.user_id === viewerId);
-  const durations = own
-    .map(event => deriveLevelDurationSeconds(own, event))
-    .filter(value => Number.isFinite(value) && value > 0);
-  const averageSeconds = durations.length
-    ? Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length)
-    : null;
-  const ranking = users
-    .map(user => ({ user, count: events.filter(event => event.user_id === user.id).length }))
-    .sort((a, b) => b.count - a.count);
-  const dayparts = events.reduce((acc, event) => {
-    const key = event.time_bucket || 'Unknown';
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {});
-
-  return (
-    <div className="ding-analytics">
-      <div className="ding-stat-grid">
-        <div className="stat mf-frame">
-          <span>GROUP DINGS</span>
-          <strong>{events.length}</strong>
-          <small>all tracked levels</small>
-        </div>
-        <div className="stat mf-frame">
-          <span>TODAY</span>
-          <strong>{events.filter(event => new Date(event.timestamp).toDateString() === today).length}</strong>
-          <small>local viewer day</small>
-        </div>
-        <div className="stat mf-frame">
-          <span>YOUR DINGS</span>
-          <strong>{own.length}</strong>
-          <small>tracked levels</small>
-        </div>
-        <div className="stat mf-frame">
-          <span>AVG PACE</span>
-          <strong>{averageSeconds ? String(Math.round(averageSeconds / 60)) + 'm' : '—'}</strong>
-          <small>between your Dings</small>
-        </div>
-      </div>
-      <section className="ding-panel mf-frame">
-        <h2>Leaderboard</h2>
-        {ranking.map((row, index) => (
-          <div className="ding-rank-row" key={row.user.id}>
-            <b>#{index + 1}</b>
-            <span>{row.user.username}</span>
-            <strong>{row.count} Dings</strong>
-          </div>
-        ))}
-      </section>
-      <section className="ding-panel mf-frame">
-        <h2>Daypart share</h2>
-        {Object.entries(dayparts).map(([label, count]) => (
-          <div className="ding-rank-row" key={label}>
-            <span>{label}</span>
-            <strong>{count}</strong>
-          </div>
-        ))}
-      </section>
-      <section className="ding-panel mf-frame">
-        <h2>Tracked characters</h2>
-        {characters.map(character => (
-          <div className="ding-rank-row" key={character.id}>
-            <span>
-              {character.name} · {character.class_name}
-            </span>
-            <strong>LVL {character.current_level}</strong>
-          </div>
-        ))}
-      </section>
-    </div>
-  );
-}
-
 function CharacterPane({ user, characters, config, onSelected, onCreated }) {
   const own = characters.filter(character => character.user_id === user.id && !character.is_archived);
   const [adding, setAdding] = useState(own.length === 0);
@@ -855,7 +780,7 @@ function DingDashboard({ user, setUser }) {
 
       {overlay === 'analytics' && (
         <Overlay title="SWEAT ANALYTICS" onClose={() => setOverlay(null)} showScrollTop>
-          <AnalyticsPane events={events} users={users} characters={characters} viewerId={user.id} />
+          <DingAnalyticsView events={events} users={users} characters={characters} achievements={achievements} viewerId={user.id} />
         </Overlay>
       )}
 
