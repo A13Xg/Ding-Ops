@@ -508,12 +508,11 @@ function DingDashboard({ user, setUser }) {
           action === 'deleted' ? previous.filter(row => row.id !== event.id) : mergeRow(previous, event)
         );
         if (action === 'created' && event.user_id !== user.id) {
-          const character = characters.find(item => item.id === event.character_id);
           setCrewToast({
             id: `ding:${event.id}`,
             kind: 'ding',
             title: `${event.username || 'Someone'} dinged ${event.to_level}`,
-            body: `${character?.name || 'Their character'} · ${event.note || 'The grind continues.'}`,
+            body: event.note || 'Another level secured. Grass exposure remains unconfirmed.',
           });
         }
       },
@@ -550,7 +549,7 @@ function DingDashboard({ user, setUser }) {
       live = false;
       unsubscribe();
     };
-  }, [characters, setUser, user.id]);
+  }, [setUser, user.id]);
 
   useEffect(() => {
     if (!burstId) return undefined;
