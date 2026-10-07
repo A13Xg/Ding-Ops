@@ -110,7 +110,7 @@ Optional:
 
 | Secret | Purpose |
 | --- | --- |
-| `BROADCAST_ADMINS` | SHA-256 allowlist for privileged admin functions |
+| `BROADCAST_ADMINS` | SHA-256 allowlist for privileged admin functions; if absent, all admin endpoints deny access |
 | `DISCORD_WEBHOOK_URL` | Default Discord webhook if not stored through admin settings |
 
 Generate a VAPID pair with:
@@ -118,6 +118,8 @@ Generate a VAPID pair with:
 ```bash
 npm run generate:vapid
 ```
+
+`BROADCAST_ADMINS` is optional only if you intentionally want the privileged Ops controls disabled. There is no baked-in fallback administrator.
 
 Generate an admin allowlist digest with:
 
