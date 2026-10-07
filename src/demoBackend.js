@@ -4,18 +4,111 @@ const now = new Date('2026-10-07T20:00:00Z');
 const iso = offsetHours => new Date(now.getTime() - offsetHours * 3_600_000).toISOString();
 
 const users = [
-  { id: 'demo-alex', username: 'Alex', avatar_seed: 'alex', tagline: 'One more quest is a legally binding contract.', showcase: 'first_ding,dungeon_10,streak_7', active_character_id: 'char-alex' },
-  { id: 'demo-travis', username: 'Travis', avatar_seed: 'travis', tagline: 'Queue popped. Society can wait.', showcase: 'ten_dings,late_night_ten,daily_5', active_character_id: 'char-travis' },
-  { id: 'demo-kylie', username: 'Kylie', avatar_seed: 'kylie', tagline: 'Inventory sorted. Life absolutely is not.', showcase: 'questing_10,zones_5,notes_5', active_character_id: 'char-kylie' },
-  { id: 'demo-jakob', username: 'Jakob', avatar_seed: 'jakob', tagline: 'Claims to be casual. Evidence says otherwise.', showcase: 'delve_10,speed_45,active_days_10', active_character_id: 'char-jakob' },
+  {
+    id: 'demo-alex',
+    username: 'Alex',
+    avatar_seed: 'alex',
+    tagline: 'One more quest is a legally binding contract.',
+    showcase: 'first_ding,dungeon_10,streak_7',
+    active_character_id: 'char-alex',
+  },
+  {
+    id: 'demo-travis',
+    username: 'Travis',
+    avatar_seed: 'travis',
+    tagline: 'Queue popped. Society can wait.',
+    showcase: 'ten_dings,late_night_ten,daily_5',
+    active_character_id: 'char-travis',
+  },
+  {
+    id: 'demo-kylie',
+    username: 'Kylie',
+    avatar_seed: 'kylie',
+    tagline: 'Inventory sorted. Life absolutely is not.',
+    showcase: 'questing_10,zones_5,notes_5',
+    active_character_id: 'char-kylie',
+  },
+  {
+    id: 'demo-jakob',
+    username: 'Jakob',
+    avatar_seed: 'jakob',
+    tagline: 'Claims to be casual. Evidence says otherwise.',
+    showcase: 'delve_10,speed_45,active_days_10',
+    active_character_id: 'char-jakob',
+  },
 ];
 
 const characters = [
-  { id: 'char-alex', user_id: 'demo-alex', name: 'Hexadecimal', realm: 'Area 52', region: 'US', class_name: 'Warlock', spec: 'Destruction', race: 'Orc', faction: 'Horde', current_level: 87, tracked_from_level: 80, is_archived: false },
-  { id: 'char-alex-alt', user_id: 'demo-alex', name: 'Packetloss', realm: 'Area 52', region: 'US', class_name: 'Mage', spec: 'Arcane', race: 'Blood Elf', faction: 'Horde', current_level: 83, tracked_from_level: 80, is_archived: false },
-  { id: 'char-travis', user_id: 'demo-travis', name: 'Chairbound', realm: 'Illidan', region: 'US', class_name: 'Paladin', spec: 'Retribution', race: 'Human', faction: 'Alliance', current_level: 89, tracked_from_level: 80, is_archived: false },
-  { id: 'char-kylie', user_id: 'demo-kylie', name: 'Organizedchaos', realm: 'Stormrage', region: 'US', class_name: 'Priest', spec: 'Shadow', race: 'Void Elf', faction: 'Alliance', current_level: 85, tracked_from_level: 80, is_archived: false },
-  { id: 'char-jakob', user_id: 'demo-jakob', name: 'Mountaindew', realm: 'Tichondrius', region: 'US', class_name: 'Demon Hunter', spec: 'Havoc', race: 'Night Elf', faction: 'Alliance', current_level: 88, tracked_from_level: 80, is_archived: false },
+  {
+    id: 'char-alex',
+    user_id: 'demo-alex',
+    name: 'Hexadecimal',
+    realm: 'Area 52',
+    region: 'US',
+    class_name: 'Warlock',
+    spec: 'Destruction',
+    race: 'Orc',
+    faction: 'Horde',
+    current_level: 87,
+    tracked_from_level: 80,
+    is_archived: false,
+  },
+  {
+    id: 'char-alex-alt',
+    user_id: 'demo-alex',
+    name: 'Packetloss',
+    realm: 'Area 52',
+    region: 'US',
+    class_name: 'Mage',
+    spec: 'Arcane',
+    race: 'Blood Elf',
+    faction: 'Horde',
+    current_level: 83,
+    tracked_from_level: 80,
+    is_archived: false,
+  },
+  {
+    id: 'char-travis',
+    user_id: 'demo-travis',
+    name: 'Chairbound',
+    realm: 'Illidan',
+    region: 'US',
+    class_name: 'Paladin',
+    spec: 'Retribution',
+    race: 'Human',
+    faction: 'Alliance',
+    current_level: 89,
+    tracked_from_level: 80,
+    is_archived: false,
+  },
+  {
+    id: 'char-kylie',
+    user_id: 'demo-kylie',
+    name: 'Organizedchaos',
+    realm: 'Stormrage',
+    region: 'US',
+    class_name: 'Priest',
+    spec: 'Shadow',
+    race: 'Void Elf',
+    faction: 'Alliance',
+    current_level: 85,
+    tracked_from_level: 80,
+    is_archived: false,
+  },
+  {
+    id: 'char-jakob',
+    user_id: 'demo-jakob',
+    name: 'Mountaindew',
+    realm: 'Tichondrius',
+    region: 'US',
+    class_name: 'Demon Hunter',
+    spec: 'Havoc',
+    race: 'Night Elf',
+    faction: 'Alliance',
+    current_level: 88,
+    tracked_from_level: 80,
+    is_archived: false,
+  },
 ];
 
 const activityCycle = ['questing', 'dungeon', 'delve', 'questing', 'campaign', 'dungeon'];
@@ -27,7 +120,9 @@ for (let day = 0; day < 24; day += 1) {
   const count = 1 + (day % 4);
   for (let n = 0; n < count; n += 1) {
     const user = users[(day + n) % users.length];
-    const character = characters.find(row => row.user_id === user.id && row.id === user.active_character_id) || characters.find(row => row.user_id === user.id);
+    const character =
+      characters.find(row => row.user_id === user.id && row.id === user.active_character_id) ||
+      characters.find(row => row.user_id === user.id);
     const stamp = new Date(now.getTime() - day * 86_400_000 - n * 2_700_000);
     const level = Math.min(character.current_level, 80 + ((24 - day + n) % 10));
     events.push({
@@ -40,7 +135,16 @@ for (let day = 0; day < 24; day += 1) {
       timestamp: stamp.toISOString(),
       local_date: stamp.toISOString().slice(0, 10),
       local_hour: stamp.getUTCHours(),
-      time_bucket: stamp.getUTCHours() < 5 ? 'Late Night' : stamp.getUTCHours() < 12 ? 'Morning' : stamp.getUTCHours() < 17 ? 'Afternoon' : stamp.getUTCHours() < 21 ? 'Evening' : 'Prime Night',
+      time_bucket:
+        stamp.getUTCHours() < 5
+          ? 'Late Night'
+          : stamp.getUTCHours() < 12
+            ? 'Morning'
+            : stamp.getUTCHours() < 17
+              ? 'Afternoon'
+              : stamp.getUTCHours() < 21
+                ? 'Evening'
+                : 'Prime Night',
       zone: zones[(day + n) % zones.length],
       activity_type: activityCycle[(day + n) % activityCycle.length],
       deaths: (day + n) % 6 === 0 ? 2 : (day + n) % 5 === 0 ? 1 : 0,
@@ -52,10 +156,32 @@ for (let day = 0; day < 24; day += 1) {
 events.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
 const awardIds = [
-  'first_ding','two_dings','three_dings','five_dings','ten_dings','twenty_dings',
-  'streak_3','streak_5','streak_7','daily_3','daily_5','questing_ding','questing_5',
-  'dungeon_ding','dungeon_5','dungeon_10','delve_ding','delve_5','late_night_ding',
-  'late_night_five','zones_3','zones_5','notes_1','speed_60','speed_45','active_days_5',
+  'first_ding',
+  'two_dings',
+  'three_dings',
+  'five_dings',
+  'ten_dings',
+  'twenty_dings',
+  'streak_3',
+  'streak_5',
+  'streak_7',
+  'daily_3',
+  'daily_5',
+  'questing_ding',
+  'questing_5',
+  'dungeon_ding',
+  'dungeon_5',
+  'dungeon_10',
+  'delve_ding',
+  'delve_5',
+  'late_night_ding',
+  'late_night_five',
+  'zones_3',
+  'zones_5',
+  'notes_1',
+  'speed_60',
+  'speed_45',
+  'active_days_5',
 ];
 let awardSeq = 0;
 const achievements = users.flatMap((user, userIndex) =>
@@ -157,11 +283,11 @@ export const demoBackend = {
       note: request.p_note || '',
     };
     eventRows = [row, ...eventRows];
-    characterRows = characterRows.map(item => item.id === character.id ? { ...item, current_level: toLevel } : item);
+    characterRows = characterRows.map(item => (item.id === character.id ? { ...item, current_level: toLevel } : item));
     return clone(row);
   },
   async patchLevelEventNote(id, note) {
-    eventRows = eventRows.map(row => row.id === id ? { ...row, note } : row);
+    eventRows = eventRows.map(row => (row.id === id ? { ...row, note } : row));
     return clone(eventRows.find(row => row.id === id));
   },
   async dingDashboard() {
