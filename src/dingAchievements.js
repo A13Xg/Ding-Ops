@@ -536,7 +536,7 @@ function meets(criterion, metrics) {
  *   to_level?: number,
  *   local_date?: string,
  *   time_bucket?: string,
- *   activity_type?: string,
+ *   activity_type?: string|null,
  *   session_minutes?: number|null,
  *   deaths?: number|null,
  *   zone?: string|null,
