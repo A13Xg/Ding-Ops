@@ -24,6 +24,14 @@ describe('DING platform migration contract', () => {
     expect(sql).not.toMatch(/create policy\s+achievement_catalog_/);
   });
 
+  it('does not expose push subscription key material through browser RLS policies', () => {
+    expect(sql).toContain('No browser policies');
+    expect(sql).not.toContain('create policy push_subscriptions_select');
+    expect(sql).not.toContain('create policy push_subscriptions_insert');
+    expect(sql).not.toContain('create policy push_subscriptions_update');
+    expect(sql).not.toContain('create policy push_subscriptions_delete');
+  });
+
   it('keeps one push endpoint per browser and records acknowledgement liveness', () => {
     expect(sql).toContain('push_subscriptions_endpoint_key');
     expect(sql).toContain('last_ack_at timestamptz');
