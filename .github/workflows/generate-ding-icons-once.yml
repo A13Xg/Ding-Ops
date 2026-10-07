@@ -37,7 +37,7 @@ jobs:
           rsvg-convert -w 96 -h 96 public/ding-badge.svg -o public/icons/badge-96.png
       - name: Commit generated icons
         run: |
-          if git diff --quiet -- public/icons; then
+          if [ -z "$(git status --porcelain -- public/icons)" ]; then
             exit 0
           fi
           git config user.name "github-actions[bot]"
