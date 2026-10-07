@@ -77,6 +77,33 @@ try {
   const characterId = characterInsert.data.id;
   await rpc('set_active_character', { p_character_id: characterId });
 
+  console.log('[smoke] testing RLS/write boundaries');
+  const forgedLevel = await client
+    .from('level_events')
+    .insert({
+      id: randomUUID(),
+      user_id: userId,
+      character_id: characterId,
+      from_level: initialLevel,
+      to_level: initialLevel + 1,
+      time_zone: 'UTC',
+      local_date: '2026-10-06',
+      local_hour: 12,
+      time_bucket: 'Afternoon',
+    });
+  assert(forgedLevel.error, 'Browser direct level_event insert unexpectedly succeeded.');
+
+  const forgedCharacterLevel = await client
+    .from('characters')
+    .update({ current_level: initialLevel + 1 })
+    .eq('id', characterId);
+  assert(forgedCharacterLevel.error, 'Browser direct character level update unexpectedly succeeded.');
+
+  const forgedAchievement = await client
+    .from('achievements')
+    .insert({ user_id: userId, achievement_type: 'first_ding' });
+  assert(forgedAchievement.error, 'Browser direct achievement insert unexpectedly succeeded.');
+
   const firstId = randomUUID();
   const firstArgs = {
     p_event_id: firstId,
