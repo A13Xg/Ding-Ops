@@ -832,10 +832,11 @@ button.ding-award-card {
   place-items: center;
 }
 
-.badge-medal .material-symbols-outlined {
-  font-size: 30px;
+.badge-medal .icon-stack svg {
+  width: 30px;
+  height: 30px;
   color: #f8fbff;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.55));
 }
 
 .badge-medal.tier-mythic {
