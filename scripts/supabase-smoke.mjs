@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { randomBytes, randomUUID } from 'node:crypto';
+import { syntheticAuthEmail } from '../src/authIdentity.js';
 
 const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
@@ -10,7 +11,7 @@ if (!url || !anonKey) {
 
 const token = Date.now().toString(36) + randomBytes(3).toString('hex');
 const username = ('Smoke' + token).slice(0, 30);
-const email = username.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '@ding-ops.dev';
+const email = syntheticAuthEmail(username);
 const password = 'Ding!' + randomBytes(18).toString('base64url');
 const client = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
 let created = false;
