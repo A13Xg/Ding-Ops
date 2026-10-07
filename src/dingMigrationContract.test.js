@@ -13,7 +13,16 @@ describe('atomic Ding migration contract', () => {
     expect(characterLock).toBeGreaterThan(existingLookup);
   });
 
-  it('serializes character progression and rejects stale client levels', () => {
+  it('re-checks event UUID after the character lock before stale-level validation', () => {
+    const characterLock = sql.indexOf('where id = p_character_id for update');
+    const retryLookup = sql.indexOf('from public.level_events where id = p_event_id', characterLock);
+    const staleCheck = sql.indexOf('v_character.current_level <> p_expected_from_level');
+    expect(characterLock).toBeGreaterThan(-1);
+    expect(retryLookup).toBeGreaterThan(characterLock);
+    expect(staleCheck).toBeGreaterThan(retryLookup);
+  });
+
+  it('serializes character progression and rejects genuinely stale client levels', () => {
     expect(sql).toContain('for update');
     expect(sql).toContain("raise exception 'ding_stale_level'");
     expect(sql).toContain('v_character.current_level <> p_expected_from_level');
