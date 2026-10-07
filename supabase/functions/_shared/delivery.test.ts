@@ -6,14 +6,15 @@ import { announceDing } from './announce.ts';
 import { DEFAULT_DISCORD_SETTINGS, maskWebhookUrl, validateDiscordSettingsPatch } from './discord.ts';
 
 const occurredAt = '2026-09-30T12:00:00.000Z';
-const ding = { id: 'b1', user_id: 'u1', timestamp: occurredAt, note: 'hello', city: 'Austin' };
-const achievement = { id: 'a1', user_id: 'u1', unlocked_at: occurredAt, achievement_type: 'first_release' };
+const ding = { id: 'd1', user_id: 'u1', character_id: 'c1', to_level: 84, timestamp: occurredAt, note: 'hello', zone: 'Harandar', activity_type: 'questing' };
+const achievement = { id: 'a1', user_id: 'u1', unlocked_at: occurredAt, achievement_type: 'first_ding' };
 
 // Stateful PostgREST fake: exercise the real sweep, announcement, ledger, and
 // transport code together, while keeping all I/O inside the test process.
 function database(seed: Record<string, any[]> = {}) {
   const tables: Record<string, any[]> = {
-    dings: [ding],
+    level_events: [ding],
+    characters: [{ id: 'c1', user_id: 'u1', name: 'Hexlord', realm: 'Example Realm', class_name: 'Mage', spec: 'Arcane' }],
     achievements: [achievement],
     profiles: [{ id: 'u1', username: 'Alex' }],
     discord_settings: [
@@ -157,7 +158,7 @@ Deno.test('backstop delivers push-handled dings and suppressed achievements to D
   await withTransports(async (sent) => {
     const { admin, tables } = database({
       push_events: [
-        { id: 1, kind: 'ding', source_id: 'b1' },
+        { id: 1, kind: 'ding', source_id: 'd1' },
         { id: 2, kind: 'achievement', source_id: 'a1' },
       ],
     });
