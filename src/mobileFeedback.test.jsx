@@ -86,7 +86,7 @@ describe('best-effort haptics', () => {
     expect(haptic('achievement')).toBe(false);
     vi.unstubAllGlobals();
   });
-  it('cannot abort a bust if vibration is absent or throws', () => {
+  it('cannot abort a Ding if vibration is absent or throws', () => {
     vi.stubGlobal('navigator', {});
     expect(haptic('charge')).toBe(false);
     vi.stubGlobal('navigator', {
