@@ -1,0 +1,47 @@
+name: Generate DING PWA icons
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - public/ding-icon.svg
+      - public/ding-maskable.svg
+      - public/ding-badge.svg
+      - .github/workflows/generate-ding-icons-once.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  icons:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Install SVG renderer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y librsvg2-bin
+      - name: Render DING icon family
+        run: |
+          set -euo pipefail
+          mkdir -p public/icons
+          rsvg-convert -w 32 -h 32 public/ding-icon.svg -o public/icons/favicon-32.png
+          rsvg-convert -w 48 -h 48 public/ding-icon.svg -o public/icons/favicon-48.png
+          rsvg-convert -w 180 -h 180 public/ding-icon.svg -o public/icons/apple-touch-icon.png
+          rsvg-convert -w 192 -h 192 public/ding-icon.svg -o public/icons/icon-192.png
+          rsvg-convert -w 512 -h 512 public/ding-icon.svg -o public/icons/icon-512.png
+          rsvg-convert -w 512 -h 512 public/ding-maskable.svg -o public/icons/maskable-512.png
+          rsvg-convert -w 96 -h 96 public/ding-badge.svg -o public/icons/badge-96.png
+      - name: Commit generated icons
+        run: |
+          if git diff --quiet -- public/icons; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/icons
+          git commit -m "assets: generate DING PWA icon family"
+          git push origin HEAD:main
