@@ -2131,7 +2131,6 @@ button.ding-award-card {
   }
 }
 
-
 .ding-install-control {
   display: grid;
   gap: 12px;
@@ -2184,7 +2183,7 @@ button.ding-award-card {
   margin: 5px 0 8px;
   color: #eaf1ff;
   font-size: clamp(26px, 6vw, 44px);
-  line-height: .98;
+  line-height: 0.98;
 }
 
 .ding-first-run-copy p {
@@ -2213,9 +2212,9 @@ button.ding-award-card {
   height: 34px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(96, 165, 250, .42);
+  border: 1px solid rgba(96, 165, 250, 0.42);
   border-radius: 50%;
-  background: rgba(59, 130, 246, .12);
+  background: rgba(59, 130, 246, 0.12);
   color: #bfdbfe;
 }
 
@@ -2227,7 +2226,7 @@ button.ding-award-card {
 .ding-first-run-steps strong {
   color: #dbeafe;
   font-size: 10px;
-  letter-spacing: .06em;
+  letter-spacing: 0.06em;
 }
 
 .ding-first-run-steps small {
