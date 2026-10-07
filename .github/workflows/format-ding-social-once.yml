@@ -12,6 +12,9 @@ on:
       - src/dingAchievements.test.js
       - src/dingAchievementCatalogContract.test.js
       - src/dingShell.css
+      - src/dingAnalytics.js
+      - src/dingAnalytics.test.js
+      - src/DingAnalyticsView.jsx
   workflow_dispatch:
 
 permissions:
@@ -30,7 +33,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Format new DING social files
-        run: npx prettier --write src/DingApp.jsx src/DingSocial.jsx src/dingProgression.js src/dingProgression.test.js src/dingAchievements.js src/dingAchievements.test.js src/dingAchievementCatalogContract.test.js src/dingShell.css
+        run: npx prettier --write src/DingApp.jsx src/DingSocial.jsx src/dingProgression.js src/dingProgression.test.js src/dingAchievements.js src/dingAchievements.test.js src/dingAchievementCatalogContract.test.js src/dingShell.css src/dingAnalytics.js src/dingAnalytics.test.js src/DingAnalyticsView.jsx
       - name: Commit formatting if needed
         run: |
           if git diff --quiet; then
