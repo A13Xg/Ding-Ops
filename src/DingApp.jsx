@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BarChart3, Bell, LogOut, Plus, Swords, Trophy, UsersRound } from 'lucide-react';
+import { BarChart3, Bell, LogOut, Plus, Swords, Trophy, UsersRound, Wrench } from 'lucide-react';
 import { backend } from './backend.js';
 import { BadgeToast } from './BadgeToast.jsx';
 import { dingAchievementById } from './dingAchievements.js';
 import { CrewPane, CrewToast, ProfilePane, TrophyPane } from './DingSocial.jsx';
 import { DingAnalyticsView } from './DingAnalyticsView.jsx';
+import { DingAdmin } from './DingAdmin.jsx';
 import { useAchievementQueue } from './useAchievementQueue.js';
 import { GAME_CONFIG, WOW_CLASSES, mergeGameConfig } from './gameConfig.js';
 import { createDingRequest, isMaxLevel, validateCharacterDraft } from './dingDomain.js';
@@ -902,6 +903,9 @@ function DingDashboard({ user, setUser }) {
           <button type="button" onClick={() => setOverlay('characters')} aria-label="Characters">
             <Swords />
           </button>
+          <button type="button" onClick={() => setOverlay('ops')} aria-label="Operations console">
+            <Wrench />
+          </button>
         </div>
       </header>
 
@@ -1009,6 +1013,12 @@ function DingDashboard({ user, setUser }) {
       {overlay === 'trophy' && (
         <Overlay title="TROPHY CABINET" onClose={() => setOverlay(null)} showScrollTop>
           <TrophyPane userId={user.id} achievements={achievements} />
+        </Overlay>
+      )}
+
+      {overlay === 'ops' && (
+        <Overlay title="DING OPS CONSOLE" onClose={() => setOverlay(null)} showScrollTop>
+          <DingAdmin users={users} />
         </Overlay>
       )}
 
