@@ -1,0 +1,79 @@
+name: Update DING screenshots
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'README.md'
+      - '.github/workflows/update-screenshots.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ding-screenshots
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    env:
+      VITE_DEMO_MODE: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Chromium for Playwright
+        run: npx --yes playwright@1.55.0 install --with-deps chromium
+
+      - name: Start deterministic DING demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/ding-vite.log 2>&1 &
+          echo $! > /tmp/ding-vite.pid
+          for attempt in {1..40}; do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/ding-vite.log
+          exit 1
+
+      - name: Capture real app screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docs/screenshots
+          PW="npx --yes playwright@1.55.0 screenshot --wait-for-timeout=1200"
+          $PW --device="Desktop Chrome HiDPI" http://127.0.0.1:4173/ docs/screenshots/dashboard-desktop.png
+          $PW --device="iPhone 14" http://127.0.0.1:4173/ docs/screenshots/dashboard-mobile.png
+          $PW --device="Desktop Chrome HiDPI" --full-page "http://127.0.0.1:4173/?panel=analytics" docs/screenshots/analytics-desktop.png
+          $PW --device="iPhone 14" --full-page "http://127.0.0.1:4173/?panel=crew" docs/screenshots/crew-mobile.png
+
+      - name: Commit screenshots if changed
+        shell: bash
+        run: |
+          if git diff --quiet -- docs/screenshots && [ -z "$(git status --porcelain -- docs/screenshots)" ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots
+          git commit -m "docs: refresh DING screenshots"
+          git push origin HEAD:main
