@@ -1368,3 +1368,100 @@ button.ding-award-card {
     gap: 9px;
   }
 }
+
+
+.ding-push-control {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.ding-push-control > div:first-child {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.ding-push-control > div:first-child > svg {
+  color: #a78bfa;
+}
+
+.ding-push-control > div:first-child span {
+  display: grid;
+  gap: 3px;
+}
+
+.ding-push-control small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.ding-push-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ding-push-actions .mf-button {
+  flex: 1 1 210px;
+}
+
+.ding-update-banner {
+  position: fixed;
+  z-index: 44;
+  top: calc(76px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  width: min(720px, calc(100vw - 28px));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 12px 11px 15px;
+  border: 1px solid rgba(167, 139, 250, .48);
+  border-radius: 13px;
+  background: rgba(16, 18, 33, .96);
+  box-shadow: 0 12px 38px rgba(0, 0, 0, .48), 0 0 24px rgba(124, 58, 237, .14);
+  backdrop-filter: blur(14px);
+}
+
+.ding-update-banner span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.ding-update-banner b {
+  color: #c4b5fd;
+  font-size: 11px;
+  letter-spacing: .11em;
+}
+
+.ding-update-banner small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.ding-update-banner button {
+  flex: none;
+  border: 1px solid rgba(96, 165, 250, .44);
+  border-radius: 9px;
+  background: linear-gradient(180deg, #60a5fa, #3b82f6);
+  color: #f8fbff;
+  padding: 8px 12px;
+  font-weight: 900;
+  letter-spacing: .06em;
+}
+
+@media (max-width: 560px) {
+  .ding-update-banner {
+    align-items: stretch;
+  }
+
+  .ding-update-banner small {
+    display: none;
+  }
+}
