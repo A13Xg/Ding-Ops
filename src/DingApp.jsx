@@ -155,7 +155,7 @@ function CharacterForm({ config, initial = null, onCreated, onSaved, onArchived,
     setBusy(true);
     setServerError('');
     try {
-      const character = await backend.updateCharacter(initial.id, { ...form, is_archived: true });
+      const character = await backend.updateCharacter(initial.id, { is_archived: true });
       await onArchived?.(character);
     } catch (err) {
       setServerError(err.message);
