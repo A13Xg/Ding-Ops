@@ -252,6 +252,64 @@ function DingButton({ phase, character, config, onDing }) {
   );
 }
 
+function DingContextEditor({ value, onChange, config, disabled }) {
+  return (
+    <details className="ding-context mf-frame">
+      <summary>LEVEL CONTEXT <span>optional · feeds analytics + achievements</span></summary>
+      <div className="ding-context-grid">
+        <label>
+          Activity
+          <select
+            value={value.activityType}
+            disabled={disabled}
+            onChange={event => onChange({ ...value, activityType: event.target.value })}
+          >
+            {config.activityTypes.map(activity => (
+              <option key={activity.id} value={activity.id}>
+                {activity.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Zone
+          <input
+            maxLength={80}
+            value={value.zone}
+            disabled={disabled}
+            placeholder="Optional zone"
+            onChange={event => onChange({ ...value, zone: event.target.value })}
+          />
+        </label>
+        <label>
+          Minutes on level
+          <input
+            type="number"
+            min="0"
+            inputMode="numeric"
+            value={value.sessionMinutes}
+            disabled={disabled}
+            placeholder="—"
+            onChange={event => onChange({ ...value, sessionMinutes: event.target.value })}
+          />
+        </label>
+        <label>
+          Deaths
+          <input
+            type="number"
+            min="0"
+            inputMode="numeric"
+            value={value.deaths}
+            disabled={disabled}
+            placeholder="—"
+            onChange={event => onChange({ ...value, deaths: event.target.value })}
+          />
+        </label>
+      </div>
+    </details>
+  );
+}
+
 function EventCard({ event, character, onOpen }) {
   return (
     <button className="ding-event-card mf-frame" type="button" onClick={() => onOpen(event)}>
@@ -479,6 +537,12 @@ function DingDashboard({ user, setUser }) {
   const [loading, setLoading] = useState(true);
   const [burstId, setBurstId] = useState(null);
   const [crewToast, setCrewToast] = useState(null);
+  const [dingContext, setDingContext] = useState({
+    activityType: 'other',
+    zone: '',
+    sessionMinutes: '',
+    deaths: '',
+  });
   const dismissCrewToast = useCallback(() => setCrewToast(null), []);
   const { current: badgeToast, enqueue: enqueueBadge } = useAchievementQueue(5200);
 
@@ -564,6 +628,28 @@ function DingDashboard({ user, setUser }) {
   const activeCharacter =
     ownCharacters.find(character => character.id === user.active_character_id) || ownCharacters[0] || null;
 
+  async function reconcileLocalAchievements() {
+    try {
+      const result = await backend.reconcileAchievements();
+      setAchievements(result.achievements);
+      const freshItems = result.newlyEarned.map(dingAchievementById).filter(Boolean);
+      if (freshItems.length) enqueueBadge(freshItems);
+
+      const announceable = [...freshItems].sort((a, b) => (b.points || 0) - (a.points || 0))[0];
+      if (!announceable) return;
+      const row = result.achievements.find(
+        achievement => achievement.user_id === user.id && achievement.achievement_type === announceable.id
+      );
+      if (row) {
+        void backend.notifyEvent('achievement', row.id).catch(error => {
+          console.warn('[achievement notify]', error);
+        });
+      }
+    } catch (error) {
+      console.warn('[achievement reconcile]', error);
+    }
+  }
+
   function acceptCommitted(event) {
     if (!event) return;
     setEvents(previous => mergeRow(previous, event));
@@ -574,6 +660,7 @@ function DingDashboard({ user, setUser }) {
     );
     clearPendingDing(sessionStorage, user.id);
     setPending(null);
+    setDingContext({ activityType: 'other', zone: '', sessionMinutes: '', deaths: '' });
     setSelected(event);
     setPhase('idle');
     setStatus('');
@@ -586,27 +673,7 @@ function DingDashboard({ user, setUser }) {
     void backend.notifyEvent('ding', event.id).catch(error => {
       console.warn('[ding notify]', error);
     });
-    void backend
-      .reconcileAchievements()
-      .then(result => {
-        setAchievements(result.achievements);
-        const freshItems = result.newlyEarned.map(dingAchievementById).filter(Boolean);
-        if (freshItems.length) enqueueBadge(freshItems);
-
-        const announceable = [...freshItems].sort((a, b) => (b.points || 0) - (a.points || 0))[0];
-        if (!announceable) return;
-        const row = result.achievements.find(
-          achievement => achievement.user_id === user.id && achievement.achievement_type === announceable.id
-        );
-        if (row) {
-          void backend.notifyEvent('achievement', row.id).catch(error => {
-            console.warn('[achievement notify]', error);
-          });
-        }
-      })
-      .catch(error => {
-        console.warn('[achievement reconcile]', error);
-      });
+    void reconcileLocalAchievements();
   }
 
   async function startDing() {
@@ -614,7 +681,15 @@ function DingDashboard({ user, setUser }) {
 
     let request;
     try {
-      request = createDingRequest({ character: activeCharacter, eventId: crypto.randomUUID(), config });
+      request = createDingRequest({
+        character: activeCharacter,
+        eventId: crypto.randomUUID(),
+        zone: dingContext.zone,
+        activityType: dingContext.activityType,
+        deaths: dingContext.deaths,
+        sessionMinutes: dingContext.sessionMinutes,
+        config,
+      });
     } catch (error) {
       setStatus(error.message);
       return;
@@ -684,6 +759,7 @@ function DingDashboard({ user, setUser }) {
     const updated = await backend.setActiveCharacter(character.id);
     setCharacters(previous => mergeRow(previous, character));
     setUser(updated);
+    void reconcileLocalAchievements();
   }
 
   if (loading) {
@@ -752,6 +828,12 @@ function DingDashboard({ user, setUser }) {
               character={activeCharacter}
               config={config}
               onDing={startDing}
+            />
+            <DingContextEditor
+              value={dingContext}
+              onChange={setDingContext}
+              config={config}
+              disabled={phase !== 'idle' || Boolean(pending)}
             />
           </>
         ) : (
@@ -860,6 +942,7 @@ function DingDashboard({ user, setUser }) {
           onUpdated={updated => {
             setSelected(updated);
             setEvents(previous => mergeRow(previous, updated));
+            void reconcileLocalAchievements();
           }}
         />
       )}
