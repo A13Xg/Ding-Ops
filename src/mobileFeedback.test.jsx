@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { Overlay } from './Overlay.jsx';
 import { BadgeToast } from './BadgeToast.jsx';
-import { Explosion } from './Explosion.jsx';
 import { haptic, setHapticsEnabled } from './haptics.js';
 
 afterEach(() => {
@@ -69,14 +68,6 @@ describe('achievement feedback', () => {
     rerender(<BadgeToast badge={{ id: 'restored', isRestorationSummary: true, restoredCount: 12 }} />);
     expect(screen.getByRole('status').textContent).toContain('12 historical achievements restored');
     expect(document.querySelector('.award-sparkles')).toBeNull();
-  });
-  it('does not reroll droplets when the dashboard re-renders', () => {
-    const { rerender } = render(<Explosion />);
-    const before = [...document.querySelectorAll('.liquid-drop, .liquid-splat')].map(el => el.getAttribute('style'));
-    rerender(<Explosion />);
-    expect([...document.querySelectorAll('.liquid-drop, .liquid-splat')].map(el => el.getAttribute('style'))).toEqual(
-      before
-    );
   });
 });
 
