@@ -1,0 +1,47 @@
+name: DING Scheduled Maintenance
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  push-backstop:
+    name: Push backstop
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/15 * * * *'
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      CRON_SECRET: ${{ secrets.REMINDER_CRON_SECRET }}
+    steps:
+      - name: Dispatch unannounced DING events
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            echo "::notice::DING scheduled dispatch is dormant until VITE_SUPABASE_URL and REMINDER_CRON_SECRET exist."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error             --retry 3 --retry-all-errors --max-time 40             -X POST "${SUPABASE_URL%/}/functions/v1/dispatch-push-backstop"             -H "x-cron-secret: $CRON_SECRET"             -H "content-type: application/json"             -d '{}'
+
+  inactivity:
+    name: Inactivity reminders
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 */6 * * *'
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      CRON_SECRET: ${{ secrets.REMINDER_CRON_SECRET }}
+    steps:
+      - name: Dispatch due inactivity reminders
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            echo "::notice::DING inactivity dispatch is dormant until VITE_SUPABASE_URL and REMINDER_CRON_SECRET exist."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error             --retry 3 --retry-all-errors --max-time 40             -X POST "${SUPABASE_URL%/}/functions/v1/dispatch-inactivity-reminders"             -H "x-cron-secret: $CRON_SECRET"             -H "content-type: application/json"             -d '{}'
