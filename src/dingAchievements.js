@@ -355,6 +355,36 @@ const measuredAwards = [
   })
 );
 
+const socialAwards = [
+  item(
+    'sync_pair',
+    'Ding Buddies',
+    'Record a Ding within 2 minutes of another crew member.',
+    'silver',
+    45,
+    'UsersRound',
+    { type: 'social_ding_users', threshold: 2, windowMinutes: 2 }
+  ),
+  item(
+    'sync_trio',
+    'Party Chat Erupts',
+    'Have 3 crew members record Dings within the same 5-minute window.',
+    'gold',
+    90,
+    'UsersRound',
+    { type: 'social_ding_users', threshold: 3, windowMinutes: 5 }
+  ),
+  item(
+    'sync_raid',
+    'Synchronized No-Lifing',
+    'Have 4 crew members record Dings within the same 10-minute window.',
+    'mythic',
+    180,
+    'UsersRound',
+    { type: 'social_ding_users', threshold: 4, windowMinutes: 10 }
+  ),
+];
+
 export const dingAchievements = Object.freeze([
   ...volumeAwards,
   ...levelAwards,
@@ -386,7 +416,25 @@ export const dingAchievements = Object.freeze([
   ...realmAwards,
   ...activeDayAwards,
   ...measuredAwards,
+  ...socialAwards,
 ]);
+
+function synchronizedUserCount(ownedEvents, allEvents, windowMinutes) {
+  const windowMs = Math.max(0, Number(windowMinutes) || 0) * 60 * 1000;
+  let best = 0;
+  for (const owned of ownedEvents) {
+    const anchor = Date.parse(owned?.timestamp);
+    if (!Number.isFinite(anchor)) continue;
+    const users = new Set();
+    for (const event of allEvents) {
+      const when = Date.parse(event?.timestamp);
+      if (!Number.isFinite(when) || Math.abs(when - anchor) > windowMs) continue;
+      if (event?.user_id) users.add(event.user_id);
+    }
+    best = Math.max(best, users.size);
+  }
+  return best;
+}
 
 function normalizedDate(value) {
   const match = /^\d{4}-\d{2}-\d{2}$/.exec(String(value || ''));
@@ -418,7 +466,7 @@ function metricMap(values) {
   return map;
 }
 
-function buildMetrics(events, characters, levelCap) {
+function buildMetrics(events, characters, levelCap, allEvents = events) {
   const dates = events.map(event => normalizedDate(event.local_date)).filter(Boolean);
   const dailyCounts = metricMap(dates);
   const activityCounts = metricMap(events.map(event => event.activity_type || 'other'));
@@ -479,6 +527,12 @@ function buildMetrics(events, characters, levelCap) {
     uniqueRealms: uniqueRealms.size,
     uniqueDays: new Set(dates).size,
     sessionCount: events.filter(event => Number.isInteger(event.session_minutes)).length,
+    socialUsersByWindow: new Map(
+      [2, 5, 10].map(windowMinutes => [
+        windowMinutes,
+        synchronizedUserCount(events, allEvents, windowMinutes),
+      ])
+    ),
   };
 }
 
@@ -525,6 +579,8 @@ function meets(criterion, metrics) {
       return metrics.uniqueDays >= threshold;
     case 'session_count':
       return metrics.sessionCount >= threshold;
+    case 'social_ding_users':
+      return (metrics.socialUsersByWindow.get(Number(criterion.windowMinutes)) || 0) >= threshold;
     default:
       return false;
   }
@@ -535,6 +591,7 @@ function meets(criterion, metrics) {
  *   user_id?: string,
  *   to_level?: number,
  *   local_date?: string,
+ *   timestamp?: string,
  *   time_bucket?: string,
  *   activity_type?: string|null,
  *   session_minutes?: number|null,
@@ -560,6 +617,7 @@ function meets(criterion, metrics) {
  * @param {{
  *   userId?: string,
  *   events?: DingAchievementEvent[],
+ *   allEvents?: DingAchievementEvent[],
  *   characters?: DingAchievementCharacter[],
  *   existing?: DingAchievementRow[],
  *   levelCap?: number
@@ -569,6 +627,7 @@ function meets(criterion, metrics) {
 export function computeDingAchievementUnlocks({
   userId,
   events = [],
+  allEvents = events,
   characters = [],
   existing = [],
   levelCap = 90,
@@ -577,7 +636,7 @@ export function computeDingAchievementUnlocks({
   const ownedEvents = events.filter(event => event?.user_id === userId);
   const ownedCharacters = characters.filter(character => character?.user_id === userId && !character?.is_archived);
   const unlocked = new Set(existing.filter(row => row?.user_id === userId).map(row => row.achievement_type));
-  const metrics = buildMetrics(ownedEvents, ownedCharacters, levelCap);
+  const metrics = buildMetrics(ownedEvents, ownedCharacters, levelCap, allEvents);
   return dingAchievements
     .filter(achievement => !unlocked.has(achievement.id) && meets(achievement.criterion, metrics))
     .map(achievement => achievement.id);
