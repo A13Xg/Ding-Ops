@@ -17,7 +17,10 @@ function filesUnder(path, predicate = () => true) {
 describe('DING release contract', () => {
   it('keeps legacy Bust identity out of active runtime and deployable backend code', () => {
     const runtimeFiles = [
-      ...filesUnder('src', path => /\.(js|jsx|css)$/.test(path) && !/\.test\./.test(path) && path !== 'src/demoBackend.js'),
+      ...filesUnder(
+        'src',
+        path => /\.(js|jsx|css)$/.test(path) && !/\.test\./.test(path) && path !== 'src/demoBackend.js'
+      ),
       ...filesUnder('public', path => /\.(js|json|webmanifest|svg)$/.test(path)),
       ...filesUnder('supabase/migrations', path => path.endsWith('.sql')),
       ...filesUnder('supabase/functions', path => /\.(ts|js|json)$/.test(path)),
