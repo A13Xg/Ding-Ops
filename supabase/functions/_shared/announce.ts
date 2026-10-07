@@ -284,7 +284,7 @@ export async function announceAchievement(
   // Only after a send actually went out. On 'failed' the claim was released so
   // the sweep can retry this row, and retiring its siblings then would throw
   // away the backlog the retry is meant to cover.
-  if (outcome.status === 'sent') {
+  if (outcome.status === 'sent' || outcome.status === 'no-recipients') {
     await retireUnannouncedSiblings(admin, achievement.user_id, achievement.unlocked_at, achievement.id);
   }
   return outcome;
