@@ -22,7 +22,7 @@ export class ErrorBoundary extends React.Component {
     if (this.state.error) {
       return (
         <div className="error-boundary">
-          <h2>Something went sideways in the Bust Bay.</h2>
+          <h2>Something went sideways in DING.</h2>
           <p>{this.state.error?.message || 'An unexpected error occurred.'}</p>
           <button
             className="mf-button"
@@ -31,7 +31,7 @@ export class ErrorBoundary extends React.Component {
               window.location.reload();
             }}
           >
-            RELOAD BAY
+            RELOAD DING
           </button>
         </div>
       );
