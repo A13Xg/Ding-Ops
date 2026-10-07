@@ -531,8 +531,40 @@ function meets(criterion, metrics) {
 }
 
 /**
+ * @typedef {{
+ *   user_id?: string,
+ *   to_level?: number,
+ *   local_date?: string,
+ *   time_bucket?: string,
+ *   activity_type?: string,
+ *   session_minutes?: number|null,
+ *   deaths?: number|null,
+ *   zone?: string|null,
+ *   note?: string
+ * }} DingAchievementEvent
+ * @typedef {{
+ *   user_id?: string,
+ *   is_archived?: boolean,
+ *   class_name?: string,
+ *   realm?: string,
+ *   faction?: string|null,
+ *   current_level?: number
+ * }} DingAchievementCharacter
+ * @typedef {{user_id?: string, achievement_type?: string}} DingAchievementRow
+ */
+
+/**
  * All achievement conditions are derived exclusively from persisted DING
  * level_events and characters. The function returns only newly earned IDs.
+ *
+ * @param {{
+ *   userId?: string,
+ *   events?: DingAchievementEvent[],
+ *   characters?: DingAchievementCharacter[],
+ *   existing?: DingAchievementRow[],
+ *   levelCap?: number
+ * }} [input]
+ * @returns {string[]}
  */
 export function computeDingAchievementUnlocks({
   userId,
