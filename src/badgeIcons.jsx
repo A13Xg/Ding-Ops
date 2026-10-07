@@ -2,7 +2,7 @@
  * Achievement glyphs shared by DING trophy surfaces.
  * Material Symbols is bundled through material-symbols/outlined.css in main.jsx,
  * so render the ligature directly instead of depending on an external
- * font-readiness side channel from the retired Bust entrypoint.
+ * font-readiness side channel from the retired legacy entrypoint.
  */
 export const TIERS = ['bronze', 'silver', 'gold', 'platinum', 'mythic'];
 
