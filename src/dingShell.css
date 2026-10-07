@@ -564,3 +564,482 @@
     display: none;
   }
 }
+
+
+/* Shared Bust primitives are intentionally overridden inside the DING root so
+   inherited geometry can remain while orange production styling cannot leak. */
+.ding-root .mf-frame,
+.drawer-layer .mf-frame,
+.ding-detail.mf-frame,
+.badge-toast.mf-frame,
+.ding-crew-toast.mf-frame {
+  background: linear-gradient(145deg, rgba(26, 34, 53, 0.96), rgba(9, 14, 25, 0.97));
+  border-color: rgba(96, 165, 250, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(124, 58, 237, 0.06),
+    0 24px 80px rgba(0, 0, 0, 0.5);
+}
+
+.ding-root .mf-button,
+.drawer-layer .mf-button {
+  border-color: rgba(96, 165, 250, 0.52);
+  background: linear-gradient(180deg, #60a5fa, #3b82f6 52%, #6d28d9);
+  color: #f8fbff;
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.25);
+}
+
+.ding-root .mf-button.ghost,
+.drawer-layer .mf-button.ghost {
+  background: rgba(15, 23, 42, 0.82);
+  color: #bfdbfe;
+  box-shadow: none;
+}
+
+.ding-root .mf-kicker,
+.drawer-layer .mf-kicker {
+  color: #a78bfa;
+}
+
+.ding-root .stat strong,
+.drawer-layer .stat strong {
+  color: #93c5fd;
+}
+
+.ding-muted {
+  color: var(--muted, rgba(218, 228, 247, 0.62));
+}
+
+.ding-profile,
+.ding-trophies,
+.ding-crew-list {
+  display: grid;
+  gap: 14px;
+}
+
+.ding-profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px;
+}
+
+.ding-profile-hero h2,
+.ding-crew-card h3,
+.ding-award-card h3 {
+  margin: 4px 0;
+}
+
+.ding-profile-hero p,
+.ding-crew-card p,
+.ding-award-card p {
+  margin: 4px 0 0;
+  color: var(--muted, rgba(218, 228, 247, 0.62));
+}
+
+.ding-avatar {
+  width: 82px;
+  height: 82px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(191, 219, 254, 0.72), transparent 24%),
+    linear-gradient(145deg, #2563eb, #6d28d9 72%, #1e1b4b);
+  color: #fff;
+  font-size: 27px;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+  box-shadow: 0 0 36px rgba(59, 130, 246, 0.22);
+}
+
+.ding-avatar.small {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  font-size: 18px;
+}
+
+.ding-rank-block {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 12px 20px;
+  padding: 18px;
+}
+
+.ding-rank-block > div:first-child,
+.ding-rank-xp {
+  display: grid;
+  gap: 4px;
+}
+
+.ding-rank-block span,
+.ding-rank-block small {
+  color: var(--muted, rgba(218, 228, 247, 0.62));
+}
+
+.ding-rank-block strong {
+  font-size: clamp(24px, 4vw, 42px);
+  color: #c4b5fd;
+}
+
+.ding-rank-xp {
+  text-align: right;
+}
+
+.ding-rank-progress {
+  grid-column: 1 / -1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.ding-rank-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #c084fc);
+  box-shadow: 0 0 16px rgba(167, 139, 250, 0.55);
+}
+
+.ding-rank-block.mythic {
+  border-color: rgba(244, 201, 93, 0.42);
+}
+
+.ding-rank-block.mythic strong {
+  background: linear-gradient(90deg, #fff4bc, #e9d5ff, #bfdbfe, #fff4bc);
+  background-size: 220% 100%;
+  color: transparent;
+  background-clip: text;
+  animation: ding-mythic-shimmer 4s linear infinite;
+}
+
+@keyframes ding-mythic-shimmer {
+  to { background-position: 220% 0; }
+}
+
+.ding-toggle {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  align-items: center;
+  margin-top: 16px;
+  color: #dbeafe;
+}
+
+.ding-toggle input {
+  grid-row: 1 / 3;
+  width: 20px;
+  height: 20px;
+  accent-color: #60a5fa;
+}
+
+.ding-toggle small {
+  color: var(--muted, rgba(218, 228, 247, 0.62));
+}
+
+.ding-award-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ding-award-grid.compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ding-award-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(9, 14, 25, 0.62);
+  color: #eaf1ff;
+  text-align: left;
+}
+
+button.ding-award-card {
+  width: 100%;
+}
+
+.ding-award-card > div:not(.badge-medal),
+.ding-award-card > span {
+  min-width: 0;
+}
+
+.ding-award-card p {
+  line-height: 1.45;
+}
+
+.ding-award-card small {
+  color: var(--muted, rgba(218, 228, 247, 0.62));
+}
+
+.ding-award-card.locked {
+  opacity: 0.48;
+  filter: saturate(0.35);
+}
+
+.ding-award-card.earned,
+.ding-award-card.selected {
+  border-color: rgba(96, 165, 250, 0.42);
+  box-shadow: 0 0 26px rgba(59, 130, 246, 0.1);
+}
+
+.ding-award-card.selected > svg {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 18px;
+  color: #93c5fd;
+}
+
+.badge-medal {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255,255,255,.9), transparent 19%),
+    radial-gradient(circle at 50% 50%, var(--badge, #60a5fa), color-mix(in srgb, var(--badge, #60a5fa), #111827 58%) 70%);
+  border-color: color-mix(in srgb, var(--badge, #60a5fa), white 28%);
+  box-shadow:
+    inset 0 0 18px rgba(255,255,255,.12),
+    0 0 24px color-mix(in srgb, var(--badge, #60a5fa), transparent 74%);
+}
+
+.badge-medal::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 13px;
+  pointer-events: none;
+}
+
+.badge-medal .icon-stack {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+
+.badge-medal .material-symbols-outlined {
+  font-size: 30px;
+  color: #f8fbff;
+  text-shadow: 0 2px 8px rgba(0,0,0,.55);
+}
+
+.badge-medal.tier-mythic {
+  box-shadow:
+    inset 0 0 22px rgba(255,255,255,.17),
+    0 0 34px rgba(196,181,253,.42);
+}
+
+.ding-trophy-summary {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 20px;
+}
+
+.ding-trophy-summary > svg {
+  width: 42px;
+  height: 42px;
+  color: #f4c95d;
+}
+
+.ding-trophy-summary div {
+  display: grid;
+}
+
+.ding-trophy-summary strong {
+  font-size: 28px;
+}
+
+.ding-trophy-summary span {
+  color: var(--muted, rgba(218, 228, 247, 0.62));
+}
+
+.ding-crew-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+}
+
+.ding-crew-card.self {
+  border-color: rgba(96, 165, 250, 0.44);
+}
+
+.ding-crew-copy {
+  min-width: 0;
+}
+
+.ding-crew-copy h3,
+.ding-crew-copy p,
+.ding-crew-copy small {
+  overflow-wrap: anywhere;
+}
+
+.ding-crew-copy small {
+  color: #93c5fd;
+}
+
+.ding-crew-numbers {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ding-crew-numbers b {
+  display: grid;
+  min-width: 58px;
+  text-align: center;
+  font-size: 24px;
+  color: #dbeafe;
+}
+
+.ding-crew-numbers small {
+  color: var(--muted, rgba(218, 228, 247, 0.62));
+  font-size: 9px;
+  letter-spacing: .08em;
+}
+
+.ding-crew-numbers > span {
+  min-width: 42px;
+  padding: 5px 7px;
+  border-radius: 999px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.ding-crew-numbers > span.ahead {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+.ding-crew-numbers > span.behind {
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+}
+
+.ding-crew-toast-anchor {
+  position: fixed;
+  z-index: 97;
+  top: calc(18px + env(safe-area-inset-top, 0px));
+  left: max(12px, env(safe-area-inset-left, 0px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.ding-crew-toast {
+  width: min(500px, 100%);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  pointer-events: auto;
+  border-color: rgba(96, 165, 250, 0.48);
+  border-radius: 16px;
+  clip-path: none;
+}
+
+.ding-crew-toast > svg {
+  color: #a78bfa;
+}
+
+.ding-crew-toast > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.ding-crew-toast span {
+  color: #93c5fd;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.ding-crew-toast b,
+.ding-crew-toast small {
+  overflow-wrap: anywhere;
+}
+
+.ding-crew-toast small {
+  color: var(--muted, rgba(218, 228, 247, 0.62));
+}
+
+.ding-crew-toast button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+}
+
+@media (max-width: 760px) {
+  .ding-actions {
+    gap: 5px;
+  }
+
+  .ding-actions button {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .ding-player-chip {
+    max-width: 40vw;
+    padding-inline: 9px;
+  }
+
+  .ding-award-grid,
+  .ding-award-grid.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .ding-rank-block {
+    grid-template-columns: 1fr;
+  }
+
+  .ding-rank-xp {
+    text-align: left;
+  }
+
+  .ding-crew-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .ding-crew-numbers {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
+  .ding-trophy-summary {
+    grid-template-columns: auto 1fr;
+  }
+
+  .ding-trophy-summary > div:last-child {
+    grid-column: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ding-rank-block.mythic strong {
+    animation: none;
+  }
+}
