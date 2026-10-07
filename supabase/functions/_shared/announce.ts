@@ -49,25 +49,11 @@ async function claimWithoutSending(
 }
 
 /*
- * One reconcile writes every newly earned achievement in a single upsert, so a
- * burst shares one `unlocked_at` to within the round trip. Two minutes is far
- * wider than that and still far narrower than the backstop's one-hour lookback.
- */
-const BURST_WINDOW_MS = 2 * 60 * 1000;
-
-/**
- * Retire the rows a Ding unlocked but did not announce.
- *
- * Without this the cap is a delay, not a cap. The client picks one unlock to
- * announce and simply drops the rest — but those rows are still sitting in
- * `achievements` inside dispatch-push-backstop's lookback with no `push_events`
- * row, so the next sweep treats one of them as un-announced and pushes it. The
- * ten-minute reconciliation-burst slot does not stop that: the slot the client used has
- * already expired by the time the sweep runs, so the sweep claims a fresh one.
- * Net effect was two achievement pushes per Ding, ten minutes apart.
- *
- * Claiming them with zero recipients records them as handled, which is the only
- * thing the sweep checks.
+ * PostgreSQL's now() is stable within the upsert statement that writes a
+ * reconciliation batch, so sibling achievements from one reconciliation share
+ * the exact same unlocked_at value. Use that exact timestamp instead of a time
+ * window: rapid legitimate Dings can happen seconds apart and must never retire
+ * each other's achievement rows.
  */
 async function retireUnannouncedSiblings(
   admin: SupabaseClient<Database>,
@@ -75,19 +61,20 @@ async function retireUnannouncedSiblings(
   anchorUnlockedAt: string | null | undefined,
   announcedId: string,
 ) {
-  const anchor = anchorUnlockedAt ? new Date(anchorUnlockedAt).getTime() : Date.now();
-  if (!Number.isFinite(anchor)) return;
+  if (!anchorUnlockedAt) return;
+  const anchor = new Date(anchorUnlockedAt);
+  if (!Number.isFinite(anchor.getTime())) return;
+
   const { data, error } = await admin
     .from('achievements')
     .select('id')
     .eq('user_id', actorId)
-    .gte('unlocked_at', new Date(anchor - BURST_WINDOW_MS).toISOString())
-    .lte('unlocked_at', new Date(anchor + BURST_WINDOW_MS).toISOString());
+    .eq('unlocked_at', anchor.toISOString());
   if (error) {
-    // Best-effort: the worst case is the pre-existing behaviour, one extra push.
     console.error('[announce] could not retire siblings', error.message);
     return;
   }
+
   for (const row of data || []) {
     if (row.id === announcedId) continue;
     await claimWithoutSending(admin, 'achievement', row.id, actorId);
@@ -105,7 +92,7 @@ async function announce(
   sourceId: string,
   actorId: string,
   payload: { title: string; body: string; tag: string; kind: string },
-  // A reconciliation-burst slot held on the caller's behalf. Released alongside the row's own
+  // A reconciliation burst slot held on the caller's behalf. Released alongside the row's own
   // claim if the send fails, so one transient failure does not burn the whole
   // window and lock the backstop out of retrying.
   slotEventId: number | null = null,
@@ -245,7 +232,7 @@ export async function announceAchievement(
     pushBody: payload.body,
   };
 
-  // A Discord-only retry must not reserve a fresh push reconciliation-burst slot or
+  // A Discord-only retry must not reserve a fresh push reconciliation burst slot or
   // resurrect a sibling that was deliberately suppressed on mobile.
   if (skipPush) {
     await sendDiscordNotification(admin, 'achievement', discordContext);
