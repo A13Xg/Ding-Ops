@@ -552,6 +552,48 @@ function DingDashboard({ user, setUser }) {
   }, [burstId]);
 
   useEffect(() => {
+    const serviceWorker = navigator.serviceWorker;
+    if (!serviceWorker?.addEventListener) return undefined;
+
+    const onWorkerMessage = event => {
+      const message = event.data || {};
+      if (message.type === 'ding-push-resubscribed' && message.subscription) {
+        void backend
+          .registerPushSubscription(message.subscription, { userAgent: navigator.userAgent || null })
+          .catch(error => console.warn('[push resubscribe]', error));
+        return;
+      }
+
+      if (message.type === 'ding-notification-click') {
+        setOverlay('feed');
+        return;
+      }
+
+      if (message.type !== 'ding-push') return;
+      const payload = message.payload || {};
+      const kind = payload?.data?.kind;
+      const sourceId = payload?.data?.sourceId;
+      if (kind === 'ding' && sourceId) {
+        void backend
+          .levelEventById(sourceId)
+          .then(row => {
+            if (row) setEvents(previous => mergeRow(previous, row));
+          })
+          .catch(error => console.warn('[push refresh ding]', error));
+      } else if (kind === 'achievement') {
+        void backend
+          .reconcileAchievements()
+          .then(result => setAchievements(result.achievements))
+          .catch(error => console.warn('[push refresh achievements]', error));
+      }
+    };
+
+    serviceWorker.addEventListener('message', onWorkerMessage);
+    return () => serviceWorker.removeEventListener('message', onWorkerMessage);
+  }, []);
+
+
+  useEffect(() => {
     if (getNotificationPermission() !== 'granted') return;
     void enablePushNotifications({
       backend,
