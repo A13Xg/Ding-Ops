@@ -1,37 +1,59 @@
-# Achievement reconciliation Edge Function
+# DING achievement reconciliation Edge Function
 
-This function is the authoritative achievement evaluator for static Supabase deployments.
+`reconcile-achievements` is the authoritative achievement evaluator for the Supabase deployment.
 
-It authenticates the caller with the supplied user JWT, reads complete paginated history with the service-role client, imports the same `computeAchievementUnlocks` implementation and achievement catalog used by the Express server, persists only server-computed catalog IDs, and returns the complete achievement collection.
+It authenticates the caller, then uses the service-role client to read the complete paginated DING crew state required by the catalog:
 
-This provides parity for legacy, progression, expansion, social, and meta achievements without duplicating rule logic in SQL.
+- current level cap
+- profiles
+- level events
+- characters
+- existing achievements
+
+It imports the canonical runtime catalog and evaluator from `src/dingAchievements.js`. The function evaluates every profile in one pass so synchronized crew achievements can use the full event stream, persists only known catalog IDs, and returns the full achievement collection plus only the caller's newly-earned IDs.
+
+This design avoids duplicating achievement rules in SQL while still preventing browser clients from forging achievement rows.
 
 ## Deploy
 
-From the repository root:
+The production workflow deploys this automatically after migrations:
 
 ```bash
 supabase functions deploy reconcile-achievements
 ```
 
-Supabase automatically provides these function secrets:
+Supabase provides these server-side values to deployed functions:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-Do not expose `SUPABASE_SERVICE_ROLE_KEY` to the browser or add it to any `VITE_` environment variable.
+Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser or any `VITE_*` variable.
 
 ## Verification
 
-1. Confirm direct inserts into `public.achievements` fail for an authenticated browser client.
-2. Invoke the function twice for the same account and confirm no duplicate `(user_id, achievement_type)` rows are created.
-3. Seed qualifying legacy, progression, expansion, social, and meta history and verify the returned IDs match `computeAchievementUnlocks` for the same fixture.
-4. Seed more than 1,000 busts and achievements and verify pagination returns complete results.
-5. Invoke the function without an Authorization header and confirm it returns HTTP 401.
+Repository checks:
+
+1. runtime/SQL achievement catalog IDs match exactly;
+2. every rule family is deterministic from persisted DING fields;
+3. cross-user synchronized award fixtures use the full crew event stream;
+4. duplicate `(user_id, achievement_type)` rows are prevented;
+5. function code typechecks under Deno against the checked-in DING schema types.
+
+Live-project gate:
+
+1. direct browser inserts into `public.achievements` must fail;
+2. invoke reconciliation repeatedly and confirm idempotent results;
+3. create synchronized events for multiple users and confirm each qualifying user earns the expected social award;
+4. test more than 1,000 events/achievements to exercise pagination;
+5. call without an Authorization header and confirm HTTP 401;
+6. confirm newly inserted awards appear over Realtime and unannounced rows are picked up by the scheduled backstop.
 
 ## Deployment dependency
 
-The function imports `../../../src/rules.js` and `../../../src/fetchAllPages.js`. Deploy it from the repository root so the Supabase bundler can resolve the canonical modules. A deployment should fail rather than silently fall back to the older partial SQL reconciler if those imports cannot be bundled.
+The function imports:
 
-JWT verification is explicitly enabled in `supabase/config.toml`.
+- `../../../src/dingAchievements.js`
+- `../../../src/fetchAllPages.js`
+
+Deploy from the repository root so the Supabase bundler resolves the canonical modules. JWT verification is explicitly enabled in `supabase/config.toml`.
