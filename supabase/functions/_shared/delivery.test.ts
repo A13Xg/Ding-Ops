@@ -2,18 +2,18 @@ import { strict as assert } from 'node:assert';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
 import { dispatchRecentEvents } from './backstop.ts';
-import { announceBust } from './announce.ts';
+import { announceDing } from './announce.ts';
 import { DEFAULT_DISCORD_SETTINGS, maskWebhookUrl, validateDiscordSettingsPatch } from './discord.ts';
 
 const occurredAt = '2026-09-30T12:00:00.000Z';
-const bust = { id: 'b1', user_id: 'u1', timestamp: occurredAt, note: 'hello', city: 'Austin' };
+const ding = { id: 'b1', user_id: 'u1', timestamp: occurredAt, note: 'hello', city: 'Austin' };
 const achievement = { id: 'a1', user_id: 'u1', unlocked_at: occurredAt, achievement_type: 'first_release' };
 
 // Stateful PostgREST fake: exercise the real sweep, announcement, ledger, and
 // transport code together, while keeping all I/O inside the test process.
 function database(seed: Record<string, any[]> = {}) {
   const tables: Record<string, any[]> = {
-    busts: [bust],
+    dings: [ding],
     achievements: [achievement],
     profiles: [{ id: 'u1', username: 'Alex' }],
     discord_settings: [
@@ -153,11 +153,11 @@ async function withTransports(run: (sent: any[], failDiscord: (value: boolean) =
   }
 }
 
-Deno.test('backstop delivers push-handled busts and suppressed achievements to Discord only once', async () => {
+Deno.test('backstop delivers push-handled dings and suppressed achievements to Discord only once', async () => {
   await withTransports(async (sent) => {
     const { admin, tables } = database({
       push_events: [
-        { id: 1, kind: 'bust', source_id: 'b1' },
+        { id: 1, kind: 'ding', source_id: 'b1' },
         { id: 2, kind: 'achievement', source_id: 'a1' },
       ],
     });
@@ -175,7 +175,7 @@ Deno.test('failed Discord send is retried by backstop after push was already han
   await withTransports(async (sent, failDiscord) => {
     const { admin, tables } = database({ achievements: [] });
     failDiscord(true);
-    await announceBust(admin, bust, 'Alex');
+    await announceDing(admin, ding, 'Alex');
     assert.equal(tables.push_events.length, 1);
     assert.equal(tables.discord_events.length, 0, 'failed send must release its claim');
     failDiscord(false);
@@ -191,7 +191,7 @@ Deno.test('all-failed push releases its claim while a successful Discord send st
       achievements: [],
       push_subscriptions: [{ id: 1, user_id: 'u2', endpoint: 'https://example.invalid', p256dh: 'test', auth: 'test' }],
     });
-    const outcome = await announceBust(admin, bust, 'Alex');
+    const outcome = await announceDing(admin, ding, 'Alex');
     assert.equal(outcome.status, 'failed');
     assert.equal(tables.push_events.length, 0);
     assert.equal(tables.discord_events.length, 1);
@@ -222,7 +222,7 @@ Deno.test('backstop advances past the newest 50 handled achievements on the next
   await withTransports(async (sent) => {
     const achievements = Array.from({ length: 60 }, (_, index) => ({ ...achievement, id: `a${index}` }));
     const { admin, tables } = database({
-      busts: [],
+      dings: [],
       achievements,
       push_events: achievements.map((row, id) => ({ id, kind: 'achievement', source_id: row.id })),
     });
