@@ -235,6 +235,16 @@ try {
     'Browser direct push subscription insert unexpectedly succeeded.'
   );
 
+  await expectNoRowsChanged(
+    alice.client
+      .from('profiles')
+      .update({ showcase: 'hundred_dings' })
+      .eq('id', alice.userId)
+      .select('id,showcase'),
+    'Browser direct profile preference update unexpectedly succeeded.'
+  );
+
+
   const firstId = randomUUID();
   alice.eventId = firstId;
   const firstArgs = {
@@ -341,6 +351,23 @@ try {
   assert(bobAwards.some(row => row.achievement_type === 'first_ding'), 'User B First Ding achievement was not reconciled.');
   assert(aliceAwards.some(row => row.achievement_type === 'sync_pair'), 'User A synchronized crew award was not reconciled.');
   assert(bobAwards.some(row => row.achievement_type === 'sync_pair'), 'User B synchronized crew award was not reconciled.');
+
+  console.log('[smoke] testing validated profile showcase writes');
+  const forgedShowcase = await alice.client.rpc('update_profile_preferences', {
+    p_tagline: 'smoke',
+    p_avatar_seed: 'smoke',
+    p_showcase: 'hundred_dings',
+  });
+  assert(forgedShowcase.error, 'Unearned showcase achievement was unexpectedly accepted.');
+
+  const earnedShowcase = await alice.client.rpc('update_profile_preferences', {
+    p_tagline: 'smoke',
+    p_avatar_seed: 'smoke',
+    p_showcase: 'first_ding,sync_pair',
+  });
+  if (earnedShowcase.error) throw new Error('Earned showcase update failed: ' + earnedShowcase.error.message);
+  const earnedProfile = Array.isArray(earnedShowcase.data) ? earnedShowcase.data[0] : earnedShowcase.data;
+  assert(earnedProfile?.showcase === 'first_ding,sync_pair', 'Earned showcase did not persist.');
 
   console.log('[smoke] testing privileged endpoints fail closed for ordinary users');
   await expectFunctionDenied(
