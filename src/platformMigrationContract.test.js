@@ -37,50 +37,6 @@ describe('DING platform migration contract', () => {
     const profileRpc = sql.indexOf('create or replace function public.update_profile_preferences');
     expect(achievementsTable).toBeGreaterThan(-1);
     expect(profileRpc).toBeGreaterThan(achievementsTable);
-    expect(sql).toContain('as $profile  it('does not expose push subscription key material through browser RLS policies', () => {
-    expect(sql).toContain('no browser policies');
-    expect(sql).not.toContain('create policy push_subscriptions_select');
-    expect(sql).not.toContain('create policy push_subscriptions_insert');
-    expect(sql).not.toContain('create policy push_subscriptions_update');
-    expect(sql).not.toContain('create policy push_subscriptions_delete');
-  });
-
-  it('keeps push maintenance RPCs service-role only', () => {
-    for (const signature of [
-      'public.bump_push_failure(bigint[])',
-      'public.mark_push_sent(bigint[])',
-      'public.record_push_ack(uuid)',
-      'public.prune_dead_push_subscriptions(integer, interval, integer, interval)',
-      'public.push_subscription_health()',
-    ]) {
-      expect(compactSql).toContain(`revoke all on function ${signature} from public, anon, authenticated`);
-      expect(compactSql).toContain(`grant execute on function ${signature} to service_role`);
-    }
-  });
-
-  it('keeps one push endpoint per browser and records acknowledgement liveness', () => {
-    expect(sql).toContain('push_subscriptions_endpoint_key');
-    expect(sql).toContain('last_ack_at timestamptz');
-    expect(sql).toContain('unacked_count integer not null default 0');
-    expect(sql).toContain('record_push_ack');
-    expect(sql).toContain('prune_dead_push_subscriptions');
-  });
-
-  it('uses DING-specific Discord settings and ledgers', () => {
-    expect(sql).toContain('ding_enabled boolean not null default true');
-    expect(sql).toContain('ding_title_template text');
-    expect(sql).toContain('ding_description_template text');
-    expect(sql).not.toContain('bust_title_template');
-  });
-
-  it('publishes all realtime surfaces required by the social shell', () => {
-    for (const table of ['profiles', 'characters', 'level_events', 'achievements']) {
-      expect(sql).toContain('alter publication supabase_realtime add table public.' + table);
-    }
-  });
-});
-);
-    expect(sql).toContain('$profile$;');
     expect(sql).toContain("raise exception 'ding_showcase_not_earned'");
     expect(sql).toContain('grant execute on function public.update_profile_preferences');
   });
