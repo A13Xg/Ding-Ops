@@ -409,6 +409,21 @@ create index if not exists discord_events_created_idx
 alter table public.discord_events enable row level security;
 -- No policies: service role only.
 
+-- Keep every platform-service table non-writable/non-readable from PostgREST
+-- unless the product explicitly needs it. Achievements are the lone shared
+-- browser-readable platform table.
+revoke all on table
+  public.achievement_catalog,
+  public.achievements,
+  public.push_subscriptions,
+  public.push_events,
+  public.push_deliveries,
+  public.inactivity_reminders,
+  public.discord_settings,
+  public.discord_events
+from anon, authenticated;
+grant select on table public.achievements to authenticated;
+
 -- ---------- Realtime ----------
 do $$
 begin
