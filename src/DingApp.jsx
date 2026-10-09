@@ -612,6 +612,7 @@ function DingDashboard({ user, setUser }) {
   const [burstId, setBurstId] = useState(null);
   const [crewToast, setCrewToast] = useState(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [dingContext, setDingContext] = useState({
     activityType: 'other',
     zone: '',
@@ -623,8 +624,12 @@ function DingDashboard({ user, setUser }) {
 
   useEffect(() => {
     let live = true;
-    Promise.all([backend.dingDashboard(), backend.gameConfig().catch(() => null)])
-      .then(([snapshot, remoteConfig]) => {
+    Promise.all([
+      backend.dingDashboard(),
+      backend.gameConfig().catch(() => null),
+      backend.adminStatus().catch(() => ({ isAdmin: false })),
+    ])
+      .then(([snapshot, remoteConfig, adminStatus]) => {
         if (!live) return;
         setUsers(snapshot.users);
         setCharacters(snapshot.characters);
@@ -633,6 +638,7 @@ function DingDashboard({ user, setUser }) {
         const freshUser = snapshot.users.find(profile => profile.id === user.id);
         if (freshUser) setUser(freshUser);
         if (remoteConfig) setConfig(mergeGameConfig(remoteConfig));
+        setIsAdmin(adminStatus?.isAdmin === true);
       })
       .catch(error => {
         if (live) setStatus(error.message);
@@ -971,9 +977,11 @@ function DingDashboard({ user, setUser }) {
           <button type="button" onClick={() => setOverlay('characters')} aria-label="Characters">
             <Swords />
           </button>
-          <button type="button" onClick={() => setOverlay('ops')} aria-label="Operations console">
-            <Wrench />
-          </button>
+          {isAdmin && (
+            <button type="button" onClick={() => setOverlay('ops')} aria-label="Operations console">
+              <Wrench />
+            </button>
+          )}
         </div>
       </header>
 
@@ -1089,7 +1097,7 @@ function DingDashboard({ user, setUser }) {
         </Overlay>
       )}
 
-      {overlay === 'ops' && (
+      {overlay === 'ops' && isAdmin && (
         <Overlay title="DING OPS CONSOLE" onClose={() => setOverlay(null)} showScrollTop>
           <DingAdmin users={users} />
         </Overlay>
