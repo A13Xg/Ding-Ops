@@ -170,6 +170,15 @@ create policy level_events_select on public.level_events for select to authentic
 -- Deliberately no browser INSERT/UPDATE policy for level_events. Dings and note
 -- edits go through narrow RPCs so progression cannot be forged with PostgREST.
 
+-- Defense in depth: Supabase projects can carry broad default grants on the
+-- public schema. Make the browser's table privileges match the DING API exactly
+-- instead of relying on RLS alone.
+revoke all on table public.game_config, public.profiles, public.characters, public.level_events
+  from anon, authenticated;
+grant select on table public.game_config, public.profiles, public.characters, public.level_events
+  to authenticated;
+grant insert on table public.characters to authenticated;
+
 create or replace function public.set_active_character(p_character_id uuid)
 returns public.profiles
 language plpgsql
