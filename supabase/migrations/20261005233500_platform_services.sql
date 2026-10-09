@@ -254,6 +254,12 @@ revoke all on function public.prune_dead_push_subscriptions(integer, interval, i
   from public, anon, authenticated;
 revoke all on function public.push_subscription_health() from public, anon, authenticated;
 
+grant execute on function public.bump_push_failure(bigint[]) to service_role;
+grant execute on function public.mark_push_sent(bigint[]) to service_role;
+grant execute on function public.record_push_ack(uuid) to service_role;
+grant execute on function public.prune_dead_push_subscriptions(integer, interval, integer, interval) to service_role;
+grant execute on function public.push_subscription_health() to service_role;
+
 -- ---------- Inactivity reminder state ----------
 create table if not exists public.inactivity_reminders (
   user_id uuid primary key references public.profiles(id) on delete cascade,
