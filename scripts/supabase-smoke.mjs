@@ -38,6 +38,17 @@ async function createAccount(label) {
   assert(userId, 'Signup did not return a user. Disable email confirmation for DING synthetic auth.');
   assert(signup.data.session, 'Signup did not create a session. Disable email confirmation for DING synthetic auth.');
 
+  const account = { client, username, userId, characterId: null, eventId: null };
+  accounts.push(account);
+
+  const forgedProfile = await client.from('profiles').insert({
+    id: userId,
+    username,
+    avatar_seed: `smoke-${label}-${token}`,
+    showcase: 'first_ding',
+  });
+  assert(forgedProfile.error, 'Initial profile unexpectedly accepted a forged achievement showcase.');
+
   const profile = await client
     .from('profiles')
     .insert({ id: userId, username, avatar_seed: `smoke-${label}-${token}` })
@@ -46,8 +57,6 @@ async function createAccount(label) {
   if (profile.error) throw profile.error;
   assert(profile.data.username === username, 'Profile insert/read contract failed.');
 
-  const account = { client, username, userId, characterId: null, eventId: null };
-  accounts.push(account);
   return account;
 }
 
