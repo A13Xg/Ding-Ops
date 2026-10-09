@@ -289,7 +289,7 @@ function AccountsTab({ users }) {
         NEW PASSWORD
         <input
           type="password"
-          minLength={6}
+          minLength={8}
           maxLength={200}
           autoComplete="new-password"
           value={password}
@@ -299,7 +299,7 @@ function AccountsTab({ users }) {
       <button
         className="mf-button danger"
         type="button"
-        disabled={busy || !selected || password.length < 6}
+        disabled={busy || !selected || password.length < 8}
         onClick={save}
       >
         <KeyRound /> {busy ? 'UPDATING…' : 'SET PASSWORD'}
