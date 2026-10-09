@@ -105,6 +105,7 @@ DING must use a dedicated Supabase project. Never reuse Bust production values.
 | `VAPID_PRIVATE_KEY` | Edge Function push signing |
 | `VAPID_SUBJECT` | VAPID contact subject |
 | `REMINDER_CRON_SECRET` | Scheduled backstop/reminder authentication |
+| `DING_INVITE_CODE` | Private 24+ character server-side crew signup secret |
 
 Optional:
 
@@ -127,9 +128,11 @@ Generate an admin allowlist digest with:
 node -e "console.log(require('crypto').createHash('sha256').update('YOUR_USERNAME'.toLowerCase()).digest('hex'))"
 ```
 
-### Supabase Auth requirement
+### Signup model
 
-DING uses synthetic emails derived from usernames. **Disable email confirmation** for the dedicated DING project so signup immediately returns a usable session.
+DING signup is handled by the unauthenticated-but-invite-gated `signup-account` Edge Function. The invite code never ships in the browser bundle. The function uses the service role to create a **confirmed** synthetic-email auth user plus its clean profile, then the browser signs in with the new credentials.
+
+Use a random `DING_INVITE_CODE` of at least 24 characters. Because users are server-created as confirmed accounts, no Supabase email-confirmation setting change is required.
 
 ## Deployment
 
@@ -145,7 +148,7 @@ The `Deploy DING` workflow is intentionally manual and credential-gated. Once th
 8. build with the DING GitHub Pages base path;
 9. deploy the Pages artifact.
 
-The live smoke test creates a temporary DING account/character, checks UUID idempotency and competing concurrent Dings, verifies note RPC and achievement reconciliation, and then deletes the temporary account.
+The live smoke test creates **two** temporary invite-gated accounts and characters, validates cross-account RLS/ownership, forbidden direct writes, Realtime propagation, UUID idempotency, competing concurrent Dings, note ownership, synchronized crew achievements, validated profile showcases, and admin fail-closed behavior, then deletes both accounts.
 
 After deployment, `DING Scheduled Maintenance` runs:
 - push backstop every 15 minutes;
@@ -205,8 +208,8 @@ Repository-only implementation is intended to be complete before backend linkage
 
 1. create/link the dedicated DING Supabase project;
 2. add the required GitHub secrets;
-3. disable synthetic-email confirmation;
-4. run `Deploy DING`;
-5. verify the live two-account flow and installed iOS/Android PWA behavior.
+3. run `Deploy DING`;
+4. let the automated two-account live smoke pass;
+5. verify installed iOS/Android PWA push behavior and final physical-device layout.
 
 Any failures found by those live/device checks should be fixed before calling the deployment production-ready.
