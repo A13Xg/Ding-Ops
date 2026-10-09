@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const migrationPath = join(process.cwd(), 'supabase', 'migrations', '20261005233500_platform_services.sql');
 const sql = readFileSync(migrationPath, 'utf8').toLowerCase();
+const compactSql = sql.replace(/\s+/g, ' ');
 
 describe('DING platform migration contract', () => {
   it('uses DING-native event kinds throughout delivery ledgers', () => {
@@ -40,8 +41,8 @@ describe('DING platform migration contract', () => {
       'public.prune_dead_push_subscriptions(integer, interval, integer, interval)',
       'public.push_subscription_health()',
     ]) {
-      expect(sql).toContain(`revoke all on function ${signature} from public, anon, authenticated`);
-      expect(sql).toContain(`grant execute on function ${signature} to service_role`);
+      expect(compactSql).toContain(`revoke all on function ${signature} from public, anon, authenticated`);
+      expect(compactSql).toContain(`grant execute on function ${signature} to service_role`);
     }
   });
 
