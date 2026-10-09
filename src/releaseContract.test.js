@@ -50,9 +50,9 @@ describe('DING release contract', () => {
     const deploy = read('.github/workflows/deploy.yml');
 
     expect(backend).toContain("functions.invoke('signup-account'");
-    expect(backend).not.toContain("const INVITE_CODE");
-    expect(signup).toContain("DING_INVITE_CODE");
-    expect(signup).toContain("admin.auth.admin.createUser");
+    expect(backend).not.toContain('const INVITE_CODE');
+    expect(signup).toContain('DING_INVITE_CODE');
+    expect(signup).toContain('admin.auth.admin.createUser');
     expect(config).toMatch(/\[functions\.signup-account\][\s\S]*?verify_jwt\s*=\s*false/);
     expect(deploy).toContain('DING_INVITE_CODE');
   });
