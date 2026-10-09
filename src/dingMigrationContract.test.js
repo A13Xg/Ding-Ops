@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { GAME_CONFIG, WOW_CLASSES } from './gameConfig.js';
 
 const migrationPath = join(process.cwd(), 'supabase', 'migrations', '20261005230000_core_ding_domain.sql');
 const sql = readFileSync(migrationPath, 'utf8').toLowerCase();
@@ -36,6 +37,21 @@ describe('atomic Ding migration contract', () => {
   it('uses the configured server-side cap', () => {
     expect(sql).toContain("from public.game_config where id = 'current'");
     expect(sql).toContain("raise exception 'ding_max_level'");
+  });
+
+  it('keeps database character and activity vocabularies aligned with client config', () => {
+    for (const className of WOW_CLASSES) {
+      expect(sql).toContain(`'${className.toLowerCase()}'`);
+    }
+    for (const activity of GAME_CONFIG.activityTypes) {
+      expect(sql).toContain(`'${activity.id}'`);
+    }
+    for (const region of GAME_CONFIG.regions) {
+      expect(sql).toContain(`'${region.toLowerCase()}'`);
+    }
+    for (const faction of GAME_CONFIG.factions) {
+      expect(sql).toContain(`'${faction.toLowerCase()}'`);
+    }
   });
 
   it('does not expose direct browser progression writes', () => {
