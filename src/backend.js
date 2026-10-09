@@ -33,10 +33,6 @@ async function getSupa() {
   }
   return supa;
 }
-/* Compared case-insensitively and trimmed. This code ships inside the client
- * bundle either way, so guarding its capitalisation buys nothing and only makes
- * it annoying to type. */
-const INVITE_CODE = 'ding4me';
 function toUser(p) {
   return p
     ? {
@@ -97,41 +93,29 @@ const staticBackend = {
     return myProfile(sb);
   },
   async signup({ username, password, inviteCode }) {
-    if (String(inviteCode).trim().toLowerCase() !== INVITE_CODE)
-      throw new Error('That secret handshake is not on the list.');
     const wanted = normalizeDingUsername(username);
-    if (String(password).length < 6) throw new Error('Password must be at least 6 characters');
+    const secret = String(inviteCode || '').trim();
+    const pass = String(password || '');
+    if (!secret) throw new Error('Invite code is required');
+    if (pass.length < 8) throw new Error('Password must be at least 8 characters');
+    if (pass.length > 200) throw new Error('Password is too long');
+
     const sb = await getSupa();
-    // Exact-match courtesy check only. ILIKE treats "_" as a wildcard and "_"
-    // is itself a valid DING username character. The synthetic auth identity
-    // and lower(username) unique index are the authoritative case-insensitive
-    // collision guards.
-    const taken = await sb.from('profiles').select('id').eq('username', wanted).maybeSingle();
-    if (taken.data) throw new Error('Username already exists');
-    const { data, error } = await sb.auth.signUp({ email: syntheticAuthEmail(wanted), password });
-    if (error) throw new Error(/already/i.test(error.message) ? 'Username already exists' : error.message);
-    const uid = data.user?.id;
-    if (!uid || !data.session) {
-      if (data.user?.identities && data.user.identities.length === 0) {
-        throw new Error('Username already exists');
-      }
-      throw new Error('Signup failed — is email confirmation disabled in Supabase Auth settings?');
+    const { data: created, error: createError } = await sb.functions.invoke('signup-account', {
+      body: { username: wanted, password: pass, inviteCode: secret },
+    });
+    if (createError) {
+      const detail = await readFunctionError(createError);
+      throw new Error(detail || createError.message || 'Account creation failed');
     }
-    const profile = { id: uid, username: wanted, avatar_seed: `${wanted}-${Date.now()}` };
-    const ins = await sb.from('profiles').insert(profile).select().single();
-    if (ins.error) {
-      try {
-        await sb.functions.invoke('delete-account', { body: {} });
-      } catch {
-        await sb.auth.signOut();
-      }
-      throw new Error(
-        ins.error.code === '23505' || /profiles_username_lower_key/.test(ins.error.message || '')
-          ? 'Username already exists'
-          : ins.error.message
-      );
-    }
-    return toUser(ins.data);
+    if (created?.error) throw new Error(created.error);
+
+    const { error: loginError } = await sb.auth.signInWithPassword({
+      email: syntheticAuthEmail(wanted),
+      password: pass,
+    });
+    if (loginError) throw new Error('Account created, but automatic sign-in failed. Try signing in normally.');
+    return myProfile(sb);
   },
   async logout() {
     const sb = await getSupa();
@@ -139,7 +123,7 @@ const staticBackend = {
   },
   async updateOwnPassword(password) {
     const value = String(password || '');
-    if (value.length < 6) throw new Error('Password must be at least 6 characters');
+    if (value.length < 8) throw new Error('Password must be at least 8 characters');
     if (value.length > 200) throw new Error('Password is too long');
     const sb = await getSupa();
     const { error } = await sb.auth.updateUser({ password: value });
