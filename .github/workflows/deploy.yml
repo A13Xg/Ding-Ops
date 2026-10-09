@@ -16,6 +16,19 @@ jobs:
   deploy:
     name: Supabase then Pages
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ding_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d ding_ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=12
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -65,6 +78,15 @@ jobs:
           npm run lint:functions
           npm run typecheck:functions
           npm run test:functions
+
+      - name: Dry-run DING migrations in disposable PostgreSQL
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: ding_ci
+        run: bash scripts/validate-migrations.sh
 
       - name: Validate production configuration
         shell: bash
