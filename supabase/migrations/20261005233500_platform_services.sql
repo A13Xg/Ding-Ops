@@ -25,6 +25,60 @@ for select to authenticated using (true);
 -- No client write policy for achievements or catalog. Achievement persistence
 -- is service-role-only after server reconciliation proves eligibility.
 
+-- ---------- Validated profile preferences ----------
+create or replace function public.update_profile_preferences(
+  p_tagline text,
+  p_avatar_seed text,
+  p_showcase text
+)
+returns public.profiles
+language plpgsql
+security definer
+set search_path = public
+as $
+declare
+  v_actor uuid := auth.uid();
+  v_profile public.profiles%rowtype;
+  v_showcase text;
+  v_ids text[];
+begin
+  if v_actor is null then raise exception 'DING_NOT_AUTHENTICATED'; end if;
+
+  v_showcase := nullif(trim(coalesce(p_showcase, '')), '');
+  if v_showcase is not null then
+    v_ids := string_to_array(v_showcase, ',');
+    if cardinality(v_ids) > 3 then raise exception 'DING_SHOWCASE_TOO_LARGE'; end if;
+    if cardinality(v_ids) <> cardinality(array(select distinct unnest(v_ids))) then
+      raise exception 'DING_SHOWCASE_DUPLICATE';
+    end if;
+    if exists (
+      select 1
+      from unnest(v_ids) as wanted(id)
+      where not exists (
+        select 1 from public.achievements a
+        where a.user_id = v_actor and a.achievement_type = wanted.id
+      )
+    ) then
+      raise exception 'DING_SHOWCASE_NOT_EARNED';
+    end if;
+  end if;
+
+  update public.profiles
+  set
+    tagline = nullif(left(trim(coalesce(p_tagline, '')), 80), ''),
+    avatar_seed = nullif(left(trim(coalesce(p_avatar_seed, '')), 64), ''),
+    showcase = v_showcase
+  where id = v_actor
+  returning * into v_profile;
+
+  if not found then raise exception 'DING_PROFILE_MISSING'; end if;
+  return v_profile;
+end;
+$;
+
+revoke all on function public.update_profile_preferences(text,text,text) from public;
+grant execute on function public.update_profile_preferences(text,text,text) to authenticated;
+
 -- ---------- Push subscriptions and exactly-once event ledger ----------
 create table if not exists public.push_subscriptions (
   id bigint generated always as identity primary key,
