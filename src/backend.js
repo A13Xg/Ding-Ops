@@ -436,8 +436,7 @@ const staticBackend = {
     const sb = await getSupa();
     const current = await myProfile(sb);
     const tagline = patch.tagline != null ? String(patch.tagline).slice(0, 80) : current.tagline || '';
-    const avatarSeed =
-      patch.avatar_seed != null ? String(patch.avatar_seed).slice(0, 64) : current.avatar_seed || '';
+    const avatarSeed = patch.avatar_seed != null ? String(patch.avatar_seed).slice(0, 64) : current.avatar_seed || '';
     const showcase =
       patch.showcase != null
         ? String(patch.showcase)
