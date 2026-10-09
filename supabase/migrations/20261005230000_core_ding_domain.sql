@@ -113,6 +113,8 @@ create trigger characters_validate_write
 before insert or update on public.characters
 for each row execute function public.validate_character_write();
 
+revoke all on function public.validate_character_write() from public, anon, authenticated;
+
 create or replace function public.validate_profile_update()
 returns trigger
 language plpgsql
@@ -139,6 +141,8 @@ drop trigger if exists profiles_validate_update on public.profiles;
 create trigger profiles_validate_update
 before update on public.profiles
 for each row execute function public.validate_profile_update();
+
+revoke all on function public.validate_profile_update() from public, anon, authenticated;
 
 alter table public.game_config enable row level security;
 alter table public.profiles enable row level security;
