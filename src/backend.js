@@ -102,15 +102,11 @@ const staticBackend = {
     const wanted = normalizeDingUsername(username);
     if (String(password).length < 6) throw new Error('Password must be at least 6 characters');
     const sb = await getSupa();
-    // Not ilike: '_' and '%' are wildcards there and the username pattern permits
-    // '_', so 'Alex_' matched an existing 'AlexG' and was wrongly reported taken.
-    // This is a courtesy check only — the unique index on lower(username) is the
-    // real guard, and it is what closes the race between check and insert.
-    const taken = await sb
-      .from('profiles')
-      .select('id')
-      .ilike('username', wanted.replaceAll('%', '\\%').replaceAll('_', '\\_'))
-      .maybeSingle();
+    // Exact-match courtesy check only. ILIKE treats "_" as a wildcard and "_"
+    // is itself a valid DING username character. The synthetic auth identity
+    // and lower(username) unique index are the authoritative case-insensitive
+    // collision guards.
+    const taken = await sb.from('profiles').select('id').eq('username', wanted).maybeSingle();
     if (taken.data) throw new Error('Username already exists');
     const { data, error } = await sb.auth.signUp({ email: syntheticAuthEmail(wanted), password });
     if (error) throw new Error(/already/i.test(error.message) ? 'Username already exists' : error.message);
@@ -438,18 +434,29 @@ const staticBackend = {
   },
   async patchProfile(patch) {
     const sb = await getSupa();
-    const {
-      data: { user },
-    } = await sb.auth.getUser();
-    if (!user) throw new Error('Not signed in');
-    const upd = {};
-    if (patch.tagline != null) upd.tagline = String(patch.tagline).slice(0, 80);
-    if (patch.avatar_seed != null) upd.avatar_seed = String(patch.avatar_seed).slice(0, 64);
-    if (patch.showcase != null) upd.showcase = String(patch.showcase).split(',').filter(Boolean).slice(0, 3).join(',');
-    const { data, error } = await sb.from('profiles').update(upd).eq('id', user.id).select().single();
+    const current = await myProfile(sb);
+    const tagline = patch.tagline != null ? String(patch.tagline).slice(0, 80) : current.tagline || '';
+    const avatarSeed =
+      patch.avatar_seed != null ? String(patch.avatar_seed).slice(0, 64) : current.avatar_seed || '';
+    const showcase =
+      patch.showcase != null
+        ? String(patch.showcase)
+            .split(',')
+            .map(value => value.trim())
+            .filter(Boolean)
+            .slice(0, 3)
+            .join(',')
+        : current.showcase || '';
+
+    const { data, error } = await sb.rpc('update_profile_preferences', {
+      p_tagline: tagline,
+      p_avatar_seed: avatarSeed,
+      p_showcase: showcase,
+    });
     if (error) throw new Error(error.message);
-    profileCache.set(data.id, data);
-    return toUser(data);
+    const row = Array.isArray(data) ? data[0] : data;
+    profileCache.set(row.id, row);
+    return toUser(row);
   },
   subscribeDing({ onLevelEvent, onCharacter, onProfile, onAchievement, onStatus }) {
     let channel;
