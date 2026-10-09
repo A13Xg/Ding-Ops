@@ -13,6 +13,19 @@ jobs:
   test-build:
     name: Test and build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ding_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d ding_ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,6 +44,43 @@ jobs:
         run: npm run typecheck
       - name: Check live smoke script syntax
         run: node --check scripts/supabase-smoke.mjs
+
+      - name: Execute DING migrations in disposable PostgreSQL
+        env:
+          PGPASSWORD: postgres
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -h 127.0.0.1 -U postgres -d ding_ci -v ON_ERROR_STOP=1 <<'SQL'
+          create extension if not exists pgcrypto;
+          create schema if not exists auth;
+          create table if not exists auth.users (id uuid primary key);
+          create or replace function auth.uid()
+          returns uuid
+          language sql
+          stable
+          as $ select null::uuid $;
+          do $
+          begin
+            create role anon nologin;
+          exception when duplicate_object then null;
+          end $;
+          do $
+          begin
+            create role authenticated nologin;
+          exception when duplicate_object then null;
+          end $;
+          do $
+          begin
+            create role service_role nologin bypassrls;
+          exception when duplicate_object then null;
+          end $;
+          create publication supabase_realtime;
+          SQL
+          for migration in supabase/migrations/*.sql; do
+            echo "Applying $migration"
+            psql -h 127.0.0.1 -U postgres -d ding_ci -v ON_ERROR_STOP=1 -f "$migration"
+          done
 
       # The Edge Functions are Deno TypeScript and are invisible to eslint/tsc,
       # which target the browser app. Without these steps a type error, a bad
