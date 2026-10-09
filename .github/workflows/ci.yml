@@ -78,6 +78,7 @@ jobs:
             "bust-push"
             "bust-sw-version"
             "bust_haptics"
+            "ding4me"
           )
           for token in "${forbidden[@]}"; do
             if grep -R --fixed-strings --quiet -- "$token" dist; then
