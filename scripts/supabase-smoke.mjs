@@ -387,6 +387,10 @@ try {
 
   console.log('[smoke] testing privileged endpoints fail closed for ordinary users');
   await expectFunctionDenied(
+    alice.client.functions.invoke('admin-status', { body: {} }),
+    'Ordinary user unexpectedly received admin capability.'
+  );
+  await expectFunctionDenied(
     alice.client.functions.invoke('push-delivery-report', { body: {} }),
     'Ordinary user unexpectedly read the push delivery log.'
   );
