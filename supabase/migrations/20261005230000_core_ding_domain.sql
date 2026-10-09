@@ -23,9 +23,9 @@ on conflict (id) do update set
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   username text not null check (char_length(trim(username)) between 2 and 32),
-  avatar_seed text,
+  avatar_seed text check (avatar_seed is null or char_length(avatar_seed) <= 64),
   tagline text check (tagline is null or char_length(tagline) <= 80),
-  showcase text,
+  showcase text check (showcase is null or char_length(showcase) <= 512),
   active_character_id uuid,
   created_at timestamptz not null default now()
 );
@@ -152,8 +152,10 @@ drop policy if exists profiles_select on public.profiles;
 create policy profiles_select on public.profiles for select to authenticated using (true);
 drop policy if exists profiles_insert_own on public.profiles;
 create policy profiles_insert_own on public.profiles for insert to authenticated with check (id = auth.uid());
+-- No browser UPDATE policy for profiles. Mutable preferences go through
+-- update_profile_preferences and active-character changes go through
+-- set_active_character so callers cannot forge username/showcase state.
 drop policy if exists profiles_update_own on public.profiles;
-create policy profiles_update_own on public.profiles for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
 
 drop policy if exists characters_select on public.characters;
 create policy characters_select on public.characters for select to authenticated using (true);
@@ -164,6 +166,59 @@ drop policy if exists level_events_select on public.level_events;
 create policy level_events_select on public.level_events for select to authenticated using (true);
 -- Deliberately no browser INSERT/UPDATE policy for level_events. Dings and note
 -- edits go through narrow RPCs so progression cannot be forged with PostgREST.
+
+create or replace function public.update_profile_preferences(
+  p_tagline text,
+  p_avatar_seed text,
+  p_showcase text
+)
+returns public.profiles
+language plpgsql
+security definer
+set search_path = public
+as $
+declare
+  v_actor uuid := auth.uid();
+  v_profile public.profiles%rowtype;
+  v_showcase text;
+  v_ids text[];
+begin
+  if v_actor is null then raise exception 'DING_NOT_AUTHENTICATED'; end if;
+
+  v_showcase := nullif(trim(coalesce(p_showcase, '')), '');
+  if v_showcase is not null then
+    v_ids := string_to_array(v_showcase, ',');
+    if cardinality(v_ids) > 3 then raise exception 'DING_SHOWCASE_TOO_LARGE'; end if;
+    if cardinality(v_ids) <> cardinality(array(select distinct unnest(v_ids))) then
+      raise exception 'DING_SHOWCASE_DUPLICATE';
+    end if;
+    if exists (
+      select 1
+      from unnest(v_ids) as wanted(id)
+      where not exists (
+        select 1 from public.achievements a
+        where a.user_id = v_actor and a.achievement_type = wanted.id
+      )
+    ) then
+      raise exception 'DING_SHOWCASE_NOT_EARNED';
+    end if;
+  end if;
+
+  update public.profiles
+  set
+    tagline = nullif(left(trim(coalesce(p_tagline, '')), 80), ''),
+    avatar_seed = nullif(left(trim(coalesce(p_avatar_seed, '')), 64), ''),
+    showcase = v_showcase
+  where id = v_actor
+  returning * into v_profile;
+
+  if not found then raise exception 'DING_PROFILE_MISSING'; end if;
+  return v_profile;
+end;
+$;
+
+revoke all on function public.update_profile_preferences(text,text,text) from public;
+grant execute on function public.update_profile_preferences(text,text,text) to authenticated;
 
 create or replace function public.set_active_character(p_character_id uuid)
 returns public.profiles
