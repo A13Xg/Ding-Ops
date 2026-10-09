@@ -12,6 +12,7 @@ jobs:
     env:
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      DING_INVITE_CODE: ${{ secrets.DING_INVITE_CODE }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,8 +24,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${VITE_SUPABASE_URL:-}" ] || [ -z "${VITE_SUPABASE_ANON_KEY:-}" ]; then
-            echo "::error::Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY GitHub secrets first."
+          if [ -z "${VITE_SUPABASE_URL:-}" ] || [ -z "${VITE_SUPABASE_ANON_KEY:-}" ] || [ -z "${DING_INVITE_CODE:-}" ]; then
+            echo "::error::Add VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and DING_INVITE_CODE GitHub secrets first."
             exit 1
           fi
           npm run test:integration
