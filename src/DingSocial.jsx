@@ -317,7 +317,7 @@ export function ProfilePane({ user, characters, events, achievements, onUserUpda
           NEW PASSWORD
           <input
             type="password"
-            minLength={6}
+            minLength={8}
             maxLength={200}
             autoComplete="new-password"
             value={password}
@@ -328,7 +328,7 @@ export function ProfilePane({ user, characters, events, achievements, onUserUpda
           <button
             className="mf-button"
             type="button"
-            disabled={accountBusy || password.length < 6}
+            disabled={accountBusy || password.length < 8}
             onClick={async () => {
               setAccountBusy(true);
               setAccountStatus('');
