@@ -316,6 +316,9 @@ export const demoBackend = {
   async broadcastTestNotification() {
     return { ok: true, attempted: 4, delivered: 4, pruned: 0 };
   },
+  async adminStatus() {
+    return { isAdmin: true, username: currentUser.username };
+  },
   async adminSetPassword() {
     return { ok: true, username: 'Demo User' };
   },
