@@ -4,9 +4,12 @@ import { syntheticAuthEmail } from '../src/authIdentity.js';
 
 const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+const inviteCode = process.env.DING_INVITE_CODE || '';
 
-if (!url || !anonKey) {
-  throw new Error('Missing VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY (or SUPABASE_URL/SUPABASE_ANON_KEY).');
+if (!url || !anonKey || !inviteCode) {
+  throw new Error(
+    'Missing VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY (or SUPABASE_URL/SUPABASE_ANON_KEY) and DING_INVITE_CODE.'
+  );
 }
 
 const token = Date.now().toString(36) + randomBytes(3).toString('hex');
@@ -31,31 +34,26 @@ async function createAccount(label) {
   const password = 'Ding!' + randomBytes(18).toString('base64url');
   const email = syntheticAuthEmail(username);
 
-  console.log('[smoke] creating temporary auth user', username);
-  const signup = await client.auth.signUp({ email, password });
-  if (signup.error) throw signup.error;
-  const userId = signup.data.user?.id;
-  assert(userId, 'Signup did not return a user. Disable email confirmation for DING synthetic auth.');
-  assert(signup.data.session, 'Signup did not create a session. Disable email confirmation for DING synthetic auth.');
+  console.log('[smoke] creating temporary invite-gated account', username);
+  const created = await client.functions.invoke('signup-account', {
+    body: { username, password, inviteCode },
+  });
+  if (created.error) throw created.error;
+  assert(created.data?.ok === true, 'signup-account did not confirm account creation.');
+
+  const login = await client.auth.signInWithPassword({ email, password });
+  if (login.error) throw login.error;
+  const userId = login.data.user?.id;
+  assert(userId && login.data.session, 'Server-created account could not establish a browser session.');
 
   const account = { client, username, userId, characterId: null, eventId: null };
   accounts.push(account);
 
-  const forgedProfile = await client.from('profiles').insert({
-    id: userId,
-    username,
-    avatar_seed: `smoke-${label}-${token}`,
-    showcase: 'first_ding',
-  });
-  assert(forgedProfile.error, 'Initial profile unexpectedly accepted a forged achievement showcase.');
-
-  const profile = await client
-    .from('profiles')
-    .insert({ id: userId, username, avatar_seed: `smoke-${label}-${token}` })
-    .select('*')
-    .single();
+  const profile = await client.from('profiles').select('*').eq('id', userId).single();
   if (profile.error) throw profile.error;
-  assert(profile.data.username === username, 'Profile insert/read contract failed.');
+  assert(profile.data.username === username, 'Server-created profile read contract failed.');
+  assert(profile.data.showcase == null, 'New profile unexpectedly started with a showcase.');
+  assert(profile.data.active_character_id == null, 'New profile unexpectedly started with an active character.');
 
   return account;
 }
@@ -242,6 +240,15 @@ try {
       auth: 'B'.repeat(22),
     }),
     'Browser direct push subscription insert unexpectedly succeeded.'
+  );
+
+  await expectDatabaseFailure(
+    alice.client.from('profiles').insert({
+      id: alice.userId,
+      username: alice.username,
+      showcase: 'hundred_dings',
+    }),
+    'Browser direct profile insert unexpectedly succeeded.'
   );
 
   await expectNoRowsChanged(
