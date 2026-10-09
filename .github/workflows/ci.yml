@@ -59,22 +59,10 @@ jobs:
           returns uuid
           language sql
           stable
-          as $ select null::uuid $;
-          do $
-          begin
-            create role anon nologin;
-          exception when duplicate_object then null;
-          end $;
-          do $
-          begin
-            create role authenticated nologin;
-          exception when duplicate_object then null;
-          end $;
-          do $
-          begin
-            create role service_role nologin bypassrls;
-          exception when duplicate_object then null;
-          end $;
+          as 'select null::uuid';
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin bypassrls;
           create publication supabase_realtime;
           SQL
           for migration in supabase/migrations/*.sql; do
