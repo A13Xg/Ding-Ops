@@ -150,15 +150,8 @@ create policy game_config_select on public.game_config for select to authenticat
 
 drop policy if exists profiles_select on public.profiles;
 create policy profiles_select on public.profiles for select to authenticated using (true);
-drop policy if exists profiles_insert_own on public.profiles;
-create policy profiles_insert_own on public.profiles
-for insert to authenticated
-with check (
-  id = auth.uid()
-  and showcase is null
-  and active_character_id is null
-);
--- No browser UPDATE policy for profiles. Mutable preferences go through
+-- No browser INSERT/UPDATE policy for profiles. Account creation is owned by
+-- signup-account (service role); mutable preferences go through
 -- update_profile_preferences and active-character changes go through
 -- set_active_character so callers cannot forge username/showcase state.
 drop policy if exists profiles_update_own on public.profiles;
