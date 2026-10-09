@@ -97,6 +97,14 @@ async function expectDatabaseFailure(promise, message) {
   return result.error;
 }
 
+async function expectNoRowsChanged(promise, message) {
+  const result = await promise;
+  if (result.error) return result.error;
+  const rows = Array.isArray(result.data) ? result.data : [];
+  assert(rows.length === 0, message);
+  return null;
+}
+
 async function expectFunctionDenied(promise, message) {
   const result = await promise;
   assert(result.error || Number(result.data?.status) === 403 || /not authorized|forbidden/i.test(String(result.data?.error || '')), message);
@@ -171,8 +179,8 @@ try {
   if (bobVisible.error) throw bobVisible.error;
   assert(bobVisible.data.user_id === bob.userId, 'Crew character read policy did not expose the expected row.');
 
-  await expectDatabaseFailure(
-    alice.client.from('characters').update({ spec: 'Should Fail' }).eq('id', bob.characterId),
+  await expectNoRowsChanged(
+    alice.client.from('characters').update({ spec: 'Should Fail' }).eq('id', bob.characterId).select('id,spec'),
     'User A unexpectedly updated User B character metadata.'
   );
 
@@ -192,9 +200,24 @@ try {
   });
   assert(forgedLevel.error, 'Browser direct level_event insert unexpectedly succeeded.');
 
-  await expectDatabaseFailure(
-    alice.client.from('characters').update({ current_level: aliceInitial + 1 }).eq('id', alice.characterId),
+  await expectNoRowsChanged(
+    alice.client
+      .from('characters')
+      .update({ current_level: aliceInitial + 1 })
+      .eq('id', alice.characterId)
+      .select('id,current_level'),
     'Browser direct character level update unexpectedly succeeded.'
+  );
+
+  const unchangedCharacter = await alice.client
+    .from('characters')
+    .select('current_level')
+    .eq('id', alice.characterId)
+    .single();
+  if (unchangedCharacter.error) throw unchangedCharacter.error;
+  assert(
+    Number(unchangedCharacter.data.current_level) === aliceInitial,
+    'Character level changed despite browser UPDATE being blocked.'
   );
 
   await expectDatabaseFailure(
