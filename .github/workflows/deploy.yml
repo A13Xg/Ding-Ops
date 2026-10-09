@@ -30,6 +30,7 @@ jobs:
       VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
       VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
       REMINDER_CRON_SECRET: ${{ secrets.REMINDER_CRON_SECRET }}
+      DING_INVITE_CODE: ${{ secrets.DING_INVITE_CODE }}
       BROADCAST_ADMINS: ${{ secrets.BROADCAST_ADMINS }}
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
@@ -59,7 +60,8 @@ jobs:
             VAPID_PUBLIC_KEY \
             VAPID_PRIVATE_KEY \
             VAPID_SUBJECT \
-            REMINDER_CRON_SECRET
+            REMINDER_CRON_SECRET \
+            DING_INVITE_CODE
           do
             if [ -z "${!name:-}" ]; then
               echo "::error::Missing required GitHub secret: $name"
@@ -83,6 +85,11 @@ jobs:
 
           if [ "${#REMINDER_CRON_SECRET}" -lt 32 ]; then
             echo "::error::REMINDER_CRON_SECRET must be at least 32 characters."
+            exit 1
+          fi
+
+          if [ "${#DING_INVITE_CODE}" -lt 24 ]; then
+            echo "::error::DING_INVITE_CODE must be at least 24 characters."
             exit 1
           fi
 
@@ -115,6 +122,7 @@ jobs:
             "VAPID_PRIVATE_KEY=$VAPID_PRIVATE_KEY"
             "VAPID_SUBJECT=$VAPID_SUBJECT"
             "REMINDER_CRON_SECRET=$REMINDER_CRON_SECRET"
+            "DING_INVITE_CODE=$DING_INVITE_CODE"
             "SITE_URL=$DING_SITE_URL"
           )
           if [ -n "${BROADCAST_ADMINS:-}" ]; then args+=("BROADCAST_ADMINS=$BROADCAST_ADMINS"); fi
