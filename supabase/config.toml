@@ -20,6 +20,9 @@ verify_jwt = false
 [functions.dispatch-push-backstop]
 verify_jwt = false
 
+[functions.admin-status]
+verify_jwt = true
+
 [functions.broadcast-test-notification]
 verify_jwt = true
 
