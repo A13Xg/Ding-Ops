@@ -35,7 +35,7 @@ returns public.profiles
 language plpgsql
 security definer
 set search_path = public
-as $
+as $profile$
 declare
   v_actor uuid := auth.uid();
   v_profile public.profiles%rowtype;
@@ -74,7 +74,7 @@ begin
   if not found then raise exception 'DING_PROFILE_MISSING'; end if;
   return v_profile;
 end;
-$;
+$profile$;
 
 revoke all on function public.update_profile_preferences(text,text,text) from public;
 grant execute on function public.update_profile_preferences(text,text,text) to authenticated;
