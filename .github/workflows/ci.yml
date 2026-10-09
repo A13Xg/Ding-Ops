@@ -47,28 +47,12 @@ jobs:
 
       - name: Execute DING migrations in disposable PostgreSQL
         env:
+          PGHOST: 127.0.0.1
+          PGPORT: 5432
+          PGUSER: postgres
           PGPASSWORD: postgres
-        shell: bash
-        run: |
-          set -euo pipefail
-          psql -h 127.0.0.1 -U postgres -d ding_ci -v ON_ERROR_STOP=1 <<'SQL'
-          create extension if not exists pgcrypto;
-          create schema if not exists auth;
-          create table if not exists auth.users (id uuid primary key);
-          create or replace function auth.uid()
-          returns uuid
-          language sql
-          stable
-          as 'select null::uuid';
-          create role anon nologin;
-          create role authenticated nologin;
-          create role service_role nologin bypassrls;
-          create publication supabase_realtime;
-          SQL
-          for migration in supabase/migrations/*.sql; do
-            echo "Applying $migration"
-            psql -h 127.0.0.1 -U postgres -d ding_ci -v ON_ERROR_STOP=1 -f "$migration"
-          done
+          PGDATABASE: ding_ci
+        run: bash scripts/validate-migrations.sh
 
       # The Edge Functions are Deno TypeScript and are invisible to eslint/tsc,
       # which target the browser app. Without these steps a type error, a bad
