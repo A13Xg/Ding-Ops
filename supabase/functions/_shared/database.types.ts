@@ -612,6 +612,14 @@ export type Database = {
           acked_total: number;
         }[];
       };
+      update_profile_preferences: {
+        Args: {
+          p_tagline: string | null;
+          p_avatar_seed: string | null;
+          p_showcase: string | null;
+        };
+        Returns: Database['public']['Tables']['profiles']['Row'];
+      };
       set_active_character: {
         Args: { p_character_id: string | null };
         Returns: Database['public']['Tables']['profiles']['Row'];
