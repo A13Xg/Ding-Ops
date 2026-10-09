@@ -44,6 +44,19 @@ describe('atomic Ding migration contract', () => {
     expect(sql).toContain('grant execute on function public.record_ding');
   });
 
+  it('grants the browser only shared reads plus initial character inserts', () => {
+    const compact = sql.replace(/\s+/g, ' ');
+    expect(compact).toContain(
+      'revoke all on table public.game_config, public.profiles, public.characters, public.level_events from anon, authenticated'
+    );
+    expect(compact).toContain(
+      'grant select on table public.game_config, public.profiles, public.characters, public.level_events to authenticated'
+    );
+    expect(compact).toContain('grant insert on table public.characters to authenticated');
+    expect(compact).not.toContain('grant update on table public.characters');
+    expect(compact).not.toContain('grant insert on table public.profiles');
+  });
+
   it('updates the locked character from the inserted server event', () => {
     expect(sql).toContain('set current_level = v_event.to_level');
     expect(sql).toContain('p_event_id,v_actor,v_character.id,v_character.current_level,v_character.current_level+1');
