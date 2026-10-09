@@ -26,8 +26,8 @@ Deno.serve(async req => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const inviteSecret = Deno.env.get('DING_INVITE_CODE') || '';
-    if (!supabaseUrl || !serviceRoleKey || !inviteSecret) {
+    const inviteSecret = (Deno.env.get('DING_INVITE_CODE') || '').trim();
+    if (!supabaseUrl || !serviceRoleKey || inviteSecret.length < 24) {
       throw new Error('Signup service is not configured');
     }
 
