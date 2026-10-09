@@ -29,6 +29,8 @@ jobs:
         run: npm run lint
       - name: Typecheck app
         run: npm run typecheck
+      - name: Check live smoke script syntax
+        run: node --check scripts/supabase-smoke.mjs
 
       # The Edge Functions are Deno TypeScript and are invisible to eslint/tsc,
       # which target the browser app. Without these steps a type error, a bad
