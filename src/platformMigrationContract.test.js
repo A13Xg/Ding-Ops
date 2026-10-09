@@ -25,6 +25,13 @@ describe('DING platform migration contract', () => {
     expect(sql).not.toMatch(/create policy\s+achievement_catalog_/);
   });
 
+  it('keeps platform-service tables private except achievement reads', () => {
+    expect(compactSql).toContain(
+      'revoke all on table public.achievement_catalog, public.achievements, public.push_subscriptions, public.push_events, public.push_deliveries, public.inactivity_reminders, public.discord_settings, public.discord_events from anon, authenticated'
+    );
+    expect(compactSql).toContain('grant select on table public.achievements to authenticated');
+  });
+
   it('creates validated profile preferences only after achievement persistence exists', () => {
     const achievementsTable = sql.indexOf('create table if not exists public.achievements');
     const profileRpc = sql.indexOf('create or replace function public.update_profile_preferences');
