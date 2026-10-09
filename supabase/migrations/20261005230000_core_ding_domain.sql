@@ -38,7 +38,12 @@ create table if not exists public.characters (
   name text not null check (char_length(trim(name)) between 2 and 32),
   realm text not null check (char_length(trim(realm)) between 1 and 64),
   region text not null check (region in ('US','EU','KR','TW')),
-  class_name text not null check (char_length(trim(class_name)) between 1 and 32),
+  class_name text not null check (
+    class_name in (
+      'Warrior','Paladin','Hunter','Rogue','Priest','Death Knight','Shaman',
+      'Mage','Warlock','Monk','Druid','Demon Hunter','Evoker'
+    )
+  ),
   spec text check (spec is null or char_length(spec) <= 40),
   race text check (race is null or char_length(race) <= 40),
   faction text check (faction is null or faction in ('Alliance','Horde','Neutral')),
@@ -71,7 +76,11 @@ create table if not exists public.level_events (
   local_hour smallint not null check (local_hour between 0 and 23),
   time_bucket text not null,
   zone text check (zone is null or char_length(zone) <= 80),
-  activity_type text,
+  activity_type text check (
+    activity_type is null or activity_type in (
+      'questing','dungeon','delve','pvp','grinding','campaign','profession','other'
+    )
+  ),
   deaths integer check (deaths is null or deaths between 0 and 10000),
   session_minutes integer check (session_minutes is null or session_minutes between 0 and 525600),
   note text not null default '' check (char_length(note) <= 240),
@@ -269,6 +278,7 @@ declare
   v_local timestamp;
   v_hour smallint;
   v_bucket text;
+  v_activity text;
 begin
   if v_actor is null then raise exception 'DING_NOT_AUTHENTICATED'; end if;
   if p_event_id is null then raise exception 'DING_EVENT_ID_REQUIRED'; end if;
@@ -325,6 +335,11 @@ begin
     else 'Prime Night'
   end;
 
+  v_activity := lower(trim(coalesce(p_activity_type, 'other')));
+  if v_activity not in ('questing','dungeon','delve','pvp','grinding','campaign','profession','other') then
+    v_activity := 'other';
+  end if;
+
   insert into public.level_events (
     id,user_id,character_id,from_level,to_level,timestamp,time_zone,local_date,local_hour,time_bucket,
     zone,activity_type,deaths,session_minutes,note
@@ -332,7 +347,7 @@ begin
     p_event_id,v_actor,v_character.id,v_character.current_level,v_character.current_level+1,v_now,v_tz,
     v_local::date,v_hour,v_bucket,
     nullif(left(trim(coalesce(p_zone,'')),80),''),
-    nullif(left(trim(coalesce(p_activity_type,'')),32),''),
+    v_activity,
     p_deaths,p_session_minutes,left(coalesce(p_note,''),240)
   ) returning * into v_event;
 
