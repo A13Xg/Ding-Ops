@@ -365,13 +365,19 @@ const staticBackend = {
     if (data?.error) throw new Error(data.error);
     return data || { ok: true };
   },
+  async adminStatus() {
+    const sb = await getSupa();
+    const { data, error } = await sb.functions.invoke('admin-status', { body: {} });
+    if (error || data?.error) return { isAdmin: false };
+    return { isAdmin: data?.isAdmin === true, username: data?.username || null };
+  },
   /* Debug-menu only: set another account's password outright. The service-role
    * key that makes this possible never leaves the Edge Function; the same
    * allowlist that gates broadcasting gates this, and it is strictly more
    * powerful — it is account takeover. */
   async adminSetPassword({ userId, password } = {}) {
     if (!userId) return { ok: false, reason: 'missing_user' };
-    if (String(password || '').length < 6) return { ok: false, reason: 'password_too_short' };
+    if (String(password || '').length < 8) return { ok: false, reason: 'password_too_short' };
     const sb = await getSupa();
     const { data, error } = await sb.functions.invoke('admin-set-password', { body: { userId, password } });
     if (error) {
