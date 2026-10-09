@@ -308,6 +308,8 @@ create trigger ding_reset_inactivity_reminder
 after insert on public.level_events
 for each row execute function public.reset_inactivity_reminder_on_ding();
 
+revoke all on function public.reset_inactivity_reminder_on_ding() from public, anon, authenticated;
+
 -- ---------- Discord settings and exactly-once ledger ----------
 create table if not exists public.discord_settings (
   id integer primary key default 1,
