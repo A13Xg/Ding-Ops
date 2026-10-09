@@ -17,7 +17,7 @@
 import { corsHeaders, json } from '../_shared/push.ts';
 import { requireAdmin } from '../_shared/adminAuth.ts';
 
-const PASSWORD_MIN = 6;
+const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 200;
 
 Deno.serve(async req => {
