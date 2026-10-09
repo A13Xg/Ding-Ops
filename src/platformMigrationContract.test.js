@@ -32,6 +32,19 @@ describe('DING platform migration contract', () => {
     expect(sql).not.toContain('create policy push_subscriptions_delete');
   });
 
+  it('keeps push maintenance RPCs service-role only', () => {
+    for (const signature of [
+      'public.bump_push_failure(bigint[])',
+      'public.mark_push_sent(bigint[])',
+      'public.record_push_ack(uuid)',
+      'public.prune_dead_push_subscriptions(integer, interval, integer, interval)',
+      'public.push_subscription_health()',
+    ]) {
+      expect(sql).toContain(`revoke all on function ${signature} from public, anon, authenticated`);
+      expect(sql).toContain(`grant execute on function ${signature} to service_role`);
+    }
+  });
+
   it('keeps one push endpoint per browser and records acknowledgement liveness', () => {
     expect(sql).toContain('push_subscriptions_endpoint_key');
     expect(sql).toContain('last_ack_at timestamptz');
