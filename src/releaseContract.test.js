@@ -57,6 +57,19 @@ describe('DING release contract', () => {
     expect(deploy).toContain('DING_INVITE_CODE');
   });
 
+  it('keeps the Ops console behind a server-confirmed admin capability', () => {
+    const app = read('src/DingApp.jsx');
+    const backend = read('src/backend.js');
+    const config = read('supabase/config.toml');
+    const status = read('supabase/functions/admin-status/index.ts');
+
+    expect(app).toContain('{isAdmin && (');
+    expect(app).toContain("overlay === 'ops' && isAdmin");
+    expect(backend).toContain("functions.invoke('admin-status'");
+    expect(status).toContain('requireAdmin');
+    expect(config).toMatch(/\[functions\.admin-status\][\s\S]*?verify_jwt\s*=\s*true/);
+  });
+
   it('never enables visual demo mode in production deployment', () => {
     const deploy = read('.github/workflows/deploy.yml');
     expect(deploy).not.toMatch(/VITE_DEMO_MODE\s*:/);
