@@ -1,3 +1,6 @@
+[functions.signup-account]
+verify_jwt = false
+
 [functions.reconcile-achievements]
 verify_jwt = true
 
