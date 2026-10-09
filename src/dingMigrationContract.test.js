@@ -44,6 +44,13 @@ describe('atomic Ding migration contract', () => {
     expect(sql).toContain('grant execute on function public.record_ding');
   });
 
+  it('routes mutable profile preferences through a validated RPC', () => {
+    expect(sql).not.toMatch(/create policy\s+profiles_update_own\s+on public\.profiles\s+for update/);
+    expect(sql).toContain('create or replace function public.update_profile_preferences');
+    expect(sql).toContain("raise exception 'ding_showcase_not_earned'");
+    expect(sql).toContain('grant execute on function public.update_profile_preferences');
+  });
+
   it('updates the locked character from the inserted server event', () => {
     expect(sql).toContain('set current_level = v_event.to_level');
     expect(sql).toContain('p_event_id,v_actor,v_character.id,v_character.current_level,v_character.current_level+1');
