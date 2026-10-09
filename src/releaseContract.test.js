@@ -55,12 +55,12 @@ describe('DING release contract', () => {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     expect(configured.map(item => item.name)).toEqual(functionDirs);
-    expect(configured.filter(item => !item.verifyJwt).map(item => item.name).sort()).toEqual([
-      'ack-push',
-      'dispatch-inactivity-reminders',
-      'dispatch-push-backstop',
-      'signup-account',
-    ]);
+    expect(
+      configured
+        .filter(item => !item.verifyJwt)
+        .map(item => item.name)
+        .sort()
+    ).toEqual(['ack-push', 'dispatch-inactivity-reminders', 'dispatch-push-backstop', 'signup-account']);
   });
 
   it('keeps signup invite enforcement server-side', () => {
