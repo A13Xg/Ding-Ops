@@ -43,6 +43,26 @@ describe('DING release contract', () => {
     }
   });
 
+  it('declares an explicit JWT mode for every Edge Function', () => {
+    const config = read('supabase/config.toml');
+    const functionDirs = readdirSync(join(root, 'supabase', 'functions'), { withFileTypes: true })
+      .filter(entry => entry.isDirectory() && !entry.name.startsWith('_'))
+      .filter(entry => existsSync(join(root, 'supabase', 'functions', entry.name, 'index.ts')))
+      .map(entry => entry.name)
+      .sort();
+    const configured = [...config.matchAll(/^\[functions\.([^\]]+)\]\s*\nverify_jwt\s*=\s*(true|false)/gm)]
+      .map(match => ({ name: match[1], verifyJwt: match[2] === 'true' }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    expect(configured.map(item => item.name)).toEqual(functionDirs);
+    expect(configured.filter(item => !item.verifyJwt).map(item => item.name).sort()).toEqual([
+      'ack-push',
+      'dispatch-inactivity-reminders',
+      'dispatch-push-backstop',
+      'signup-account',
+    ]);
+  });
+
   it('keeps signup invite enforcement server-side', () => {
     const backend = read('src/backend.js');
     const signup = read('supabase/functions/signup-account/index.ts');
