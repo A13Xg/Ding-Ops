@@ -69,10 +69,9 @@
   - admin password reset
   - account deletion
   - Discord settings/test
-- [x] Live integration script creates a disposable account/character, tests UUID idempotency and competing concurrent Dings, validates notes/achievements, then self-deletes.
+- [x] Live integration script creates two invite-gated disposable accounts/characters; validates RLS/ownership, Realtime, UUID idempotency, concurrent Dings, notes, synchronized achievements, profile-showcase integrity and admin fail-closed behavior; then self-deletes.
 - [x] Manual rerunnable `DING Live Smoke` workflow.
 - [!] Create/link dedicated DING Supabase project.
-- [!] Disable email confirmation for synthetic username auth.
 - [!] Add required GitHub/Supabase credentials.
 - [!] Apply migrations/deploy functions and run live smoke.
 
@@ -92,7 +91,7 @@
 - [x] Max-level state.
 - [x] Realtime remote Ding/award toasts.
 - [x] Successful Ding notification and achievement side effects are post-commit and cannot falsify persistence.
-- [!] Real two-account smoke test requires linked/hosted backend.
+- [x] Two-account hosted behavior is covered by the credential-gated live smoke workflow; execution remains blocked only until the backend/secrets exist.
 
 ## 5. Visual system + mobile behavior — REPOSITORY COMPLETE, PHYSICAL QA BLOCKED
 
@@ -310,6 +309,7 @@ Repository-only work is intended to be effectively complete. The final blockers 
 - [!] `VAPID_PRIVATE_KEY`
 - [!] `VAPID_SUBJECT`
 - [!] `REMINDER_CRON_SECRET`
+- [!] `DING_INVITE_CODE` (24+ random characters; server-side signup gate)
 
 Optional:
 - [>] `BROADCAST_ADMINS`
@@ -318,12 +318,11 @@ Optional:
 
 ## Required Supabase setting
 
-- [!] Disable email confirmation for DING synthetic username/email authentication.
 
 ## Once those exist
 
 1. Run **Deploy DING**.
 2. Let its migration/function/live-smoke/Pages chain complete.
-3. Run the two-account hosted test.
+3. Let the automated two-account live smoke pass.
 4. Run installed iOS/Android PWA + push checks.
-5. Repair only issues that depend on the real hosted environment/device behavior.
+5. Repair only issues that depend on real hosted/device behavior.
