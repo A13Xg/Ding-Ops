@@ -89,6 +89,10 @@ function DingLogin({ onAuthed }) {
             <input
               value={form.username}
               onChange={event => setForm({ ...form, username: event.target.value })}
+              minLength={2}
+              maxLength={32}
+              autoComplete="username"
+              required
               autoFocus
             />
           </label>
@@ -98,12 +102,21 @@ function DingLogin({ onAuthed }) {
               type="password"
               value={form.password}
               onChange={event => setForm({ ...form, password: event.target.value })}
+              minLength={mode === 'signup' ? 8 : 1}
+              maxLength={200}
+              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+              required
             />
           </label>
           {mode === 'signup' && (
             <label>
               Invite code
-              <input value={form.inviteCode} onChange={event => setForm({ ...form, inviteCode: event.target.value })} />
+              <input
+                value={form.inviteCode}
+                onChange={event => setForm({ ...form, inviteCode: event.target.value })}
+                autoComplete="off"
+                required
+              />
             </label>
           )}
           <button className="mf-button" disabled={busy}>
