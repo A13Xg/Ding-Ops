@@ -32,6 +32,7 @@ describe('DING release contract', () => {
       'bust-sw-version',
       'bust_haptics',
       'bitcoin_price',
+      'ding4me',
     ];
 
     for (const path of runtimeFiles) {
@@ -40,6 +41,20 @@ describe('DING release contract', () => {
         expect(content, `${path} contains retired token ${token}`).not.toContain(token);
       }
     }
+  });
+
+  it('keeps signup invite enforcement server-side', () => {
+    const backend = read('src/backend.js');
+    const signup = read('supabase/functions/signup-account/index.ts');
+    const config = read('supabase/config.toml');
+    const deploy = read('.github/workflows/deploy.yml');
+
+    expect(backend).toContain("functions.invoke('signup-account'");
+    expect(backend).not.toContain("const INVITE_CODE");
+    expect(signup).toContain("DING_INVITE_CODE");
+    expect(signup).toContain("admin.auth.admin.createUser");
+    expect(config).toMatch(/\[functions\.signup-account\][\s\S]*?verify_jwt\s*=\s*false/);
+    expect(deploy).toContain('DING_INVITE_CODE');
   });
 
   it('never enables visual demo mode in production deployment', () => {
