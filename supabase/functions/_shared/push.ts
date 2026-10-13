@@ -272,13 +272,13 @@ export function secretsMatch(a: string | null, b: string | null) {
 
 /**
  * Authorize a scheduled invocation. Accepts either the shared cron secret or a
- * service-role bearer token, so rotating one never takes dispatch offline.
+ * Supabase secret-key bearer token, so rotating one never takes dispatch offline.
  */
-export function authorizeCron(req: Request, serviceRoleKey: string) {
+export function authorizeCron(req: Request, secretKey: string) {
   const cronSecret = Deno.env.get('REMINDER_CRON_SECRET') || '';
   const header = req.headers.get('x-cron-secret');
   if (cronSecret && secretsMatch(header, cronSecret)) return true;
   const authHeader = req.headers.get('Authorization') || '';
-  if (secretsMatch(authHeader, `Bearer ${serviceRoleKey}`)) return true;
+  if (secretsMatch(authHeader, `Bearer ${secretKey}`)) return true;
   return false;
 }
