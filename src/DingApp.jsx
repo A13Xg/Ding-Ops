@@ -634,6 +634,7 @@ function DingDashboard({ user, setUser }) {
     let live = true;
     let realtimeRevision = 0;
     let resyncPromise = null;
+    let resyncTimer = null;
 
     const applySnapshot = snapshot => {
       if (!live) return;
@@ -668,12 +669,17 @@ function DingDashboard({ user, setUser }) {
           return;
         }
 
-        // A very busy crew can mutate during every retry. One final fresh
-        // snapshot is still safer than retaining an arbitrarily old view; any
-        // event that lands after this request is also applied by Realtime.
-        if (live) {
-          const snapshot = await backend.dingDashboard();
-          if (live) applySnapshot(snapshot);
+        // If the crew mutated during every attempt, do NOT force-apply a
+        // snapshot we already know raced newer Realtime state. Keep those live
+        // mutations and retry shortly after this in-flight sync releases its
+        // single-flight lock.
+        if (live && !resyncTimer) {
+          resyncTimer = setTimeout(() => {
+            resyncTimer = null;
+            void resyncDashboard().catch(error => {
+              if (live) setStatus(error.message);
+            });
+          }, 300);
         }
       })().finally(() => {
         resyncPromise = null;
@@ -756,6 +762,7 @@ function DingDashboard({ user, setUser }) {
 
     return () => {
       live = false;
+      if (resyncTimer) clearTimeout(resyncTimer);
       window.removeEventListener('online', onOnline);
       unsubscribe();
     };
