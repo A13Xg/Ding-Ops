@@ -269,7 +269,7 @@ jobs:
               -X PATCH "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" \
               -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
               -H "Content-Type: application/json" \
-              -d '{"disable_signup":true,"external_anonymous_users_enabled":false}'
+              -d '{"disable_signup":true,"external_anonymous_users_enabled":false,"external_email_enabled":true}'
           )"
           printf '%s' "$auth_config" | node -e '
             let raw = "";
@@ -277,7 +277,11 @@ jobs:
             process.stdin.on("data", chunk => raw += chunk);
             process.stdin.on("end", () => {
               const config = JSON.parse(raw);
-              if (config.disable_signup !== true || config.external_anonymous_users_enabled !== false) {
+              if (
+                config.disable_signup !== true ||
+                config.external_anonymous_users_enabled !== false ||
+                config.external_email_enabled !== true
+              ) {
                 console.error("Auth lock-down did not persist.");
                 process.exit(1);
               }
