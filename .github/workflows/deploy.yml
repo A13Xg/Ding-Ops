@@ -164,16 +164,67 @@ jobs:
         with:
           version: latest
 
-      - name: Resolve DING browser publishable key
+      - name: Ensure dedicated DING Supabase API keys
         shell: bash
         run: |
           set -euo pipefail
-          keys_json="$(
+
+          fetch_keys() {
             curl --fail-with-body --silent --show-error \
               --retry 3 --retry-all-errors --max-time 30 \
               "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" \
               -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
+          }
+
+          keys_json="$(fetch_keys)"
+          has_web="$(
+            printf '%s' "$keys_json" | node -e '
+              let raw = "";
+              process.stdin.setEncoding("utf8");
+              process.stdin.on("data", chunk => raw += chunk);
+              process.stdin.on("end", () => {
+                const keys = JSON.parse(raw);
+                process.stdout.write(
+                  String(Array.isArray(keys) && keys.some(item => item?.type === "publishable" && item?.name === "ding-web"))
+                );
+              });
+            '
           )"
+          has_edge="$(
+            printf '%s' "$keys_json" | node -e '
+              let raw = "";
+              process.stdin.setEncoding("utf8");
+              process.stdin.on("data", chunk => raw += chunk);
+              process.stdin.on("end", () => {
+                const keys = JSON.parse(raw);
+                process.stdout.write(
+                  String(Array.isArray(keys) && keys.some(item => item?.type === "secret" && item?.name === "ding-edge"))
+                );
+              });
+            '
+          )"
+
+          if [ "$has_web" != "true" ]; then
+            curl --fail-with-body --silent --show-error \
+              --retry 3 --retry-all-errors --max-time 30 \
+              -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"type":"publishable","name":"ding-web","description":"DING browser client"}' \
+              >/dev/null
+          fi
+
+          if [ "$has_edge" != "true" ]; then
+            curl --fail-with-body --silent --show-error \
+              --retry 3 --retry-all-errors --max-time 30 \
+              -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"type":"secret","name":"ding-edge","description":"DING Edge Functions","secret_jwt_template":{"role":"service_role"}}' \
+              >/dev/null
+          fi
+
+          keys_json="$(fetch_keys)"
           publishable="$(
             printf '%s' "$keys_json" | node -e '
               let raw = "";
@@ -181,18 +232,27 @@ jobs:
               process.stdin.on("data", chunk => raw += chunk);
               process.stdin.on("end", () => {
                 const keys = JSON.parse(raw);
-                const candidates = Array.isArray(keys) ? keys : [];
-                const key =
-                  candidates.find(item => item?.type === "publishable" && item?.name === "default" && item?.api_key) ||
-                  candidates.find(item => item?.type === "publishable" && item?.api_key);
+                const key = Array.isArray(keys)
+                  ? keys.find(item => item?.type === "publishable" && item?.name === "ding-web" && item?.api_key)
+                  : null;
                 if (!key) {
-                  console.error("No Supabase publishable API key exists for this project.");
+                  console.error("DING publishable key provisioning failed.");
+                  process.exit(1);
+                }
+                const edge = keys.find(item => item?.type === "secret" && item?.name === "ding-edge");
+                if (!edge) {
+                  console.error("DING Edge secret key provisioning failed.");
+                  process.exit(1);
+                }
+                if (edge.secret_jwt_template?.role && edge.secret_jwt_template.role !== "service_role") {
+                  console.error("Existing ding-edge key does not carry the service_role template.");
                   process.exit(1);
                 }
                 process.stdout.write(key.api_key);
               });
             '
           )"
+
           echo "::add-mask::$publishable"
           echo "VITE_SUPABASE_PUBLISHABLE_KEY=$publishable" >> "$GITHUB_ENV"
 
