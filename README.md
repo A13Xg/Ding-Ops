@@ -97,13 +97,10 @@ DING must use a dedicated Supabase project. Never reuse Bust production values.
 | --- | --- |
 | `SUPABASE_ACCESS_TOKEN` | Supabase CLI deployment |
 | `SUPABASE_DB_PASSWORD` | Link/apply migrations |
-| `SUPABASE_PROJECT_REF` | Dedicated DING project |
 | `VITE_SUPABASE_URL` | Browser Supabase URL |
 | `VITE_SUPABASE_ANON_KEY` | Browser anon key |
-| `VITE_WEB_PUSH_PUBLIC_KEY` | Browser VAPID public key |
 | `VAPID_PUBLIC_KEY` | Edge Function push signing |
 | `VAPID_PRIVATE_KEY` | Edge Function push signing |
-| `VAPID_SUBJECT` | VAPID contact subject |
 | `REMINDER_CRON_SECRET` | Scheduled backstop/reminder authentication |
 | `DING_INVITE_CODE` | Private 24+ character server-side crew signup secret |
 
@@ -113,6 +110,8 @@ Optional:
 | --- | --- |
 | `BROADCAST_ADMINS` | SHA-256 allowlist for privileged admin functions; if absent, all admin endpoints deny access |
 | `DISCORD_WEBHOOK_URL` | Default Discord webhook if not stored through admin settings |
+
+The deploy workflow derives the Supabase project ref from `VITE_SUPABASE_URL`, exposes `VAPID_PUBLIC_KEY` to the browser as `VITE_WEB_PUSH_PUBLIC_KEY`, and uses the repository owner's GitHub profile URL as the VAPID subject. Those do not require separate secrets.
 
 Generate a VAPID pair with:
 
@@ -207,7 +206,7 @@ docs/screenshots/            generated real-app screenshots
 Repository-only implementation is intended to be complete before backend linkage. The remaining release gate is expected to be:
 
 1. create/link the dedicated DING Supabase project;
-2. add the required GitHub secrets;
+2. add the eight required GitHub secrets listed above;
 3. run `Deploy DING`;
 4. let the automated two-account live smoke pass;
 5. verify installed iOS/Android PWA push behavior and final physical-device layout.
