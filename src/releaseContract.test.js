@@ -210,7 +210,7 @@ describe('DING release contract', () => {
     const signup = read('supabase/functions/signup-account/index.ts');
     expect(signup).toContain("console.error('[signup-account]', error)");
     expect(signup).toContain("return json(500, { error: 'Account creation failed' })");
-    expect(signup).not.toContain("return json(500, { error: error instanceof Error ? error.message");
+    expect(signup).not.toContain('return json(500, { error: error instanceof Error ? error.message');
   });
 
   it('keeps direct browser progression writes disabled', () => {
