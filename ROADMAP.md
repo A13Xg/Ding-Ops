@@ -296,14 +296,13 @@
 
 # Remaining external setup
 
-Repository-only work is intended to be effectively complete. The final blockers are external configuration and live validation.
+Repository-only work is intended to be effectively complete. Production setup is reduced to seven required GitHub secrets plus live/device validation.
 
 ## Required GitHub secrets
 
 - [!] `SUPABASE_ACCESS_TOKEN`
 - [!] `SUPABASE_DB_PASSWORD`
-- [!] `VITE_SUPABASE_URL`
-- [!] `VITE_SUPABASE_PUBLISHABLE_KEY`
+- [!] `SUPABASE_PROJECT_REF`
 - [!] `VAPID_PUBLIC_KEY`
 - [!] `VAPID_PRIVATE_KEY`
 - [!] `REMINDER_CRON_SECRET`
