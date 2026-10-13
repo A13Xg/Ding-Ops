@@ -87,7 +87,6 @@ describe('DING release contract', () => {
     expect(deploy).toContain('supabase config push --project-ref "$SUPABASE_PROJECT_REF"');
   });
 
-
   it('keeps the Ops console behind a server-confirmed admin capability', () => {
     const app = read('src/DingApp.jsx');
     const backend = read('src/backend.js');
