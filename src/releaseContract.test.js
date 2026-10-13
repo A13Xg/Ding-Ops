@@ -150,4 +150,20 @@ describe('DING release contract', () => {
     expect(helper.indexOf('SUPABASE_PUBLISHABLE_KEYS')).toBeLessThan(helper.indexOf('SUPABASE_ANON_KEY'));
     expect(helper.indexOf('SUPABASE_SECRET_KEYS')).toBeLessThan(helper.indexOf('SUPABASE_SERVICE_ROLE_KEY'));
   });
+
+  it('centralizes deprecated Edge-key fallback in one compatibility helper', () => {
+    const functionFiles = filesUnder('supabase/functions', path => path.endsWith('.ts')).filter(
+      path => path !== 'supabase/functions/_shared/supabaseKeys.ts'
+    );
+
+    for (const path of functionFiles) {
+      const content = read(path);
+      expect(content, `${path} directly reads deprecated SUPABASE_ANON_KEY`).not.toContain(
+        "Deno.env.get('SUPABASE_ANON_KEY')"
+      );
+      expect(content, `${path} directly reads deprecated SUPABASE_SERVICE_ROLE_KEY`).not.toContain(
+        "Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')"
+      );
+    }
+  });
 });
