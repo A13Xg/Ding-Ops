@@ -55,12 +55,32 @@ describe('DING release contract', () => {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     expect(configured.map(item => item.name)).toEqual(functionDirs);
-    expect(
-      configured
-        .filter(item => !item.verifyJwt)
-        .map(item => item.name)
-        .sort()
-    ).toEqual(['ack-push', 'dispatch-inactivity-reminders', 'dispatch-push-backstop', 'signup-account']);
+    expect(configured.every(item => item.verifyJwt === false)).toBe(true);
+  });
+
+  it('keeps user/admin Edge authorization explicit in function code', () => {
+    const userFunctions = [
+      'delete-account/index.ts',
+      'notify-event/index.ts',
+      'reconcile-achievements/index.ts',
+      'register-push-subscription/index.ts',
+    ];
+    for (const relative of userFunctions) {
+      const content = read(`supabase/functions/${relative}`);
+      expect(content).toContain("auth.getUser()");
+    }
+
+    for (const relative of [
+      'admin-status/index.ts',
+      'broadcast-test-notification/index.ts',
+      'admin-set-password/index.ts',
+      'push-delivery-report/index.ts',
+      'admin-discord-settings/index.ts',
+      'discord-test-notification/index.ts',
+    ]) {
+      const content = read(`supabase/functions/${relative}`);
+      expect(content).toContain('requireAdmin');
+    }
   });
 
   it('keeps signup invite enforcement server-side', () => {
