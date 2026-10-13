@@ -215,7 +215,7 @@
 - [x] Explicit cadence in game config.
 - [x] Weighted DING-specific inactivity copy.
 - [x] Failed-attempt cycle behavior preserved.
-- [x] Scheduled workflow every 6 hours.
+- [x] Scheduled workflow every 6 hours using a derived least-privilege cron capability (no extra secret).
 - [!] Validate real scheduled invocation after Supabase/cron secret exists.
 
 ## 13. PWA / install / versioning — REPOSITORY COMPLETE, INSTALLED-DEVICE TEST BLOCKED
