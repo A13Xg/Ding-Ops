@@ -322,6 +322,36 @@ jobs:
       - name: Live Supabase integration smoke
         run: npm run test:integration
 
+      - name: Disable legacy Supabase API keys after modern-key smoke passes
+        shell: bash
+        run: |
+          set -euo pipefail
+          body_file="$(mktemp)"
+          status="$(
+            curl --silent --show-error \
+              --retry 3 --retry-all-errors --max-time 30 \
+              -o "$body_file" -w '%{http_code}' \
+              -X PUT "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys/legacy?enabled=false" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
+          )"
+          if [ "$status" = "404" ]; then
+            echo "::notice::Supabase legacy-key toggle endpoint is unavailable; modern DING keys already passed the live smoke."
+            exit 0
+          fi
+          if [ "$status" != "200" ]; then
+            cat "$body_file"
+            echo "::error::Could not disable legacy Supabase API keys (HTTP $status)."
+            exit 1
+          fi
+          node -e '
+            const fs = require("fs");
+            const result = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            if (result.enabled !== false) {
+              console.error("Legacy Supabase API keys are still enabled.");
+              process.exit(1);
+            }
+          ' "$body_file"
+
       - name: Build GitHub Pages artifact
         env:
           GHPAGES_BASE: /${{ github.event.repository.name }}/
