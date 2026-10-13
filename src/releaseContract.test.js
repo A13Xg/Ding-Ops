@@ -146,9 +146,11 @@ describe('DING release contract', () => {
     expect(deploy).not.toContain('secrets.REMINDER_CRON_SECRET');
     expect(deploy).not.toContain('secrets.VAPID_PUBLIC_KEY');
     expect(deploy).not.toContain('secrets.VAPID_PRIVATE_KEY');
-    expect(scheduled).not.toContain('REMINDER_CRON_SECRET');
-    expect(scheduled).toContain('type === "secret"');
-    expect(scheduled).toContain('Authorization: Bearer $DING_SECRET_KEY');
+    expect(scheduled).not.toContain('SUPABASE_SECRET_KEY');
+    expect(scheduled).not.toContain('Authorization: Bearer');
+    expect(scheduled).toContain('ding-cron-v1:');
+    expect(scheduled).toContain('x-cron-secret: $cron_secret');
+    expect(deploy).toContain('"REMINDER_CRON_SECRET=$REMINDER_CRON_SECRET"');
   });
 
   it('never enables visual demo mode in production deployment', () => {
