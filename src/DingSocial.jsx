@@ -351,9 +351,15 @@ export function ProfilePane({ user, characters, events, achievements, onUserUpda
             disabled={accountBusy}
             onClick={async () => {
               setAccountBusy(true);
+              setAccountStatus('');
               try {
-                await backend.logout();
+                const result = await backend.logout();
+                if (result?.remoteRevocationFailed) {
+                  console.warn('[logout] remote revocation failed; local session was cleared');
+                }
                 onLoggedOut?.();
+              } catch (error) {
+                setAccountStatus(error.message || 'Logout failed');
               } finally {
                 setAccountBusy(false);
               }
