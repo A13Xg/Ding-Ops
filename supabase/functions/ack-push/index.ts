@@ -18,6 +18,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import type { Database } from '../_shared/database.types.ts';
 import { corsHeaders, json } from '../_shared/push.ts';
+import { supabaseFunctionEnvironment } from '../_shared/supabaseKeys.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -28,9 +29,8 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !serviceRoleKey) throw new Error('Supabase function environment is incomplete');
+    const { url: supabaseUrl, secretKey } = supabaseFunctionEnvironment();
+    if (!supabaseUrl || !secretKey) throw new Error('Supabase function environment is incomplete');
 
     const payload = await req.json().catch(() => ({}));
     const receiptId = typeof payload?.receiptId === 'string' ? payload.receiptId : '';
@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     // a 500.
     if (!UUID_RE.test(receiptId)) return noContent();
 
-    const admin = createClient<Database>(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+    const admin = createClient<Database>(supabaseUrl, secretKey, { auth: { persistSession: false } });
     // One RPC rather than an update, because an ack does two things that must
     // not drift apart: it stamps the delivery, and it credits the ENDPOINT that
     // carried it as alive. record_push_ack applies the `acked_at is null` replay
