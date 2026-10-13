@@ -119,7 +119,15 @@ const staticBackend = {
   },
   async logout() {
     const sb = await getSupa();
-    await sb.auth.signOut();
+    const { error } = await sb.auth.signOut();
+    if (!error) return { ok: true };
+
+    // A network/revocation failure must not strand a valid-looking session on
+    // this device. Clear local auth state even when global revocation could not
+    // complete; surface that distinction to the caller for diagnostics.
+    const local = await sb.auth.signOut({ scope: 'local' });
+    if (local.error) throw new Error(local.error.message || error.message || 'Logout failed');
+    return { ok: true, remoteRevocationFailed: true };
   },
   async updateOwnPassword(password) {
     const value = String(password || '');
@@ -244,7 +252,12 @@ const staticBackend = {
       throw new Error(detail || error.message || 'Account deletion failed');
     }
     if (data?.error) throw new Error(data.error);
-    await sb.auth.signOut();
+    // The server just deleted this auth user, so a global sign-out may itself
+    // report an invalid/revoked session. Local cleanup is the only required
+    // postcondition after a successful destructive delete.
+    const local = await sb.auth.signOut({ scope: 'local' });
+    if (local.error) console.warn('[delete-account] local session cleanup failed', local.error.message);
+    return { ok: true };
   },
   async dingDashboard() {
     const sb = await getSupa();
