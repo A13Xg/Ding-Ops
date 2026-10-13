@@ -87,6 +87,6 @@ Deno.serve(async req => {
     return json(201, { ok: true, username });
   } catch (error) {
     console.error('[signup-account]', error);
-    return json(500, { error: error instanceof Error ? error.message : 'Account creation failed' });
+    return json(500, { error: 'Account creation failed' });
   }
 });
