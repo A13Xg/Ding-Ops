@@ -12,15 +12,15 @@ const sql = readdirSync(migrationDir)
 
 describe('DING security definer privilege contract', () => {
   it('revokes default PUBLIC execute on every deployable security-definer function', () => {
-    const functions = [...sql.matchAll(/create or replace function\s+public\.([a-z0-9_]+)\s*\(([^)]*)\)[\s\S]*?security definer/g)]
-      .map(match => match[1]);
+    const functions = [
+      ...sql.matchAll(/create or replace function\s+public\.([a-z0-9_]+)\s*\(([^)]*)\)[\s\S]*?security definer/g),
+    ].map(match => match[1]);
 
     expect(functions.length).toBeGreaterThan(0);
     for (const name of new Set(functions)) {
-      expect(
-        sql,
-        `security-definer function ${name} must explicitly revoke default execute privileges`
-      ).toMatch(new RegExp(`revoke\\s+all\\s+on\\s+function\\s+public\\.${name}\\s*\\(`, 'i'));
+      expect(sql, `security-definer function ${name} must explicitly revoke default execute privileges`).toMatch(
+        new RegExp(`revoke\\s+all\\s+on\\s+function\\s+public\\.${name}\\s*\\(`, 'i')
+      );
     }
   });
 
@@ -32,8 +32,12 @@ describe('DING security definer privilege contract', () => {
       'update_level_event_note',
       'update_profile_preferences',
     ]) {
-      expect(sql).toMatch(new RegExp(`grant\\s+execute\\s+on\\s+function\\s+public\\.${name}\\s*\\([^;]+?\\)\\s+to\\s+authenticated`, 'i'));
-      expect(sql).not.toMatch(new RegExp(`grant\\s+execute\\s+on\\s+function\\s+public\\.${name}\\s*\\([^;]+?\\)\\s+to\\s+(anon|public)`, 'i'));
+      expect(sql).toMatch(
+        new RegExp(`grant\\s+execute\\s+on\\s+function\\s+public\\.${name}\\s*\\([^;]+?\\)\\s+to\\s+authenticated`, 'i')
+      );
+      expect(sql).not.toMatch(
+        new RegExp(`grant\\s+execute\\s+on\\s+function\\s+public\\.${name}\\s*\\([^;]+?\\)\\s+to\\s+(anon|public)`, 'i')
+      );
     }
   });
 
@@ -45,8 +49,15 @@ describe('DING security definer privilege contract', () => {
       'prune_dead_push_subscriptions',
       'push_subscription_health',
     ]) {
-      expect(sql).toMatch(new RegExp(`grant\\s+execute\\s+on\\s+function\\s+public\\.${name}\\s*\\([^;]*?\\)\\s+to\\s+service_role`, 'i'));
-      expect(sql).not.toMatch(new RegExp(`grant\\s+execute\\s+on\\s+function\\s+public\\.${name}\\s*\\([^;]*?\\)\\s+to\\s+(anon|authenticated|public)`, 'i'));
+      expect(sql).toMatch(
+        new RegExp(`grant\\s+execute\\s+on\\s+function\\s+public\\.${name}\\s*\\([^;]*?\\)\\s+to\\s+service_role`, 'i')
+      );
+      expect(sql).not.toMatch(
+        new RegExp(
+          `grant\\s+execute\\s+on\\s+function\\s+public\\.${name}\\s*\\([^;]*?\\)\\s+to\\s+(anon|authenticated|public)`,
+          'i'
+        )
+      );
     }
   });
 });
