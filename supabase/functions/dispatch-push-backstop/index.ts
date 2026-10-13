@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
   try {
     const { url: supabaseUrl, secretKey } = supabaseFunctionEnvironment();
     if (!supabaseUrl || !secretKey) throw new Error('Supabase function environment is incomplete');
-    if (!authorizeCron(req, secretKey)) return json(401, { error: 'Unauthorized' });
+    if (!authorizeCron(req)) return json(401, { error: 'Unauthorized' });
 
     const admin = createClient<Database>(supabaseUrl, secretKey, { auth: { persistSession: false } });
     const since = new Date(Date.now() - LOOKBACK_MS).toISOString();
