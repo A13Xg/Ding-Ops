@@ -76,6 +76,17 @@ describe('DING release contract', () => {
     expect(config).toMatch(/\[functions\.signup-account\][\s\S]*?verify_jwt\s*=\s*false/);
     expect(deploy).toContain('DING_INVITE_CODE');
   });
+  it('disables direct Supabase Auth signup in production config', () => {
+    const config = read('supabase/config.toml');
+    const deploy = read('.github/workflows/deploy.yml');
+
+    expect(config).toMatch(/\[auth\][\s\S]*?enable_signup\s*=\s*false/);
+    expect(config).toMatch(/\[auth\.email\][\s\S]*?enable_signup\s*=\s*false/);
+    expect(config).toMatch(/\[auth\.sms\][\s\S]*?enable_signup\s*=\s*false/);
+    expect(config).toContain('enable_anonymous_sign_ins = false');
+    expect(deploy).toContain('supabase config push --project-ref "$SUPABASE_PROJECT_REF"');
+  });
+
 
   it('keeps the Ops console behind a server-confirmed admin capability', () => {
     const app = read('src/DingApp.jsx');
