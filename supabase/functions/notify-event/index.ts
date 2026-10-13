@@ -105,6 +105,6 @@ Deno.serve(async (req) => {
     return json(200, { ok: true, ...outcome });
   } catch (error) {
     console.error('[notify-event]', error);
-    return json(500, { error: error instanceof Error ? error.message : 'Notification dispatch failed' });
+    return json(500, { error: 'Notification dispatch failed' });
   }
 });
