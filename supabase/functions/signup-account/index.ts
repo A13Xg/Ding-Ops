@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import type { Database } from '../_shared/database.types.ts';
 import { syntheticAuthEmail, normalizeDingUsername } from '../../../src/authIdentity.js';
 import { corsHeaders, json } from '../_shared/push.ts';
+import { supabaseFunctionEnvironment } from '../_shared/supabaseKeys.ts';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -24,10 +25,9 @@ Deno.serve(async req => {
   if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const { url: supabaseUrl, secretKey } = supabaseFunctionEnvironment();
     const inviteSecret = (Deno.env.get('DING_INVITE_CODE') || '').trim();
-    if (!supabaseUrl || !serviceRoleKey || inviteSecret.length < 24) {
+    if (!supabaseUrl || !secretKey || inviteSecret.length < 24) {
       throw new Error('Signup service is not configured');
     }
 
@@ -49,7 +49,7 @@ Deno.serve(async req => {
       return json(400, { error: `Password must be ${MIN_PASSWORD_LENGTH}-200 characters` });
     }
 
-    const admin = createClient<Database>(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+    const admin = createClient<Database>(supabaseUrl, secretKey, { auth: { persistSession: false } });
     const email = syntheticAuthEmail(username);
 
     const { data: created, error: createError } = await admin.auth.admin.createUser({
