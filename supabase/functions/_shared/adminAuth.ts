@@ -21,6 +21,7 @@
  */
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import type { Database } from './database.types.ts';
+import { supabaseFunctionEnvironment } from './supabaseKeys.ts';
 
 export function adminAllowlist() {
   const raw = Deno.env.get('BROADCAST_ADMINS') || '';
@@ -62,15 +63,13 @@ export async function requireAdmin(
   req: Request,
   json: (status: number, body: unknown) => Response,
 ): Promise<{ denied: Response; context?: never } | { denied?: never; context: AdminContext }> {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseUrl || !anonKey || !serviceRoleKey) throw new Error('Supabase function environment is incomplete');
+  const { url: supabaseUrl, publishableKey, secretKey } = supabaseFunctionEnvironment();
+  if (!supabaseUrl || !publishableKey || !secretKey) throw new Error('Supabase function environment is incomplete');
 
   const authorization = req.headers.get('Authorization');
   if (!authorization) return { denied: json(401, { error: 'Authentication required' }) };
 
-  const authClient = createClient<Database>(supabaseUrl, anonKey, {
+  const authClient = createClient<Database>(supabaseUrl, publishableKey, {
     global: { headers: { Authorization: authorization } },
     auth: { persistSession: false },
   });
@@ -78,7 +77,7 @@ export async function requireAdmin(
   if (authError || !authData.user) return { denied: json(401, { error: 'Authentication required' }) };
   const senderId = authData.user.id;
 
-  const admin = createClient<Database>(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+  const admin = createClient<Database>(supabaseUrl, secretKey, { auth: { persistSession: false } });
   const { data: profile } = await admin.from('profiles').select('username').eq('id', senderId).maybeSingle();
   const senderName = profile?.username || null;
 
