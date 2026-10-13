@@ -130,6 +130,27 @@ describe('DING release contract', () => {
     expect(pages).toBeGreaterThan(build);
   });
 
+  it('keeps production setup to the five intended required secrets', () => {
+    const deploy = read('.github/workflows/deploy.yml');
+    const scheduled = read('.github/workflows/scheduled-maintenance.yml');
+
+    for (const name of [
+      'SUPABASE_ACCESS_TOKEN',
+      'SUPABASE_DB_PASSWORD',
+      'SUPABASE_PROJECT_REF',
+      'VAPID_KEYS_JSON',
+      'DING_INVITE_CODE',
+    ]) {
+      expect(deploy).toContain(`secrets.${name}`);
+    }
+    expect(deploy).not.toContain('secrets.REMINDER_CRON_SECRET');
+    expect(deploy).not.toContain('secrets.VAPID_PUBLIC_KEY');
+    expect(deploy).not.toContain('secrets.VAPID_PRIVATE_KEY');
+    expect(scheduled).not.toContain('REMINDER_CRON_SECRET');
+    expect(scheduled).toContain('type === "secret"');
+    expect(scheduled).toContain('Authorization: Bearer $DING_SECRET_KEY');
+  });
+
   it('never enables visual demo mode in production deployment', () => {
     const deploy = read('.github/workflows/deploy.yml');
     expect(deploy).not.toMatch(/VITE_DEMO_MODE\s*:/);
@@ -169,7 +190,7 @@ describe('DING release contract', () => {
     expect(env).not.toMatch(/VITE_.*SERVICE_ROLE/i);
     expect(env).not.toMatch(/VITE_.*PRIVATE/i);
     expect(env).toContain('VAPID_PRIVATE_KEY');
-    expect(env).toContain('REMINDER_CRON_SECRET');
+    expect(env).toContain('VAPID_PRIVATE_KEY');
   });
   it('prefers modern Supabase Edge publishable/secret keys over deprecated legacy keys', () => {
     const helper = read('supabase/functions/_shared/supabaseKeys.ts');
