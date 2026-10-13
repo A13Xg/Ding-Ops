@@ -105,8 +105,9 @@ describe('DING release contract', () => {
   it('never enables visual demo mode in production deployment', () => {
     const deploy = read('.github/workflows/deploy.yml');
     expect(deploy).not.toMatch(/VITE_DEMO_MODE\s*:/);
-    expect(deploy).toContain('VITE_SUPABASE_URL');
-    expect(deploy).toContain('VITE_SUPABASE_PUBLISHABLE_KEY');
+    expect(deploy).toContain('SUPABASE_PROJECT_REF');
+    expect(deploy).toContain('/api-keys?reveal=true');
+    expect(deploy).toContain('VITE_SUPABASE_PUBLISHABLE_KEY=$publishable');
     expect(deploy).toContain('npm run test:integration');
   });
 
