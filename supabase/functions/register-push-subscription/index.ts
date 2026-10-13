@@ -63,17 +63,40 @@ Deno.serve(async (req) => {
     const userAgent = typeof payload?.userAgent === 'string' ? payload.userAgent.slice(0, 256) : null;
     const nowIso = new Date().toISOString();
 
-    // An endpoint identifies one browser profile. If it previously belonged to a
-    // different account (shared device, account switch), reclaim it atomically so
-    // the unique index on (endpoint) cannot race between delete + upsert.
+    // An endpoint identifies one browser profile. If it previously belonged to
+    // a different account (shared device, account switch), reclaim it atomically
+    // through the unique endpoint row.
     //
-    // failure_count is reset explicitly: this upsert UPDATEs the existing row
-    // rather than replacing it, so without this a reclaimed (or previously
-    // flaky) endpoint would inherit a stale count and sit near the prune
-    // threshold. Having just completed pushManager.subscribe(), the endpoint is
-    // demonstrably alive.
+    // A routine app launch is NOT proof that an existing endpoint is healthy:
+    // pushManager.getSubscription() can return a subscription whose push service
+    // has stopped accepting or rendering messages. Preserve failure/unacked
+    // history for an unchanged subscription so repeated app launches cannot
+    // indefinitely forgive a dead endpoint. Reset liveness only when ownership
+    // or the cryptographic keys really changed.
+    const { data: existing, error: existingError } = await admin
+      .from('push_subscriptions')
+      .select('user_id,p256dh,auth,failure_count,unacked_count,last_success_at,last_ack_at')
+      .eq('endpoint', endpoint)
+      .maybeSingle();
+    if (existingError) throw new Error(existingError.message);
+
+    const identityChanged =
+      !existing || existing.user_id !== userId || existing.p256dh !== p256dh || existing.auth !== auth;
     const { error: upsertError } = await admin.from('push_subscriptions').upsert(
-      [{ user_id: userId, endpoint, p256dh, auth, user_agent: userAgent, updated_at: nowIso, failure_count: 0 }],
+      [
+        {
+          user_id: userId,
+          endpoint,
+          p256dh,
+          auth,
+          user_agent: userAgent,
+          updated_at: nowIso,
+          failure_count: identityChanged ? 0 : (existing.failure_count ?? 0),
+          unacked_count: identityChanged ? 0 : (existing.unacked_count ?? 0),
+          last_success_at: identityChanged ? null : (existing.last_success_at ?? null),
+          last_ack_at: identityChanged ? null : (existing.last_ack_at ?? null),
+        },
+      ],
       { onConflict: 'endpoint' },
     );
     if (upsertError) throw new Error(upsertError.message);
