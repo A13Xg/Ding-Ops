@@ -127,6 +127,7 @@ describe('DING release contract', () => {
     const count = token => deploy.split(token).length - 1;
 
     expect(count('supabase link --project-ref')).toBe(1);
+    expect(count('supabase db push --linked --include-all --dry-run')).toBe(1);
     expect(count('supabase db push --linked --include-all --yes')).toBe(1);
     expect(count('supabase functions deploy --project-ref')).toBe(1);
     expect(count('actions/deploy-pages@v4')).toBe(1);
@@ -135,6 +136,7 @@ describe('DING release contract', () => {
 
     const link = deploy.indexOf('supabase link --project-ref');
     const auth = deploy.indexOf('Lock down public Supabase Auth signup');
+    const preview = deploy.indexOf('supabase db push --linked --include-all --dry-run');
     const migrations = deploy.indexOf('supabase db push --linked --include-all --yes');
     const functions = deploy.indexOf('supabase functions deploy --project-ref');
     const smoke = deploy.indexOf('npm run test:integration');
@@ -143,11 +145,18 @@ describe('DING release contract', () => {
 
     expect(link).toBeGreaterThan(-1);
     expect(auth).toBeGreaterThan(link);
-    expect(migrations).toBeGreaterThan(auth);
+    expect(preview).toBeGreaterThan(auth);
+    expect(migrations).toBeGreaterThan(preview);
     expect(functions).toBeGreaterThan(migrations);
     expect(smoke).toBeGreaterThan(functions);
     expect(build).toBeGreaterThan(smoke);
     expect(pages).toBeGreaterThan(build);
+  });
+
+  it('hard-refuses the known Bust production Supabase project', () => {
+    const deploy = read('.github/workflows/deploy.yml');
+    expect(deploy).toContain('yuorggekucycvxrtqvvp');
+    expect(deploy).toContain('Refusing to deploy DING into the known Bust production Supabase project');
   });
 
   it('keeps production setup to the five intended required secrets', () => {
