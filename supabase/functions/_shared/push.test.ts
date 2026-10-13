@@ -51,22 +51,22 @@ Deno.test('authorizeCron accepts a matching x-cron-secret header', () => {
   Deno.env.set('REMINDER_CRON_SECRET', 'top-secret');
   try {
     const req = new Request('https://example.com', { headers: { 'x-cron-secret': 'top-secret' } });
-    assertEquals(authorizeCron(req, 'service-role-key'), true);
+    assertEquals(authorizeCron(req), true);
   } finally {
     Deno.env.delete('REMINDER_CRON_SECRET');
   }
 });
 
-Deno.test('authorizeCron accepts a matching service-role bearer token when no cron secret is configured', () => {
+Deno.test('authorizeCron rejects a Supabase secret bearer token without the dedicated cron capability', () => {
   Deno.env.delete('REMINDER_CRON_SECRET');
-  const req = new Request('https://example.com', { headers: { Authorization: 'Bearer service-role-key' } });
-  assertEquals(authorizeCron(req, 'service-role-key'), true);
+  const req = new Request('https://example.com', { headers: { Authorization: 'Bearer sb_secret_example' } });
+  assertEquals(authorizeCron(req), false);
 });
 
 Deno.test('authorizeCron rejects mismatched or missing credentials', () => {
   Deno.env.delete('REMINDER_CRON_SECRET');
   const req = new Request('https://example.com', { headers: { Authorization: 'Bearer someone-else' } });
-  assertEquals(authorizeCron(req, 'service-role-key'), false);
+  assertEquals(authorizeCron(req), false);
 });
 
 Deno.test('claimPushEvent returns the new row id on a successful claim', async () => {
