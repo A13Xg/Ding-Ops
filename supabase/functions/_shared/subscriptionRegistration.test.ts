@@ -22,12 +22,12 @@ Deno.test('routine DING push re-registration preserves liveness evidence', () =>
 });
 
 Deno.test('account or key changes reset inherited DING push liveness', () => {
-  for (const args of [
+  for (const [userId, p256dh, auth] of [
     ['user-b', 'key-a', 'auth-a'],
     ['user-a', 'key-b', 'auth-a'],
     ['user-a', 'key-a', 'auth-b'],
   ] as const) {
-    assertEquals(registrationLiveness(existing, ...args), {
+    assertEquals(registrationLiveness(existing, userId, p256dh, auth), {
       identityChanged: true,
       failure_count: 0,
       unacked_count: 0,
