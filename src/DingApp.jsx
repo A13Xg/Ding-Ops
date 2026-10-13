@@ -123,7 +123,7 @@ function DingLogin({ onAuthed }) {
             {busy ? 'CONNECTING…' : mode === 'login' ? 'ENTER BASEMENT' : 'CREATE DEGENERATE'}
           </button>
         </form>
-        {error && <div className="error">{error}</div>}
+        {error && <div className="error" role="alert">{error}</div>}
         <button className="text-link" type="button" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>
           {mode === 'login' ? 'Need an account?' : 'Already have one?'}
         </button>
@@ -298,7 +298,7 @@ function CharacterForm({ config, initial = null, onCreated, onSaved, onArchived,
           />
         </label>
       </div>
-      {serverError && <div className="error">{serverError}</div>}
+      {serverError && <div className="error" role="alert">{serverError}</div>}
       <div className="ding-form-actions split">
         <div>
           {editing && (
@@ -1053,7 +1053,7 @@ function DingDashboard({ user, setUser }) {
           </button>
         </div>
       )}
-      {status && <div className="ding-status">{status}</div>}
+      {status && <div className="ding-status" role="status" aria-live="polite">{status}</div>}
       {pending && (
         <div className="ding-pending">
           Ding confirmation pending.
