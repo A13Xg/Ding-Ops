@@ -9,7 +9,6 @@
     "npm": ">=10"
   },
   "scripts": {
-    "preinstall": "npx --yes only-allow npm",
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview",
@@ -22,7 +21,7 @@
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\"",
     "typecheck": "tsc --noEmit",
     "test:integration": "node scripts/supabase-smoke.mjs",
-    "generate:vapid": "npx --yes web-push generate-vapid-keys --json"
+    "generate:vapid": "npx --yes web-push@3.6.7 generate-vapid-keys --json"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2",
