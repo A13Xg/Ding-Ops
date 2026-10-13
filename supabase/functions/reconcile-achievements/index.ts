@@ -133,7 +133,7 @@ Deno.serve(async req => {
     );
   } catch (error) {
     console.error('[reconcile-achievements]', error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Reconciliation failed' }), {
+    return new Response(JSON.stringify({ error: 'Reconciliation failed' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
