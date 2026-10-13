@@ -78,6 +78,7 @@
 ## 4. Primary vertical slice — COMPLETE, HOSTED TWO-ACCOUNT TEST BLOCKED
 
 - [x] Login/signup.
+- [x] Private-crew signup is server-side invite gated; public Supabase Auth signup/anonymous signup are disabled by config-as-code.
 - [x] First-run onboarding.
 - [x] Character creation/select/edit/archive.
 - [x] Full-screen DING dashboard.
