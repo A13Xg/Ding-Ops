@@ -303,7 +303,7 @@ Repository-only work is intended to be effectively complete. The final blockers 
 - [!] `SUPABASE_ACCESS_TOKEN`
 - [!] `SUPABASE_DB_PASSWORD`
 - [!] `VITE_SUPABASE_URL`
-- [!] `VITE_SUPABASE_ANON_KEY`
+- [!] `VITE_SUPABASE_PUBLISHABLE_KEY`
 - [!] `VAPID_PUBLIC_KEY`
 - [!] `VAPID_PRIVATE_KEY`
 - [!] `REMINDER_CRON_SECRET`
