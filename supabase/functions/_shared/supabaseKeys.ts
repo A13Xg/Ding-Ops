@@ -4,9 +4,13 @@ function namedKey(dictionaryName: string) {
   try {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-    const preferred = parsed.default;
-    if (typeof preferred === 'string' && preferred) return preferred;
-    return Object.values(parsed).find(value => typeof value === 'string' && value) as string | undefined || null;
+    const preferredNames =
+      dictionaryName === 'SUPABASE_SECRET_KEYS' ? ['ding-edge', 'default'] : ['ding-web', 'default'];
+    for (const name of preferredNames) {
+      const preferred = parsed[name];
+      if (typeof preferred === 'string' && preferred) return preferred;
+    }
+    return (Object.values(parsed).find(value => typeof value === 'string' && value) as string | undefined) || null;
   } catch {
     return null;
   }
