@@ -624,22 +624,40 @@ function DingDashboard({ user, setUser }) {
 
   useEffect(() => {
     let live = true;
-    Promise.all([
-      backend.dingDashboard(),
-      backend.gameConfig().catch(() => null),
-      backend.adminStatus().catch(() => ({ isAdmin: false })),
-    ])
-      .then(([snapshot, remoteConfig, adminStatus]) => {
-        if (!live) return;
-        setUsers(snapshot.users);
-        setCharacters(snapshot.characters);
-        setEvents(snapshot.levelEvents);
-        setAchievements(snapshot.achievements || []);
-        const freshUser = snapshot.users.find(profile => profile.id === user.id);
-        if (freshUser) setUser(freshUser);
-        if (remoteConfig) setConfig(mergeGameConfig(remoteConfig));
-        setIsAdmin(adminStatus?.isAdmin === true);
-      })
+    let hasSubscribed = false;
+    let resyncPromise = null;
+
+    const applySnapshot = snapshot => {
+      if (!live) return;
+      setUsers(snapshot.users);
+      setCharacters(snapshot.characters);
+      setEvents(snapshot.levelEvents);
+      setAchievements(snapshot.achievements || []);
+      const freshUser = snapshot.users.find(profile => profile.id === user.id);
+      if (freshUser) setUser(freshUser);
+    };
+
+    const resyncDashboard = async ({ includeConfig = false, includeAdmin = false } = {}) => {
+      if (resyncPromise) return resyncPromise;
+      resyncPromise = Promise.all([
+        backend.dingDashboard(),
+        includeConfig ? backend.gameConfig().catch(() => null) : Promise.resolve(null),
+        includeAdmin ? backend.adminStatus().catch(() => ({ isAdmin: false })) : Promise.resolve(null),
+      ])
+        .then(([snapshot, remoteConfig, adminStatus]) => {
+          if (!live) return;
+          applySnapshot(snapshot);
+          if (remoteConfig) setConfig(mergeGameConfig(remoteConfig));
+          if (adminStatus) setIsAdmin(adminStatus?.isAdmin === true);
+          setStatus(current => (current === 'Realtime reconnecting…' ? '' : current));
+        })
+        .finally(() => {
+          resyncPromise = null;
+        });
+      return resyncPromise;
+    };
+
+    resyncDashboard({ includeConfig: true, includeAdmin: true })
       .catch(error => {
         if (live) setStatus(error.message);
       })
@@ -688,10 +706,33 @@ function DingDashboard({ user, setUser }) {
           }
         }
       },
+      onStatus: realtimeStatus => {
+        if (realtimeStatus === 'SUBSCRIBED') {
+          if (hasSubscribed) {
+            void resyncDashboard().catch(error => {
+              if (live) setStatus(error.message);
+            });
+          } else {
+            hasSubscribed = true;
+          }
+          return;
+        }
+        if (realtimeStatus === 'CHANNEL_ERROR' || realtimeStatus === 'TIMED_OUT') {
+          setStatus('Realtime reconnecting…');
+        }
+      },
     });
+
+    const onOnline = () => {
+      void resyncDashboard().catch(error => {
+        if (live) setStatus(error.message);
+      });
+    };
+    window.addEventListener('online', onOnline);
 
     return () => {
       live = false;
+      window.removeEventListener('online', onOnline);
       unsubscribe();
     };
   }, [setUser, user.id]);
