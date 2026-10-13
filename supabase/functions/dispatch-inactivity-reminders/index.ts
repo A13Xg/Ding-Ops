@@ -15,6 +15,7 @@ import {
   reconcileInactivityReminderState,
 } from '../../../src/inactivityReminder.js';
 import { authorizeCron, corsHeaders, json, sendToSubscriptions } from '../_shared/push.ts';
+import { supabaseFunctionEnvironment } from '../_shared/supabaseKeys.ts';
 
 const BATCH_SIZE = 200;
 
@@ -23,12 +24,11 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !serviceRoleKey) throw new Error('Supabase function environment is incomplete');
-    if (!authorizeCron(req, serviceRoleKey)) return json(401, { error: 'Unauthorized' });
+    const { url: supabaseUrl, secretKey } = supabaseFunctionEnvironment();
+    if (!supabaseUrl || !secretKey) throw new Error('Supabase function environment is incomplete');
+    if (!authorizeCron(req, secretKey)) return json(401, { error: 'Unauthorized' });
 
-    const admin = createClient<Database>(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+    const admin = createClient<Database>(supabaseUrl, secretKey, { auth: { persistSession: false } });
     const now = Date.now();
 
     const reminderRows = await fetchAllPages(
