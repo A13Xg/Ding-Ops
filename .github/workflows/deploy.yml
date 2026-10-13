@@ -133,9 +133,21 @@ jobs:
               });
             '
           )"
+          cron_secret="$(
+            VAPID_PRIVATE_KEY="$vapid_private" node -e '
+              const { createHash } = require("crypto");
+              process.stdout.write(
+                createHash("sha256")
+                  .update("ding-cron-v1:" + process.env.VAPID_PRIVATE_KEY)
+                  .digest("base64url")
+              );
+            '
+          )"
           echo "::add-mask::$vapid_private"
+          echo "::add-mask::$cron_secret"
           echo "VAPID_PUBLIC_KEY=$vapid_public" >> "$GITHUB_ENV"
           echo "VAPID_PRIVATE_KEY=$vapid_private" >> "$GITHUB_ENV"
+          echo "REMINDER_CRON_SECRET=$cron_secret" >> "$GITHUB_ENV"
 
           if [ "${#DING_INVITE_CODE}" -lt 24 ]; then
             echo "::error::DING_INVITE_CODE must be at least 24 characters."
@@ -221,6 +233,7 @@ jobs:
             "VAPID_PUBLIC_KEY=$VAPID_PUBLIC_KEY"
             "VAPID_PRIVATE_KEY=$VAPID_PRIVATE_KEY"
             "VAPID_SUBJECT=$VAPID_SUBJECT"
+            "REMINDER_CRON_SECRET=$REMINDER_CRON_SECRET"
             "DING_INVITE_CODE=$DING_INVITE_CODE"
             "SITE_URL=$DING_SITE_URL"
           )
