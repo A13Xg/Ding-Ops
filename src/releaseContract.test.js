@@ -143,4 +143,12 @@ describe('DING release contract', () => {
     expect(env).toContain('VAPID_PRIVATE_KEY');
     expect(env).toContain('REMINDER_CRON_SECRET');
   });
+  it('prefers modern Supabase Edge publishable/secret keys over deprecated legacy keys', () => {
+    const helper = read('supabase/functions/_shared/supabaseKeys.ts');
+    expect(helper).toContain('SUPABASE_PUBLISHABLE_KEYS');
+    expect(helper).toContain('SUPABASE_SECRET_KEYS');
+    expect(helper.indexOf('SUPABASE_PUBLISHABLE_KEYS')).toBeLessThan(helper.indexOf('SUPABASE_ANON_KEY'));
+    expect(helper.indexOf('SUPABASE_SECRET_KEYS')).toBeLessThan(helper.indexOf('SUPABASE_SERVICE_ROLE_KEY'));
+  });
+
 });
