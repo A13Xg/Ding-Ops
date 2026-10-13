@@ -15,33 +15,113 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/15 * * * *'
     runs-on: ubuntu-latest
     env:
-      SUPABASE_URL: https://${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co
-      CRON_SECRET: ${{ secrets.REMINDER_CRON_SECRET }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
     steps:
-      - name: Dispatch unannounced DING events
+      - name: Resolve transient DING secret API key
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
-            echo "::notice::DING scheduled dispatch is dormant until SUPABASE_PROJECT_REF and REMINDER_CRON_SECRET exist."
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] || [ -z "${SUPABASE_PROJECT_REF:-}" ]; then
+            echo "::notice::DING scheduled dispatch is dormant until SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF exist."
             exit 0
           fi
-          curl --fail-with-body --silent --show-error             --retry 3 --retry-all-errors --max-time 40             -X POST "${SUPABASE_URL%/}/functions/v1/dispatch-push-backstop"             -H "x-cron-secret: $CRON_SECRET"             -H "content-type: application/json"             -d '{}'
+          keys_json="$(
+            curl --fail-with-body --silent --show-error \
+              --retry 3 --retry-all-errors --max-time 30 \
+              "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
+          )"
+          secret_key="$(
+            printf '%s' "$keys_json" | node -e '
+              let raw = "";
+              process.stdin.setEncoding("utf8");
+              process.stdin.on("data", chunk => raw += chunk);
+              process.stdin.on("end", () => {
+                const keys = JSON.parse(raw);
+                const key = Array.isArray(keys)
+                  ? keys.find(item => item?.type === "secret" && item?.api_key)
+                  : null;
+                if (!key) {
+                  console.error("No Supabase secret API key exists for this project.");
+                  process.exit(1);
+                }
+                process.stdout.write(key.api_key);
+              });
+            '
+          )"
+          echo "::add-mask::$secret_key"
+          echo "DING_SECRET_KEY=$secret_key" >> "$GITHUB_ENV"
+
+      - name: Dispatch unannounced DING events
+        if: env.DING_SECRET_KEY != ''
+        shell: bash
+        env:
+          SUPABASE_URL: https://${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            --retry 3 --retry-all-errors --max-time 40 \
+            -X POST "${SUPABASE_URL%/}/functions/v1/dispatch-push-backstop" \
+            -H "Authorization: Bearer $DING_SECRET_KEY" \
+            -H "apikey: $DING_SECRET_KEY" \
+            -H "content-type: application/json" \
+            -d '{}'
 
   inactivity:
     name: Inactivity reminders
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 */6 * * *'
     runs-on: ubuntu-latest
     env:
-      SUPABASE_URL: https://${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co
-      CRON_SECRET: ${{ secrets.REMINDER_CRON_SECRET }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
     steps:
-      - name: Dispatch due inactivity reminders
+      - name: Resolve transient DING secret API key
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
-            echo "::notice::DING inactivity dispatch is dormant until SUPABASE_PROJECT_REF and REMINDER_CRON_SECRET exist."
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] || [ -z "${SUPABASE_PROJECT_REF:-}" ]; then
+            echo "::notice::DING inactivity dispatch is dormant until SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF exist."
             exit 0
           fi
-          curl --fail-with-body --silent --show-error             --retry 3 --retry-all-errors --max-time 40             -X POST "${SUPABASE_URL%/}/functions/v1/dispatch-inactivity-reminders"             -H "x-cron-secret: $CRON_SECRET"             -H "content-type: application/json"             -d '{}'
+          keys_json="$(
+            curl --fail-with-body --silent --show-error \
+              --retry 3 --retry-all-errors --max-time 30 \
+              "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
+          )"
+          secret_key="$(
+            printf '%s' "$keys_json" | node -e '
+              let raw = "";
+              process.stdin.setEncoding("utf8");
+              process.stdin.on("data", chunk => raw += chunk);
+              process.stdin.on("end", () => {
+                const keys = JSON.parse(raw);
+                const key = Array.isArray(keys)
+                  ? keys.find(item => item?.type === "secret" && item?.api_key)
+                  : null;
+                if (!key) {
+                  console.error("No Supabase secret API key exists for this project.");
+                  process.exit(1);
+                }
+                process.stdout.write(key.api_key);
+              });
+            '
+          )"
+          echo "::add-mask::$secret_key"
+          echo "DING_SECRET_KEY=$secret_key" >> "$GITHUB_ENV"
+
+      - name: Dispatch due inactivity reminders
+        if: env.DING_SECRET_KEY != ''
+        shell: bash
+        env:
+          SUPABASE_URL: https://${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            --retry 3 --retry-all-errors --max-time 40 \
+            -X POST "${SUPABASE_URL%/}/functions/v1/dispatch-inactivity-reminders" \
+            -H "Authorization: Bearer $DING_SECRET_KEY" \
+            -H "apikey: $DING_SECRET_KEY" \
+            -H "content-type: application/json" \
+            -d '{}'
