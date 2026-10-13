@@ -84,7 +84,9 @@ describe('DING release contract', () => {
     expect(config).toMatch(/\[auth\.email\][\s\S]*?enable_signup\s*=\s*false/);
     expect(config).toMatch(/\[auth\.sms\][\s\S]*?enable_signup\s*=\s*false/);
     expect(config).toContain('enable_anonymous_sign_ins = false');
-    expect(deploy).toContain('supabase config push --project-ref "$SUPABASE_PROJECT_REF"');
+    expect(deploy).toContain('https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth');
+    expect(deploy).toContain('\"disable_signup\":true');
+    expect(deploy).toContain('\"external_anonymous_users_enabled\":false');
   });
 
   it('keeps the Ops console behind a server-confirmed admin capability', () => {
@@ -104,7 +106,7 @@ describe('DING release contract', () => {
     const deploy = read('.github/workflows/deploy.yml');
     expect(deploy).not.toMatch(/VITE_DEMO_MODE\s*:/);
     expect(deploy).toContain('VITE_SUPABASE_URL');
-    expect(deploy).toContain('VITE_SUPABASE_ANON_KEY');
+    expect(deploy).toContain('VITE_SUPABASE_PUBLISHABLE_KEY');
     expect(deploy).toContain('npm run test:integration');
   });
 
