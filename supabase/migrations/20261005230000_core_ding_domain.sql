@@ -182,6 +182,8 @@ create policy level_events_select on public.level_events for select to authentic
 -- Defense in depth: Supabase projects can carry broad default grants on the
 -- public schema. Make the browser's table privileges match the DING API exactly
 -- instead of relying on RLS alone.
+revoke create on schema public from public, anon, authenticated;
+grant usage on schema public to anon, authenticated;
 revoke all on table public.game_config, public.profiles, public.characters, public.level_events
   from anon, authenticated;
 grant select on table public.game_config, public.profiles, public.characters, public.level_events
