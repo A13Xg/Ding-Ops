@@ -12,18 +12,19 @@ enable_signup = false
 verify_jwt = false
 
 [functions.reconcile-achievements]
-verify_jwt = true
+verify_jwt = false
 
 [functions.register-push-subscription]
-verify_jwt = true
+verify_jwt = false
 
-# Announces one of the caller's own rows to the rest of the crew. JWT-verified:
-# the function additionally checks the row belongs to the caller and is fresh.
+# New publishable/secret API keys are not legacy JWT API keys. The platform
+# verify_jwt gate is disabled and this function verifies the user's session JWT
+# in code before checking row ownership/freshness.
 [functions.notify-event]
-verify_jwt = true
+verify_jwt = false
 
-# Scheduled entry points. No end-user JWT exists for a cron run, so they
-# authenticate with REMINDER_CRON_SECRET (x-cron-secret) or a service-role bearer.
+# Scheduled entry points authenticate with the domain-separated cron capability
+# on x-cron-secret; they do not accept end-user sessions as scheduler authority.
 [functions.dispatch-inactivity-reminders]
 verify_jwt = false
 
@@ -31,16 +32,16 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.admin-status]
-verify_jwt = true
+verify_jwt = false
 
 [functions.broadcast-test-notification]
-verify_jwt = true
+verify_jwt = false
 
 [functions.admin-set-password]
-verify_jwt = true
+verify_jwt = false
 
 [functions.delete-account]
-verify_jwt = true
+verify_jwt = false
 
 # The service worker acknowledging a delivered notification. No end-user JWT is
 # available inside a worker, so this authenticates on the unguessable per-delivery
@@ -50,10 +51,10 @@ verify_jwt = false
 
 # Reads the delivery log for the debug menu. Admin allowlist enforced in-function.
 [functions.push-delivery-report]
-verify_jwt = true
+verify_jwt = false
 
 [functions.admin-discord-settings]
-verify_jwt = true
+verify_jwt = false
 
 [functions.discord-test-notification]
-verify_jwt = true
+verify_jwt = false
