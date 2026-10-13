@@ -131,7 +131,7 @@ jobs:
           fi
 
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v2
         with:
           version: latest
 
@@ -159,7 +159,7 @@ jobs:
           '
 
       - name: Apply DING migrations
-        run: supabase db push --linked --include-all
+        run: supabase db push --linked --include-all --yes
 
       - name: Configure Edge Function secrets
         shell: bash
@@ -190,9 +190,9 @@ jobs:
           GHPAGES_BASE: /${{ github.event.repository.name }}/
         run: npm run build
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
