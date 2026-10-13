@@ -168,6 +168,21 @@ async function subscribeForLevelEvent(client, expectedId) {
 }
 
 try {
+  console.log('[smoke] verifying direct public Supabase Auth signup is disabled');
+  {
+    const direct = makeClient();
+    const forbiddenName = (`Direct${token}`).slice(0, 30);
+    const directSignup = await direct.auth.signUp({
+      email: syntheticAuthEmail(forbiddenName),
+      password: 'Ding!' + randomBytes(18).toString('base64url'),
+    });
+    assert(directSignup.error, 'Direct public Supabase Auth signup unexpectedly succeeded.');
+    const forbiddenUserId = directSignup.data.user?.id;
+    if (forbiddenUserId) {
+      throw new Error('Direct public signup returned a user despite auth.disable_signup.');
+    }
+  }
+
   const alice = await createAccount('A');
   const bob = await createAccount('B');
 
