@@ -19,8 +19,8 @@ const MAX_EVENT_AGE_MS = 15 * 60 * 1000;
 // Scoped to achievements on purpose. Counting every kind meant an achievement
 // backlog could exhaust the budget and then throttle that account's next real
 // Ding. Dings are primary progression events and must never be dropped as
-// collateral from an achievement backlog. Achievements
-// are additionally held to one push per cooldown window by the slot claim in
+// collateral from an achievement backlog. Achievements are additionally
+// held to one push per exact reconciliation burst by the slot claim in
 // _shared/announce.ts; this stays as the outer bound on a misbehaving client.
 const RATE_WINDOW_MS = 5 * 60 * 1000;
 const RATE_MAX_EVENTS = 12;
