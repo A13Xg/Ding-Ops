@@ -296,16 +296,14 @@
 
 # Remaining external setup
 
-Repository-only work is intended to be effectively complete. Production setup is reduced to seven required GitHub secrets plus live/device validation.
+Repository-only work is intended to be effectively complete. Production setup is reduced to five required GitHub secrets plus live/device validation.
 
 ## Required GitHub secrets
 
 - [!] `SUPABASE_ACCESS_TOKEN`
 - [!] `SUPABASE_DB_PASSWORD`
 - [!] `SUPABASE_PROJECT_REF`
-- [!] `VAPID_PUBLIC_KEY`
-- [!] `VAPID_PRIVATE_KEY`
-- [!] `REMINDER_CRON_SECRET`
+- [!] `VAPID_KEYS_JSON` (paste the JSON produced by `npm run generate:vapid`)
 - [!] `DING_INVITE_CODE` (24+ random characters; server-side signup gate)
 
 Optional:
