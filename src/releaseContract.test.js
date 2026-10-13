@@ -67,7 +67,7 @@ describe('DING release contract', () => {
     ];
     for (const relative of userFunctions) {
       const content = read(`supabase/functions/${relative}`);
-      expect(content).toContain("auth.getUser()");
+      expect(content).toContain('auth.getUser()');
     }
 
     for (const relative of [
