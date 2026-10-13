@@ -35,8 +35,7 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
       VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
       VAPID_SUBJECT: https://github.com/${{ github.repository_owner }}
@@ -94,8 +93,7 @@ jobs:
           for name in \
             SUPABASE_ACCESS_TOKEN \
             SUPABASE_DB_PASSWORD \
-            VITE_SUPABASE_URL \
-            VITE_SUPABASE_PUBLISHABLE_KEY \
+            SUPABASE_PROJECT_REF \
             VAPID_PUBLIC_KEY \
             VAPID_PRIVATE_KEY \
             REMINDER_CRON_SECRET \
@@ -110,14 +108,117 @@ jobs:
             exit 1
           fi
 
-          host="${VITE_SUPABASE_URL#https://}"
-          host="${host%%/*}"
-          SUPABASE_PROJECT_REF="${host%%.supabase.co}"
-          if [ -z "$SUPABASE_PROJECT_REF" ] || [ "$host" != "${SUPABASE_PROJECT_REF}.supabase.co" ]; then
-            echo "::error::VITE_SUPABASE_URL must be a canonical https://<project-ref>.supabase.co URL."
+          if ! printf '%s' "$SUPABASE_PROJECT_REF" | grep -Eq '^[a-z0-9]+
+          if [ "${#REMINDER_CRON_SECRET}" -lt 32 ]; then
+            echo "::error::REMINDER_CRON_SECRET must be at least 32 characters."
             exit 1
           fi
-          echo "SUPABASE_PROJECT_REF=$SUPABASE_PROJECT_REF" >> "$GITHUB_ENV"
+
+          if [ "${#DING_INVITE_CODE}" -lt 24 ]; then
+            echo "::error::DING_INVITE_CODE must be at least 24 characters."
+            exit 1
+          fi
+
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: latest
+
+      - name: Resolve DING browser publishable key
+        shell: bash
+        run: |
+          set -euo pipefail
+          keys_json="$(
+            curl --fail-with-body --silent --show-error               --retry 3 --retry-all-errors --max-time 30               "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true"               -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
+          )"
+          publishable="$(
+            printf '%s' "$keys_json" | node -e '
+              let raw = "";
+              process.stdin.setEncoding("utf8");
+              process.stdin.on("data", chunk => raw += chunk);
+              process.stdin.on("end", () => {
+                const keys = JSON.parse(raw);
+                const key = Array.isArray(keys) ? keys.find(item => item?.type === "publishable" && item?.api_key) : null;
+                if (!key) {
+                  console.error("No Supabase publishable API key exists for this project.");
+                  process.exit(1);
+                }
+                process.stdout.write(key.api_key);
+              });
+            '
+          )"
+          echo "::add-mask::$publishable"
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=$publishable" >> "$GITHUB_ENV"
+
+      - name: Link dedicated DING Supabase project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Lock down public Supabase Auth signup
+        shell: bash
+        run: |
+          set -euo pipefail
+          auth_config="$(
+            curl --fail-with-body --silent --show-error               --retry 3 --retry-all-errors --max-time 30               -X PATCH "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth"               -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"               -H "Content-Type: application/json"               -d '{"disable_signup":true,"external_anonymous_users_enabled":false}'
+          )"
+          printf '%s' "$auth_config" | node -e '
+            let raw = "";
+            process.stdin.setEncoding("utf8");
+            process.stdin.on("data", chunk => raw += chunk);
+            process.stdin.on("end", () => {
+              const config = JSON.parse(raw);
+              if (config.disable_signup !== true || config.external_anonymous_users_enabled !== false) {
+                console.error("Auth lock-down did not persist.");
+                process.exit(1);
+              }
+            });
+          '
+
+      - name: Apply DING migrations
+        run: supabase db push --linked --include-all --yes
+
+      - name: Configure Edge Function secrets
+        shell: bash
+        env:
+          DING_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          args=(
+            "VAPID_PUBLIC_KEY=$VAPID_PUBLIC_KEY"
+            "VAPID_PRIVATE_KEY=$VAPID_PRIVATE_KEY"
+            "VAPID_SUBJECT=$VAPID_SUBJECT"
+            "REMINDER_CRON_SECRET=$REMINDER_CRON_SECRET"
+            "DING_INVITE_CODE=$DING_INVITE_CODE"
+            "SITE_URL=$DING_SITE_URL"
+          )
+          if [ -n "${BROADCAST_ADMINS:-}" ]; then args+=("BROADCAST_ADMINS=$BROADCAST_ADMINS"); fi
+          if [ -n "${DISCORD_WEBHOOK_URL:-}" ]; then args+=("DISCORD_WEBHOOK_URL=$DISCORD_WEBHOOK_URL"); fi
+          supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" "${args[@]}"
+
+      - name: Deploy DING Edge Functions
+        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Live Supabase integration smoke
+        run: npm run test:integration
+
+      - name: Build GitHub Pages artifact
+        env:
+          GHPAGES_BASE: /${{ github.event.repository.name }}/
+        run: npm run build
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+; then
+            echo "::error::SUPABASE_PROJECT_REF must contain only lowercase letters and digits."
+            exit 1
+          fi
+          echo "VITE_SUPABASE_URL=https://${SUPABASE_PROJECT_REF}.supabase.co" >> "$GITHUB_ENV"
           echo "VITE_WEB_PUSH_PUBLIC_KEY=$VAPID_PUBLIC_KEY" >> "$GITHUB_ENV"
 
           if [ "${#REMINDER_CRON_SECRET}" -lt 32 ]; then
