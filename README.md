@@ -59,7 +59,7 @@ For a real backend, populate:
 
 ```dotenv
 VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
+VITE_SUPABASE_PUBLISHABLE_KEY=
 VITE_WEB_PUSH_PUBLIC_KEY=
 ```
 
@@ -98,7 +98,7 @@ DING must use a dedicated Supabase project. Never reuse Bust production values.
 | `SUPABASE_ACCESS_TOKEN` | Supabase CLI deployment |
 | `SUPABASE_DB_PASSWORD` | Link/apply migrations |
 | `VITE_SUPABASE_URL` | Browser Supabase URL |
-| `VITE_SUPABASE_ANON_KEY` | Browser anon key |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Browser publishable key (`sb_publishable_...`) |
 | `VAPID_PUBLIC_KEY` | Edge Function push signing |
 | `VAPID_PRIVATE_KEY` | Edge Function push signing |
 | `REMINDER_CRON_SECRET` | Scheduled backstop/reminder authentication |
