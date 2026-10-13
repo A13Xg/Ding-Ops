@@ -102,6 +102,34 @@ describe('DING release contract', () => {
     expect(config).toMatch(/\[functions\.admin-status\][\s\S]*?verify_jwt\s*=\s*true/);
   });
 
+  it('keeps the production deployment sequence singular and ordered', () => {
+    const deploy = read('.github/workflows/deploy.yml');
+    const count = token => deploy.split(token).length - 1;
+
+    expect(count('supabase link --project-ref')).toBe(1);
+    expect(count('supabase db push --linked --include-all --yes')).toBe(1);
+    expect(count('supabase functions deploy --project-ref')).toBe(1);
+    expect(count('actions/deploy-pages@v4')).toBe(1);
+    expect(count('Lock down public Supabase Auth signup')).toBe(1);
+    expect(count('Resolve DING browser publishable key')).toBe(1);
+
+    const link = deploy.indexOf('supabase link --project-ref');
+    const auth = deploy.indexOf('Lock down public Supabase Auth signup');
+    const migrations = deploy.indexOf('supabase db push --linked --include-all --yes');
+    const functions = deploy.indexOf('supabase functions deploy --project-ref');
+    const smoke = deploy.indexOf('npm run test:integration');
+    const build = deploy.lastIndexOf('npm run build');
+    const pages = deploy.indexOf('actions/deploy-pages@v4');
+
+    expect(link).toBeGreaterThan(-1);
+    expect(auth).toBeGreaterThan(link);
+    expect(migrations).toBeGreaterThan(auth);
+    expect(functions).toBeGreaterThan(migrations);
+    expect(smoke).toBeGreaterThan(functions);
+    expect(build).toBeGreaterThan(smoke);
+    expect(pages).toBeGreaterThan(build);
+  });
+
   it('never enables visual demo mode in production deployment', () => {
     const deploy = read('.github/workflows/deploy.yml');
     expect(deploy).not.toMatch(/VITE_DEMO_MODE\s*:/);
