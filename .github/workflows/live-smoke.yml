@@ -10,8 +10,8 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     env:
-      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       DING_INVITE_CODE: ${{ secrets.DING_INVITE_CODE }}
     steps:
       - uses: actions/checkout@v7
@@ -20,12 +20,34 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Verify linked DING backend
+      - name: Resolve DING public backend configuration
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${VITE_SUPABASE_URL:-}" ] || [ -z "${VITE_SUPABASE_PUBLISHABLE_KEY:-}" ] || [ -z "${DING_INVITE_CODE:-}" ]; then
-            echo "::error::Add VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, and DING_INVITE_CODE GitHub secrets first."
-            exit 1
-          fi
-          npm run test:integration
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF DING_INVITE_CODE; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing required GitHub secret: $name"
+              exit 1
+            fi
+          done
+          keys_json="$(
+            curl --fail-with-body --silent --show-error               --retry 3 --retry-all-errors --max-time 30               "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true"               -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
+          )"
+          publishable="$(
+            printf '%s' "$keys_json" | node -e '
+              let raw = "";
+              process.stdin.setEncoding("utf8");
+              process.stdin.on("data", chunk => raw += chunk);
+              process.stdin.on("end", () => {
+                const keys = JSON.parse(raw);
+                const key = Array.isArray(keys) ? keys.find(item => item?.type === "publishable" && item?.api_key) : null;
+                if (!key) process.exit(1);
+                process.stdout.write(key.api_key);
+              });
+            '
+          )"
+          echo "::add-mask::$publishable"
+          echo "VITE_SUPABASE_URL=https://$SUPABASE_PROJECT_REF.supabase.co" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=$publishable" >> "$GITHUB_ENV"
+      - name: Verify linked DING backend
+        run: npm run test:integration
