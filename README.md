@@ -131,7 +131,7 @@ node -e "console.log(require('crypto').createHash('sha256').update('YOUR_USERNAM
 
 DING signup is handled by the unauthenticated-but-invite-gated `signup-account` Edge Function. The invite code never ships in the browser bundle. The function uses the service role to create a **confirmed** synthetic-email auth user plus its clean profile, then the browser signs in with the new credentials.
 
-Use a random `DING_INVITE_CODE` of at least 24 characters. Because users are server-created as confirmed accounts, no Supabase email-confirmation setting change is required.
+Use a random `DING_INVITE_CODE` of at least 24 characters. The deploy workflow also pushes `auth.enable_signup = false` (plus email/SMS signup disabled), so callers cannot bypass the invite function through Supabase Auth directly. Users are server-created as confirmed accounts; no manual Auth dashboard changes are required.
 
 ## Deployment
 
@@ -139,7 +139,7 @@ The `Deploy DING` workflow is intentionally manual and credential-gated. Once th
 
 1. install dependencies;
 2. validate required secrets;
-3. link the dedicated Supabase project;
+3. link the dedicated Supabase project and push the locked-down Auth configuration;
 4. apply DING migrations;
 5. configure Edge Function secrets;
 6. deploy all DING Edge Functions;
