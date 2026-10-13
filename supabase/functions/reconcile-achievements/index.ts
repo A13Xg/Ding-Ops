@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import type { Database } from '../_shared/database.types.ts';
 import { dingAchievements, computeDingAchievementUnlocks } from '../../../src/dingAchievements.js';
 import { fetchAllPages } from '../../../src/fetchAllPages.js';
+import { supabaseFunctionEnvironment } from '../_shared/supabaseKeys.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,12 +21,10 @@ Deno.serve(async req => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const { url: supabaseUrl, publishableKey, secretKey } = supabaseFunctionEnvironment();
     const authorization = req.headers.get('Authorization');
 
-    if (!supabaseUrl || !anonKey || !serviceRoleKey) throw new Error('Supabase function environment is incomplete');
+    if (!supabaseUrl || !publishableKey || !secretKey) throw new Error('Supabase function environment is incomplete');
     if (!authorization) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
@@ -33,7 +32,7 @@ Deno.serve(async req => {
       });
     }
 
-    const authClient = createClient<Database>(supabaseUrl, anonKey, {
+    const authClient = createClient<Database>(supabaseUrl, publishableKey, {
       global: { headers: { Authorization: authorization } },
       auth: { persistSession: false },
     });
@@ -45,7 +44,7 @@ Deno.serve(async req => {
       });
     }
 
-    const admin = createClient<Database>(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+    const admin = createClient<Database>(supabaseUrl, secretKey, { auth: { persistSession: false } });
     const callerId = authData.user.id;
 
     const [configResult, profiles, allEvents, allCharacters, existing] = await Promise.all([
