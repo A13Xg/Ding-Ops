@@ -110,7 +110,7 @@ Optional:
 | `BROADCAST_ADMINS` | SHA-256 allowlist for privileged admin functions; if absent, all admin endpoints deny access |
 | `DISCORD_WEBHOOK_URL` | Default Discord webhook if not stored through admin settings |
 
-The deploy workflow derives the browser Supabase URL from `SUPABASE_PROJECT_REF` and automatically ensures two dedicated modern Supabase API keys exist: `ding-web` (publishable browser key) and `ding-edge` (secret service-role key for Edge Functions). It exposes the `ding-web` value to the browser, exposes `VAPID_PUBLIC_KEY` as `VITE_WEB_PUSH_PUBLIC_KEY`, and uses the repository owner's GitHub profile URL as the VAPID subject. Those generated/public values do not require separate GitHub secrets. Scheduled maintenance derives a domain-separated cron capability from the VAPID private key (`SHA-256("ding-cron-v1:" + privateKey)`). The scheduler never sends the VAPID private key to the cron endpoints; the private key itself is stored only as an Edge Function secret because Web Push signing requires it. No separate cron secret or Supabase secret API key is required.
+The deploy workflow derives the browser Supabase URL from `SUPABASE_PROJECT_REF` and automatically ensures two dedicated modern Supabase API keys exist: `ding-web` (publishable browser key) and `ding-edge` (secret service-role key for Edge Functions). It exposes the `ding-web` value to the browser, exposes `VAPID_PUBLIC_KEY` as `VITE_WEB_PUSH_PUBLIC_KEY`, and uses the repository owner's GitHub profile URL as the VAPID subject. Those generated/public values do not require separate GitHub secrets. After the modern-key live smoke passes, deployment also disables the deprecated legacy `anon`/`service_role` API keys; a future Supabase removal of that management endpoint is treated as a notice rather than a failed release. Scheduled maintenance derives a domain-separated cron capability from the VAPID private key (`SHA-256("ding-cron-v1:" + privateKey)`). The scheduler never sends the VAPID private key to the cron endpoints; the private key itself is stored only as an Edge Function secret because Web Push signing requires it. No separate cron secret or Supabase secret API key is required.
 
 Generate a VAPID pair and paste the command's entire JSON output into the `VAPID_KEYS_JSON` GitHub secret:
 
@@ -143,9 +143,10 @@ The `Deploy DING` workflow is intentionally manual and credential-gated. Once th
 5. preview and apply DING migrations;
 6. configure Edge Function secrets;
 7. deploy all DING Edge Functions;
-8. run the live integration/concurrency smoke test;
-9. build with the DING GitHub Pages base path;
-10. deploy the Pages artifact.
+8. run the live integration/concurrency smoke test entirely on `ding-web`/`ding-edge`;
+9. disable deprecated Supabase `anon`/`service_role` API keys after that smoke passes;
+10. build with the DING GitHub Pages base path;
+11. deploy the Pages artifact.
 
 The live smoke test creates **two** temporary invite-gated accounts and characters, validates cross-account RLS/ownership, forbidden direct writes, Realtime propagation, UUID idempotency, competing concurrent Dings, note ownership, synchronized crew achievements, validated profile showcases, and admin fail-closed behavior, then deletes both accounts.
 
