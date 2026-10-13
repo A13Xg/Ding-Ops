@@ -141,6 +141,7 @@ describe('DING release contract', () => {
     const migrations = deploy.indexOf('supabase db push --linked --include-all --yes');
     const functions = deploy.indexOf('supabase functions deploy --project-ref');
     const smoke = deploy.indexOf('npm run test:integration');
+    const retireLegacy = deploy.indexOf('Disable legacy Supabase API keys after modern-key smoke passes');
     const build = deploy.lastIndexOf('npm run build');
     const pages = deploy.indexOf('actions/deploy-pages@v4');
 
@@ -151,7 +152,8 @@ describe('DING release contract', () => {
     expect(migrations).toBeGreaterThan(preview);
     expect(functions).toBeGreaterThan(migrations);
     expect(smoke).toBeGreaterThan(functions);
-    expect(build).toBeGreaterThan(smoke);
+    expect(retireLegacy).toBeGreaterThan(smoke);
+    expect(build).toBeGreaterThan(retireLegacy);
     expect(pages).toBeGreaterThan(build);
   });
 
@@ -159,6 +161,15 @@ describe('DING release contract', () => {
     const deploy = read('.github/workflows/deploy.yml');
     expect(deploy).toContain('yuorggekucycvxrtqvvp');
     expect(deploy).toContain('Refusing to deploy DING into the known Bust production Supabase project');
+  });
+
+  it('retires deprecated Supabase API keys only after modern-key live verification', () => {
+    const deploy = read('.github/workflows/deploy.yml');
+    const smoke = deploy.indexOf('npm run test:integration');
+    const retire = deploy.indexOf('/api-keys/legacy?enabled=false');
+    expect(smoke).toBeGreaterThan(-1);
+    expect(retire).toBeGreaterThan(smoke);
+    expect(deploy).toContain('modern DING keys already passed the live smoke');
   });
 
   it('keeps production setup to the five intended required secrets', () => {
