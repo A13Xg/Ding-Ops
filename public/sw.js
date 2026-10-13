@@ -11,10 +11,32 @@
  *
  * Bump SW_VERSION whenever this file changes so the update is obvious in logs.
  */
-const SW_VERSION = '2026-10-13.1';
+const SW_VERSION = '2026-10-13.2';
 
 const scopeUrl = () => new URL(self.registration.scope);
 const scoped = path => new URL(String(path).replace(/^\//, ''), scopeUrl()).toString();
+
+function safeAppUrl(value) {
+  const scope = scopeUrl();
+  try {
+    const target = new URL(String(value || ''), scope);
+    const prefix = scope.pathname.endsWith('/') ? scope.pathname : `${scope.pathname}/`;
+    if (target.origin !== scope.origin || !target.pathname.startsWith(prefix)) return scope.toString();
+    return target.toString();
+  } catch {
+    return scope.toString();
+  }
+}
+
+function safeAckUrl(value) {
+  try {
+    const target = new URL(String(value || ''));
+    if (target.protocol !== 'https:' || !target.pathname.endsWith('/functions/v1/ack-push')) return null;
+    return target.toString();
+  } catch {
+    return null;
+  }
+}
 
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -58,7 +80,7 @@ function buildNotification(payload) {
       vibrate: payload.vibrate || [40, 60, 90],
       timestamp: Number(payload.timestamp) || Date.now(),
       requireInteraction: false,
-      data: { ...(payload.data || {}), url: payload.url || payload.data?.url || scoped('') },
+      data: { ...(payload.data || {}), url: safeAppUrl(payload.url || payload.data?.url || scoped('')) },
     },
   ];
 }
@@ -76,7 +98,7 @@ function buildNotification(payload) {
  */
 async function acknowledgeDelivery(payload) {
   const receiptId = payload?.data?.receiptId;
-  const ackUrl = payload?.data?.ackUrl;
+  const ackUrl = safeAckUrl(payload?.data?.ackUrl);
   if (!receiptId || !ackUrl) return;
   try {
     await fetch(ackUrl, {
@@ -112,7 +134,7 @@ self.addEventListener('push', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const target = event.notification.data?.url || scoped('');
+  const target = safeAppUrl(event.notification.data?.url || scoped(''));
   event.waitUntil(
     (async () => {
       const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
