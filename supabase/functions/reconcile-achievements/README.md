@@ -25,10 +25,10 @@ supabase functions deploy reconcile-achievements
 Supabase provides these server-side values to deployed functions:
 
 - `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_PUBLISHABLE_KEYS`
+- `SUPABASE_SECRET_KEYS`
 
-Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser or any `VITE_*` variable.
+Never expose a value from `SUPABASE_SECRET_KEYS` to the browser or any `VITE_*` variable. The shared Edge helper retains legacy-key fallback only for local/backward compatibility.
 
 ## Verification
 
