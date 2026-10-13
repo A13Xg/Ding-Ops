@@ -200,6 +200,19 @@ describe('DING release contract', () => {
     expect(worker).not.toContain('bust-sw-version');
   });
 
+  it('pins public-schema creation privileges away from browser roles', () => {
+    const schema = read('supabase/migrations/20261005230000_core_ding_domain.sql').toLowerCase();
+    expect(schema).toContain('revoke create on schema public from public, anon, authenticated');
+    expect(schema).toContain('grant usage on schema public to anon, authenticated');
+  });
+
+  it('does not expose internal signup failures to unauthenticated callers', () => {
+    const signup = read('supabase/functions/signup-account/index.ts');
+    expect(signup).toContain("console.error('[signup-account]', error)");
+    expect(signup).toContain("return json(500, { error: 'Account creation failed' })");
+    expect(signup).not.toContain("return json(500, { error: error instanceof Error ? error.message");
+  });
+
   it('keeps direct browser progression writes disabled', () => {
     const schema = read('supabase/migrations/20261005230000_core_ding_domain.sql');
     expect(schema).toContain('Deliberately no browser INSERT/UPDATE policy for level_events');
