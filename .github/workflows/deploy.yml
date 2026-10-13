@@ -35,13 +35,11 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-      VITE_WEB_PUSH_PUBLIC_KEY: ${{ secrets.VITE_WEB_PUSH_PUBLIC_KEY }}
       VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
       VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
-      VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+      VAPID_SUBJECT: https://github.com/${{ github.repository_owner }}
       REMINDER_CRON_SECRET: ${{ secrets.REMINDER_CRON_SECRET }}
       DING_INVITE_CODE: ${{ secrets.DING_INVITE_CODE }}
       BROADCAST_ADMINS: ${{ secrets.BROADCAST_ADMINS }}
@@ -96,13 +94,10 @@ jobs:
           for name in \
             SUPABASE_ACCESS_TOKEN \
             SUPABASE_DB_PASSWORD \
-            SUPABASE_PROJECT_REF \
             VITE_SUPABASE_URL \
             VITE_SUPABASE_ANON_KEY \
-            VITE_WEB_PUSH_PUBLIC_KEY \
             VAPID_PUBLIC_KEY \
             VAPID_PRIVATE_KEY \
-            VAPID_SUBJECT \
             REMINDER_CRON_SECRET \
             DING_INVITE_CODE
           do
@@ -115,16 +110,15 @@ jobs:
             exit 1
           fi
 
-          expected_url="https://${SUPABASE_PROJECT_REF}.supabase.co"
-          if [ "${VITE_SUPABASE_URL%/}" != "$expected_url" ]; then
-            echo "::error::VITE_SUPABASE_URL does not match SUPABASE_PROJECT_REF."
+          host="${VITE_SUPABASE_URL#https://}"
+          host="${host%%/*}"
+          SUPABASE_PROJECT_REF="${host%%.supabase.co}"
+          if [ -z "$SUPABASE_PROJECT_REF" ] || [ "$host" != "${SUPABASE_PROJECT_REF}.supabase.co" ]; then
+            echo "::error::VITE_SUPABASE_URL must be a canonical https://<project-ref>.supabase.co URL."
             exit 1
           fi
-
-          if [ "$VITE_WEB_PUSH_PUBLIC_KEY" != "$VAPID_PUBLIC_KEY" ]; then
-            echo "::error::VITE_WEB_PUSH_PUBLIC_KEY and VAPID_PUBLIC_KEY must be the same VAPID public key."
-            exit 1
-          fi
+          echo "SUPABASE_PROJECT_REF=$SUPABASE_PROJECT_REF" >> "$GITHUB_ENV"
+          echo "VITE_WEB_PUSH_PUBLIC_KEY=$VAPID_PUBLIC_KEY" >> "$GITHUB_ENV"
 
           if [ "${#REMINDER_CRON_SECRET}" -lt 32 ]; then
             echo "::error::REMINDER_CRON_SECRET must be at least 32 characters."
@@ -136,13 +130,6 @@ jobs:
             exit 1
           fi
 
-          case "$VAPID_SUBJECT" in
-            mailto:*|https://*) ;;
-            *)
-              echo "::error::VAPID_SUBJECT must start with mailto: or https://"
-              exit 1
-              ;;
-          esac
 
       - uses: supabase/setup-cli@v1
         with:
