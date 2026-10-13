@@ -143,6 +143,6 @@ Deno.serve(async (req) => {
     return json(200, { ok: true, endpoint, test, health });
   } catch (error) {
     console.error('[register-push-subscription]', error);
-    return json(500, { error: error instanceof Error ? error.message : 'Push registration failed' });
+    return json(500, { error: 'Push registration failed' });
   }
 });
