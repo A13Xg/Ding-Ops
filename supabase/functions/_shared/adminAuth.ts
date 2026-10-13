@@ -7,9 +7,9 @@
  *
  * BROADCAST_ADMINS holds comma-separated SHA-256 hex digests. A digest may be
  * of a profile UUID or of a lower-cased username; both are accepted, and since
- * usernames are now case-insensitively unique AND immutable at the database
- * level (migrations/20260908010000_username_case_insensitive.sql), neither can be
- * moved onto the allowlist by a crew member any more.
+ * usernames are case-insensitively unique and immutable in the DING core
+ * migration, neither identifier can be moved onto the allowlist by a crew
+ * member after account creation.
  *
  * Generate a digest with:
  *   node -e "console.log(require('crypto').createHash('sha256').update('VALUE').digest('hex'))"
