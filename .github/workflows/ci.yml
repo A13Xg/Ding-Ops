@@ -34,6 +34,9 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Parse GitHub workflow YAML
+        run: ruby -e 'require "yaml"; Dir[".github/workflows/*.{yml,yaml}"].sort.each { |file| YAML.load_file(file, aliases: true); puts "OK #{file}" }'
+
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
       - name: Format check
