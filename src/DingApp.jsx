@@ -1207,8 +1207,15 @@ function DingDashboard({ user, setUser }) {
               className="mf-button ghost"
               type="button"
               onClick={async () => {
-                await backend.logout();
-                setUser(null);
+                try {
+                  const result = await backend.logout();
+                  if (result?.remoteRevocationFailed) {
+                    console.warn('[logout] remote revocation failed; local session was cleared');
+                  }
+                  setUser(null);
+                } catch (error) {
+                  setStatus(error.message || 'Logout failed');
+                }
               }}
             >
               <LogOut /> LOG OUT
