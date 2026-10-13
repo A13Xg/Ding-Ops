@@ -98,9 +98,7 @@ DING must use a dedicated Supabase project. Never reuse Bust production values.
 | `SUPABASE_ACCESS_TOKEN` | Supabase CLI deployment |
 | `SUPABASE_DB_PASSWORD` | Link/apply migrations |
 | `SUPABASE_PROJECT_REF` | Dedicated DING project ref; deploy derives the browser URL and fetches its publishable key |
-| `VAPID_PUBLIC_KEY` | Edge Function push signing |
-| `VAPID_PRIVATE_KEY` | Edge Function push signing |
-| `REMINDER_CRON_SECRET` | Scheduled backstop/reminder authentication |
+| `VAPID_KEYS_JSON` | One JSON object containing the generated `publicKey` + `privateKey` pair |
 | `DING_INVITE_CODE` | Private 24+ character server-side crew signup secret |
 
 The `SUPABASE_ACCESS_TOKEN` must be able to manage the selected project, read its API keys, and update Auth configuration. A classic PAT works; a scoped token needs the corresponding project/API-key read and Auth-config write permissions.
@@ -112,9 +110,9 @@ Optional:
 | `BROADCAST_ADMINS` | SHA-256 allowlist for privileged admin functions; if absent, all admin endpoints deny access |
 | `DISCORD_WEBHOOK_URL` | Default Discord webhook if not stored through admin settings |
 
-The deploy workflow derives the browser Supabase URL from `SUPABASE_PROJECT_REF`, fetches the project's current publishable key through the Supabase Management API, exposes `VAPID_PUBLIC_KEY` to the browser as `VITE_WEB_PUSH_PUBLIC_KEY`, and uses the repository owner's GitHub profile URL as the VAPID subject. Those public values do not require separate secrets.
+The deploy workflow derives the browser Supabase URL from `SUPABASE_PROJECT_REF`, fetches the project's current publishable key through the Supabase Management API, exposes `VAPID_PUBLIC_KEY` to the browser as `VITE_WEB_PUSH_PUBLIC_KEY`, and uses the repository owner's GitHub profile URL as the VAPID subject. Those public values do not require separate secrets. Scheduled maintenance reuses a transient Supabase secret API key fetched with the existing access token, so no separate cron secret is required.
 
-Generate a VAPID pair with:
+Generate a VAPID pair and paste the command's entire JSON output into the `VAPID_KEYS_JSON` GitHub secret:
 
 ```bash
 npm run generate:vapid
@@ -207,7 +205,7 @@ docs/screenshots/            generated real-app screenshots
 Repository-only implementation is intended to be complete before backend linkage. The remaining release gate is expected to be:
 
 1. create/link the dedicated DING Supabase project;
-2. add the seven required GitHub secrets listed above;
+2. add the five required GitHub secrets listed above;
 3. run `Deploy DING`;
 4. let the automated two-account live smoke pass;
 5. verify installed iOS/Android PWA push behavior and final physical-device layout.
