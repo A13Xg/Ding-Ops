@@ -3,12 +3,12 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { syntheticAuthEmail } from '../src/authIdentity.js';
 
 const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
 const inviteCode = process.env.DING_INVITE_CODE || '';
 
-if (!url || !anonKey || !inviteCode) {
+if (!url || !publishableKey || !inviteCode) {
   throw new Error(
-    'Missing VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY (or SUPABASE_URL/SUPABASE_ANON_KEY) and DING_INVITE_CODE.'
+    'Missing VITE_SUPABASE_URL/VITE_SUPABASE_PUBLISHABLE_KEY (or SUPABASE_URL/SUPABASE_PUBLISHABLE_KEY) and DING_INVITE_CODE.'
   );
 }
 
@@ -21,7 +21,7 @@ function assert(condition, message) {
 }
 
 function makeClient() {
-  const client = createClient(url, anonKey, {
+  const client = createClient(url, publishableKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
   clients.push(client);
