@@ -214,6 +214,18 @@ describe('DING release contract', () => {
     expect(worker).not.toContain('bust-sw-version');
   });
 
+  it('constrains notification navigation and delivery acknowledgements', () => {
+    const worker = read('public/sw.js');
+    expect(worker).toContain('function safeAppUrl');
+    expect(worker).toContain('target.origin !== scope.origin');
+    expect(worker).toContain('target.pathname.startsWith(prefix)');
+    expect(worker).toContain('function safeAckUrl');
+    expect(worker).toContain("target.protocol !== 'https:'");
+    expect(worker).toContain("target.pathname.endsWith('/functions/v1/ack-push')");
+    expect(worker).toContain('const target = safeAppUrl');
+    expect(worker).toContain('const ackUrl = safeAckUrl');
+  });
+
   it('pins public-schema creation privileges away from browser roles', () => {
     const schema = read('supabase/migrations/20261005230000_core_ding_domain.sql').toLowerCase();
     expect(schema).toContain('revoke create on schema public from public, anon, authenticated');
