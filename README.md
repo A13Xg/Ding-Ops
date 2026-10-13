@@ -110,7 +110,7 @@ Optional:
 | `BROADCAST_ADMINS` | SHA-256 allowlist for privileged admin functions; if absent, all admin endpoints deny access |
 | `DISCORD_WEBHOOK_URL` | Default Discord webhook if not stored through admin settings |
 
-The deploy workflow derives the browser Supabase URL from `SUPABASE_PROJECT_REF`, fetches the project's current publishable key through the Supabase Management API, exposes `VAPID_PUBLIC_KEY` to the browser as `VITE_WEB_PUSH_PUBLIC_KEY`, and uses the repository owner's GitHub profile URL as the VAPID subject. Those public values do not require separate secrets. Scheduled maintenance derives a domain-separated cron capability from the VAPID private key (`SHA-256("ding-cron-v1:" + privateKey)`). The raw VAPID private key is never sent to the functions, and no separate cron secret or Supabase secret API key is required.
+The deploy workflow derives the browser Supabase URL from `SUPABASE_PROJECT_REF`, fetches the project's current publishable key through the Supabase Management API, exposes `VAPID_PUBLIC_KEY` to the browser as `VITE_WEB_PUSH_PUBLIC_KEY`, and uses the repository owner's GitHub profile URL as the VAPID subject. Those public values do not require separate secrets. Scheduled maintenance derives a domain-separated cron capability from the VAPID private key (`SHA-256("ding-cron-v1:" + privateKey)`). The scheduler never sends the VAPID private key to the cron endpoints; the private key itself is stored only as an Edge Function secret because Web Push signing requires it. No separate cron secret or Supabase secret API key is required.
 
 Generate a VAPID pair and paste the command's entire JSON output into the `VAPID_KEYS_JSON` GitHub secret:
 
