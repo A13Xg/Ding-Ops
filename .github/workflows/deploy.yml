@@ -36,7 +36,7 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
       VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
       VAPID_SUBJECT: https://github.com/${{ github.repository_owner }}
@@ -95,7 +95,7 @@ jobs:
             SUPABASE_ACCESS_TOKEN \
             SUPABASE_DB_PASSWORD \
             VITE_SUPABASE_URL \
-            VITE_SUPABASE_ANON_KEY \
+            VITE_SUPABASE_PUBLISHABLE_KEY \
             VAPID_PUBLIC_KEY \
             VAPID_PRIVATE_KEY \
             REMINDER_CRON_SECRET \
@@ -138,8 +138,25 @@ jobs:
       - name: Link dedicated DING Supabase project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
 
-      - name: Push DING Auth configuration
-        run: supabase config push --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Lock down public Supabase Auth signup
+        shell: bash
+        run: |
+          set -euo pipefail
+          auth_config="$(
+            curl --fail-with-body --silent --show-error               --retry 3 --retry-all-errors --max-time 30               -X PATCH "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth"               -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"               -H "Content-Type: application/json"               -d '{"disable_signup":true,"external_anonymous_users_enabled":false}'
+          )"
+          printf '%s' "$auth_config" | node -e '
+            let raw = "";
+            process.stdin.setEncoding("utf8");
+            process.stdin.on("data", chunk => raw += chunk);
+            process.stdin.on("end", () => {
+              const config = JSON.parse(raw);
+              if (config.disable_signup !== true || config.external_anonymous_users_enabled !== false) {
+                console.error("Auth lock-down did not persist.");
+                process.exit(1);
+              }
+            });
+          '
 
       - name: Apply DING migrations
         run: supabase db push --linked --include-all
