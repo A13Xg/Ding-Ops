@@ -624,7 +624,7 @@ function DingDashboard({ user, setUser }) {
 
   useEffect(() => {
     let live = true;
-    let hasSubscribed = false;
+    let realtimeRevision = 0;
     let resyncPromise = null;
 
     const applySnapshot = snapshot => {
@@ -639,21 +639,37 @@ function DingDashboard({ user, setUser }) {
 
     const resyncDashboard = async ({ includeConfig = false, includeAdmin = false } = {}) => {
       if (resyncPromise) return resyncPromise;
-      resyncPromise = Promise.all([
-        backend.dingDashboard(),
-        includeConfig ? backend.gameConfig().catch(() => null) : Promise.resolve(null),
-        includeAdmin ? backend.adminStatus().catch(() => ({ isAdmin: false })) : Promise.resolve(null),
-      ])
-        .then(([snapshot, remoteConfig, adminStatus]) => {
+      resyncPromise = (async () => {
+        let attempts = 0;
+        while (live && attempts < 3) {
+          const revisionAtStart = realtimeRevision;
+          const [snapshot, remoteConfig, adminStatus] = await Promise.all([
+            backend.dingDashboard(),
+            includeConfig ? backend.gameConfig().catch(() => null) : Promise.resolve(null),
+            includeAdmin ? backend.adminStatus().catch(() => ({ isAdmin: false })) : Promise.resolve(null),
+          ]);
           if (!live) return;
+          if (revisionAtStart !== realtimeRevision) {
+            attempts += 1;
+            continue;
+          }
           applySnapshot(snapshot);
           if (remoteConfig) setConfig(mergeGameConfig(remoteConfig));
           if (adminStatus) setIsAdmin(adminStatus?.isAdmin === true);
           setStatus(current => (current === 'Realtime reconnecting…' ? '' : current));
-        })
-        .finally(() => {
-          resyncPromise = null;
-        });
+          return;
+        }
+
+        // A very busy crew can mutate during every retry. One final fresh
+        // snapshot is still safer than retaining an arbitrarily old view; any
+        // event that lands after this request is also applied by Realtime.
+        if (live) {
+          const snapshot = await backend.dingDashboard();
+          if (live) applySnapshot(snapshot);
+        }
+      })().finally(() => {
+        resyncPromise = null;
+      });
       return resyncPromise;
     };
 
@@ -667,6 +683,7 @@ function DingDashboard({ user, setUser }) {
 
     const unsubscribe = backend.subscribeDing({
       onLevelEvent: (event, action) => {
+        realtimeRevision += 1;
         setEvents(previous =>
           action === 'deleted' ? previous.filter(row => row.id !== event.id) : mergeRow(previous, event)
         );
@@ -680,17 +697,20 @@ function DingDashboard({ user, setUser }) {
         }
       },
       onCharacter: (character, action) => {
+        realtimeRevision += 1;
         setCharacters(previous =>
           action === 'deleted' ? previous.filter(row => row.id !== character.id) : mergeRow(previous, character)
         );
       },
       onProfile: (profile, action) => {
+        realtimeRevision += 1;
         setUsers(previous =>
           action === 'deleted' ? previous.filter(row => row.id !== profile.id) : mergeRow(previous, profile)
         );
         if (profile.id === user.id && action !== 'deleted') setUser(profile);
       },
       onAchievement: (achievement, action) => {
+        realtimeRevision += 1;
         setAchievements(previous =>
           action === 'deleted' ? previous.filter(row => row.id !== achievement.id) : mergeRow(previous, achievement)
         );
@@ -708,13 +728,9 @@ function DingDashboard({ user, setUser }) {
       },
       onStatus: realtimeStatus => {
         if (realtimeStatus === 'SUBSCRIBED') {
-          if (hasSubscribed) {
-            void resyncDashboard().catch(error => {
-              if (live) setStatus(error.message);
-            });
-          } else {
-            hasSubscribed = true;
-          }
+          void resyncDashboard().catch(error => {
+            if (live) setStatus(error.message);
+          });
           return;
         }
         if (realtimeStatus === 'CHANNEL_ERROR' || realtimeStatus === 'TIMED_OUT') {
