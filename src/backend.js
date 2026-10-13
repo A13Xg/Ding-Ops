@@ -1,6 +1,6 @@
 /*
  * Backend adapter. Talks to Supabase directly (auth, postgrest, realtime) —
- * requires VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY at build time. This is
+ * requires VITE_SUPABASE_URL + VITE_SUPABASE_PUBLISHABLE_KEY at build time. This is
  * what makes a GitHub Pages deployment work.
  */
 import { fetchAllPages } from './fetchAllPages.js';
@@ -8,7 +8,7 @@ import { normalizeCharacterDraft } from './dingDomain.js';
 import { normalizeDingUsername, syntheticAuthEmail } from './authIdentity.js';
 
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPA_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPA_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const WEB_PUSH_PUBLIC_KEY = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY || '';
 
 /* ---------------------------------- static / Supabase mode ---------------------------------- */
