@@ -150,5 +150,4 @@ describe('DING release contract', () => {
     expect(helper.indexOf('SUPABASE_PUBLISHABLE_KEYS')).toBeLessThan(helper.indexOf('SUPABASE_ANON_KEY'));
     expect(helper.indexOf('SUPABASE_SECRET_KEYS')).toBeLessThan(helper.indexOf('SUPABASE_SERVICE_ROLE_KEY'));
   });
-
 });
