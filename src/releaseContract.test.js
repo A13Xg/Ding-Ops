@@ -132,8 +132,9 @@ describe('DING release contract', () => {
     expect(count('supabase functions deploy --project-ref')).toBe(1);
     expect(count('actions/deploy-pages@v4')).toBe(1);
     expect(count('Lock down public Supabase Auth signup')).toBe(1);
-    expect(count('Resolve DING browser publishable key')).toBe(1);
+    expect(count('Ensure dedicated DING Supabase API keys')).toBe(1);
 
+    const apiKeys = deploy.indexOf('Ensure dedicated DING Supabase API keys');
     const link = deploy.indexOf('supabase link --project-ref');
     const auth = deploy.indexOf('Lock down public Supabase Auth signup');
     const preview = deploy.indexOf('supabase db push --linked --include-all --dry-run');
@@ -143,7 +144,8 @@ describe('DING release contract', () => {
     const build = deploy.lastIndexOf('npm run build');
     const pages = deploy.indexOf('actions/deploy-pages@v4');
 
-    expect(link).toBeGreaterThan(-1);
+    expect(apiKeys).toBeGreaterThan(-1);
+    expect(link).toBeGreaterThan(apiKeys);
     expect(auth).toBeGreaterThan(link);
     expect(preview).toBeGreaterThan(auth);
     expect(migrations).toBeGreaterThan(preview);
@@ -187,6 +189,9 @@ describe('DING release contract', () => {
     expect(deploy).not.toMatch(/VITE_DEMO_MODE\s*:/);
     expect(deploy).toContain('SUPABASE_PROJECT_REF');
     expect(deploy).toContain('/api-keys?reveal=true');
+    expect(deploy).toContain('"name":"ding-web"');
+    expect(deploy).toContain('"name":"ding-edge"');
+    expect(deploy).toContain('"role":"service_role"');
     expect(deploy).toContain('VITE_SUPABASE_PUBLISHABLE_KEY=$publishable');
     expect(deploy).toContain('npm run test:integration');
   });
