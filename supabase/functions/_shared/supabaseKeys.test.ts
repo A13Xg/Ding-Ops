@@ -58,6 +58,23 @@ Deno.test('Supabase Edge key helper falls back to another named key when default
   );
 });
 
+Deno.test('Supabase Edge key helper supports modern single-key local environment variables', () => {
+  withEnv(
+    {
+      SUPABASE_PUBLISHABLE_KEYS: null,
+      SUPABASE_SECRET_KEYS: null,
+      SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_local',
+      SUPABASE_SECRET_KEY: 'sb_secret_local',
+      SUPABASE_ANON_KEY: 'legacy-anon',
+      SUPABASE_SERVICE_ROLE_KEY: 'legacy-service',
+    },
+    () => {
+      assertEquals(supabasePublishableKey(), 'sb_publishable_local');
+      assertEquals(supabaseSecretKey(), 'sb_secret_local');
+    },
+  );
+});
+
 Deno.test('Supabase Edge key helper keeps legacy fallback for local/backward compatibility', () => {
   withEnv(
     {
