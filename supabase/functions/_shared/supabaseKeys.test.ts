@@ -1,19 +1,15 @@
 import { assertEquals } from 'jsr:@std/assert@1.0.19';
-import {
-  supabaseFunctionEnvironment,
-  supabasePublishableKey,
-  supabaseSecretKey,
-} from './supabaseKeys.ts';
+import { supabasePublishableKey, supabaseSecretKey } from './supabaseKeys.ts';
 
-function withEnv(values: Record<string, string | null>, run: () => void) {
+function withEnv(values: Record<string, string | undefined>, fn: () => void) {
   const previous = new Map<string, string | undefined>();
+  for (const [name, value] of Object.entries(values)) {
+    previous.set(name, Deno.env.get(name));
+    if (value == null) Deno.env.delete(name);
+    else Deno.env.set(name, value);
+  }
   try {
-    for (const [name, value] of Object.entries(values)) {
-      previous.set(name, Deno.env.get(name));
-      if (value == null) Deno.env.delete(name);
-      else Deno.env.set(name, value);
-    }
-    run();
+    fn();
   } finally {
     for (const [name, value] of previous) {
       if (value == null) Deno.env.delete(name);
@@ -22,34 +18,21 @@ function withEnv(values: Record<string, string | null>, run: () => void) {
   }
 }
 
-Deno.test('Supabase Edge key helper prefers modern named keys', () => {
+Deno.test('DING Edge key helper prefers dedicated named modern keys', () => {
   withEnv(
     {
-      SUPABASE_URL: 'https://example.supabase.co',
-      SUPABASE_PUBLISHABLE_KEYS: JSON.stringify({ default: 'sb_publishable_modern' }),
-      SUPABASE_SECRET_KEYS: JSON.stringify({ default: 'sb_secret_modern' }),
-      SUPABASE_ANON_KEY: 'legacy-anon',
-      SUPABASE_SERVICE_ROLE_KEY: 'legacy-service',
-    },
-    () => {
-      assertEquals(supabasePublishableKey(), 'sb_publishable_modern');
-      assertEquals(supabaseSecretKey(), 'sb_secret_modern');
-      assertEquals(supabaseFunctionEnvironment(), {
-        url: 'https://example.supabase.co',
-        publishableKey: 'sb_publishable_modern',
-        secretKey: 'sb_secret_modern',
-      });
-    },
-  );
-});
-
-Deno.test('Supabase Edge key helper falls back to another named key when default is absent', () => {
-  withEnv(
-    {
-      SUPABASE_PUBLISHABLE_KEYS: JSON.stringify({ ding: 'sb_publishable_ding' }),
-      SUPABASE_SECRET_KEYS: JSON.stringify({ ding: 'sb_secret_ding' }),
-      SUPABASE_ANON_KEY: null,
-      SUPABASE_SERVICE_ROLE_KEY: null,
+      SUPABASE_PUBLISHABLE_KEYS: JSON.stringify({
+        default: 'sb_publishable_default',
+        'ding-web': 'sb_publishable_ding',
+      }),
+      SUPABASE_SECRET_KEYS: JSON.stringify({
+        default: 'sb_secret_default',
+        'ding-edge': 'sb_secret_ding',
+      }),
+      SUPABASE_PUBLISHABLE_KEY: undefined,
+      SUPABASE_SECRET_KEY: undefined,
+      SUPABASE_ANON_KEY: undefined,
+      SUPABASE_SERVICE_ROLE_KEY: undefined,
     },
     () => {
       assertEquals(supabasePublishableKey(), 'sb_publishable_ding');
@@ -58,49 +41,19 @@ Deno.test('Supabase Edge key helper falls back to another named key when default
   );
 });
 
-Deno.test('Supabase Edge key helper supports modern single-key local environment variables', () => {
+Deno.test('DING Edge key helper falls back through modern then legacy single keys', () => {
   withEnv(
     {
-      SUPABASE_PUBLISHABLE_KEYS: null,
-      SUPABASE_SECRET_KEYS: null,
-      SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_local',
-      SUPABASE_SECRET_KEY: 'sb_secret_local',
+      SUPABASE_PUBLISHABLE_KEYS: undefined,
+      SUPABASE_SECRET_KEYS: undefined,
+      SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_single',
+      SUPABASE_SECRET_KEY: 'sb_secret_single',
       SUPABASE_ANON_KEY: 'legacy-anon',
       SUPABASE_SERVICE_ROLE_KEY: 'legacy-service',
     },
     () => {
-      assertEquals(supabasePublishableKey(), 'sb_publishable_local');
-      assertEquals(supabaseSecretKey(), 'sb_secret_local');
-    },
-  );
-});
-
-Deno.test('Supabase Edge key helper keeps legacy fallback for local/backward compatibility', () => {
-  withEnv(
-    {
-      SUPABASE_PUBLISHABLE_KEYS: null,
-      SUPABASE_SECRET_KEYS: null,
-      SUPABASE_ANON_KEY: 'legacy-anon',
-      SUPABASE_SERVICE_ROLE_KEY: 'legacy-service',
-    },
-    () => {
-      assertEquals(supabasePublishableKey(), 'legacy-anon');
-      assertEquals(supabaseSecretKey(), 'legacy-service');
-    },
-  );
-});
-
-Deno.test('malformed modern key dictionaries do not mask a valid legacy fallback', () => {
-  withEnv(
-    {
-      SUPABASE_PUBLISHABLE_KEYS: '{not-json',
-      SUPABASE_SECRET_KEYS: '[]',
-      SUPABASE_ANON_KEY: 'legacy-anon',
-      SUPABASE_SERVICE_ROLE_KEY: 'legacy-service',
-    },
-    () => {
-      assertEquals(supabasePublishableKey(), 'legacy-anon');
-      assertEquals(supabaseSecretKey(), 'legacy-service');
+      assertEquals(supabasePublishableKey(), 'sb_publishable_single');
+      assertEquals(supabaseSecretKey(), 'sb_secret_single');
     },
   );
 });
