@@ -11,7 +11,7 @@
  *
  * Bump SW_VERSION whenever this file changes so the update is obvious in logs.
  */
-const SW_VERSION = '2026-10-06.1';
+const SW_VERSION = '2026-10-13.1';
 
 const scopeUrl = () => new URL(self.registration.scope);
 const scoped = path => new URL(String(path).replace(/^\//, ''), scopeUrl()).toString();
