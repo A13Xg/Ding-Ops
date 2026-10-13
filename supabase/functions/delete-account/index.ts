@@ -50,6 +50,6 @@ Deno.serve(async (req) => {
     return json(200, { ok: true });
   } catch (error) {
     console.error('[delete-account] failed', error);
-    return json(500, { error: (error as Error).message || 'Account deletion failed' });
+    return json(500, { error: 'Account deletion failed' });
   }
 });
