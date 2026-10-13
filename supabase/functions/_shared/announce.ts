@@ -69,7 +69,7 @@ async function retireUnannouncedSiblings(
     .from('achievements')
     .select('id')
     .eq('user_id', actorId)
-    .eq('unlocked_at', anchor.toISOString());
+    .eq('unlocked_at', anchorUnlockedAt);
   if (error) {
     console.error('[announce] could not retire siblings', error.message);
     return;
