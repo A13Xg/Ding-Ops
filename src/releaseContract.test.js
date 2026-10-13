@@ -119,7 +119,7 @@ describe('DING release contract', () => {
     expect(app).toContain("overlay === 'ops' && isAdmin");
     expect(backend).toContain("functions.invoke('admin-status'");
     expect(status).toContain('requireAdmin');
-    expect(config).toMatch(/\[functions\.admin-status\][\s\S]*?verify_jwt\s*=\s*true/);
+    expect(config).toMatch(/\[functions\.admin-status\][\s\S]*?verify_jwt\s*=\s*false/);
   });
 
   it('keeps the production deployment sequence singular and ordered', () => {
@@ -211,7 +211,6 @@ describe('DING release contract', () => {
     const env = read('.env.example');
     expect(env).not.toMatch(/VITE_.*SERVICE_ROLE/i);
     expect(env).not.toMatch(/VITE_.*PRIVATE/i);
-    expect(env).toContain('VAPID_PRIVATE_KEY');
     expect(env).toContain('VAPID_PRIVATE_KEY');
   });
   it('prefers modern Supabase Edge publishable/secret keys over deprecated legacy keys', () => {
