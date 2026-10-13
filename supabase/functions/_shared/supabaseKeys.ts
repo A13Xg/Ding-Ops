@@ -13,11 +13,21 @@ function namedKey(dictionaryName: string) {
 }
 
 export function supabasePublishableKey() {
-  return namedKey('SUPABASE_PUBLISHABLE_KEYS') || Deno.env.get('SUPABASE_ANON_KEY') || null;
+  return (
+    namedKey('SUPABASE_PUBLISHABLE_KEYS') ||
+    Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ||
+    Deno.env.get('SUPABASE_ANON_KEY') ||
+    null
+  );
 }
 
 export function supabaseSecretKey() {
-  return namedKey('SUPABASE_SECRET_KEYS') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || null;
+  return (
+    namedKey('SUPABASE_SECRET_KEYS') ||
+    Deno.env.get('SUPABASE_SECRET_KEY') ||
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ||
+    null
+  );
 }
 
 export function supabaseFunctionEnvironment() {
