@@ -9,6 +9,7 @@ import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import type { Database } from '../_shared/database.types.ts';
 import { announceAchievement, announceDing } from '../_shared/announce.ts';
 import { corsHeaders, json } from '../_shared/push.ts';
+import { supabaseFunctionEnvironment } from '../_shared/supabaseKeys.ts';
 
 // A client that crashes mid-Ding is covered by dispatch-push-backstop instead.
 const MAX_EVENT_AGE_MS = 15 * 60 * 1000;
@@ -46,15 +47,13 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !anonKey || !serviceRoleKey) throw new Error('Supabase function environment is incomplete');
+    const { url: supabaseUrl, publishableKey, secretKey } = supabaseFunctionEnvironment();
+    if (!supabaseUrl || !publishableKey || !secretKey) throw new Error('Supabase function environment is incomplete');
 
     const authorization = req.headers.get('Authorization');
     if (!authorization) return json(401, { error: 'Authentication required' });
 
-    const authClient = createClient<Database>(supabaseUrl, anonKey, {
+    const authClient = createClient<Database>(supabaseUrl, publishableKey, {
       global: { headers: { Authorization: authorization } },
       auth: { persistSession: false },
     });
@@ -67,7 +66,7 @@ Deno.serve(async (req) => {
     const id = typeof payload?.id === 'string' ? payload.id : '';
     if (!kind || !id) return json(400, { error: 'Expected { kind: "ding" | "achievement", id }' });
 
-    const admin = createClient<Database>(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+    const admin = createClient<Database>(supabaseUrl, secretKey, { auth: { persistSession: false } });
 
     // Dings are exempt: they are the primary progression event and must never
     // be dropped as collateral from an achievement backlog.
