@@ -362,7 +362,11 @@ export function ProfilePane({ user, characters, events, achievements, onUserUpda
             <LogOut /> LOG OUT
           </button>
         </div>
-        {accountStatus && <div className="ding-muted" role="status" aria-live="polite">{accountStatus}</div>}
+        {accountStatus && (
+          <div className="ding-muted" role="status" aria-live="polite">
+            {accountStatus}
+          </div>
+        )}
         <div className="ding-danger-zone">
           <strong>DELETE ACCOUNT</strong>
           <small>
