@@ -14,6 +14,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import type { Database } from '../_shared/database.types.ts';
 import { corsHeaders, json, sendToSubscriptions } from '../_shared/push.ts';
 import { supabaseFunctionEnvironment } from '../_shared/supabaseKeys.ts';
+import { registrationLiveness } from '../_shared/subscriptionRegistration.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -80,8 +81,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (existingError) throw new Error(existingError.message);
 
-    const identityChanged =
-      !existing || existing.user_id !== userId || existing.p256dh !== p256dh || existing.auth !== auth;
+    const liveness = registrationLiveness(existing, userId, p256dh, auth);
     const { error: upsertError } = await admin.from('push_subscriptions').upsert(
       [
         {
@@ -91,10 +91,10 @@ Deno.serve(async (req) => {
           auth,
           user_agent: userAgent,
           updated_at: nowIso,
-          failure_count: identityChanged ? 0 : (existing.failure_count ?? 0),
-          unacked_count: identityChanged ? 0 : (existing.unacked_count ?? 0),
-          last_success_at: identityChanged ? null : (existing.last_success_at ?? null),
-          last_ack_at: identityChanged ? null : (existing.last_ack_at ?? null),
+          failure_count: liveness.failure_count,
+          unacked_count: liveness.unacked_count,
+          last_success_at: liveness.last_success_at,
+          last_ack_at: liveness.last_ack_at,
         },
       ],
       { onConflict: 'endpoint' },
