@@ -301,13 +301,10 @@ Repository-only work is intended to be effectively complete. The final blockers 
 
 - [!] `SUPABASE_ACCESS_TOKEN`
 - [!] `SUPABASE_DB_PASSWORD`
-- [!] `SUPABASE_PROJECT_REF`
 - [!] `VITE_SUPABASE_URL`
 - [!] `VITE_SUPABASE_ANON_KEY`
-- [!] `VITE_WEB_PUSH_PUBLIC_KEY`
 - [!] `VAPID_PUBLIC_KEY`
 - [!] `VAPID_PRIVATE_KEY`
-- [!] `VAPID_SUBJECT`
 - [!] `REMINDER_CRON_SECRET`
 - [!] `DING_INVITE_CODE` (24+ random characters; server-side signup gate)
 
@@ -315,9 +312,6 @@ Optional:
 - [>] `BROADCAST_ADMINS`
 - [>] `DISCORD_WEBHOOK_URL`
 - [>] Battle.net client credentials only if optional import is enabled later.
-
-## Required Supabase setting
-
 
 ## Once those exist
 
