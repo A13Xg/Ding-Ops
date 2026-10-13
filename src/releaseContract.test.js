@@ -222,6 +222,23 @@ describe('DING release contract', () => {
     expect(signup).not.toContain('return json(500, { error: error instanceof Error ? error.message');
   });
 
+  it('keeps unexpected user-facing Edge failures opaque while logging server details', () => {
+    const expectations = [
+      ['signup-account/index.ts', 'Account creation failed'],
+      ['delete-account/index.ts', 'Account deletion failed'],
+      ['notify-event/index.ts', 'Notification dispatch failed'],
+      ['reconcile-achievements/index.ts', 'Reconciliation failed'],
+      ['register-push-subscription/index.ts', 'Push registration failed'],
+    ];
+    for (const [relative, publicMessage] of expectations) {
+      const content = read(`supabase/functions/${relative}`);
+      expect(content).toContain('console.error');
+      expect(content).toContain(publicMessage);
+      expect(content).not.toMatch(/json\(500,\s*\{\s*error:\s*(?:error|\(error as Error\))/);
+      expect(content).not.toMatch(/JSON\.stringify\(\{\s*error:\s*error instanceof Error/);
+    }
+  });
+
   it('keeps direct browser progression writes disabled', () => {
     const schema = read('supabase/migrations/20261005230000_core_ding_domain.sql');
     expect(schema).toContain('Deliberately no browser INSERT/UPDATE policy for level_events');
