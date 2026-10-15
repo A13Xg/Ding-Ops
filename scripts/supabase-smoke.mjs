@@ -352,9 +352,15 @@ try {
   const successes = race.filter(result => !result.error);
   const failures = race.filter(result => result.error);
   assert(successes.length === 1 && failures.length === 1, 'Exactly one competing Ding must win the character lock.');
+  const losingError = failures[0].error;
   assert(
-    /DING_STALE_LEVEL/i.test(String(failures[0].error?.message || '')),
-    'The losing concurrent Ding did not fail with DING_STALE_LEVEL.'
+    /DING_STALE_LEVEL/i.test(String(losingError?.message || '')),
+    `The losing concurrent Ding did not fail with DING_STALE_LEVEL. Actual error: ${JSON.stringify({
+      code: losingError?.code,
+      message: losingError?.message,
+      details: losingError?.details,
+      hint: losingError?.hint,
+    })}`
   );
   const winningRow = Array.isArray(successes[0].data) ? successes[0].data[0] : successes[0].data;
   assert(Number(winningRow?.to_level) === secondExpected + 1, 'Winning concurrent Ding advanced to the wrong level.');
