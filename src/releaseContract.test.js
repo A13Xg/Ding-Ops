@@ -164,11 +164,189 @@ describe('DING release contract', () => {
     expect(read('supabase/functions/_shared/push.ts')).toContain('../../../src/fetchAllPages.js');
   });
 
-  it('keeps standalone live smoke pinned to the named DING browser key and safety gates', () => {
+  it('keeps standalone live smoke singular, pinned to the named DING browser key, and safety-gated', () => {
     const workflow = read('.github/workflows/live-smoke.yml');
-    expect(workflow).toContain('item?.name === "ding-web"');
+    const count = token => workflow.split(token).length - 1;
+
+    expect(count('- name: Verify linked DING backend')).toBe(1);
+    expect(count('/api-keys?reveal=true')).toBe(1);
+    expect(count('item?.name === "ding-web"')).toBe(1);
+    expect(workflow).toContain("grep -Eq '^[a-z0-9]+
+  it('hard-refuses the known Bust production Supabase project', () => {
+    const deploy = read('.github/workflows/deploy.yml');
+    expect(deploy).toContain('yuorggekucycvxrtqvvp');
+    expect(deploy).toContain('Refusing to deploy DING into the known Bust production Supabase project');
+  });
+
+  it('retires deprecated Supabase API keys only after modern-key live verification', () => {
+    const deploy = read('.github/workflows/deploy.yml');
+    const smoke = deploy.indexOf('npm run test:integration');
+    const retire = deploy.indexOf('/api-keys/legacy?enabled=false');
+    expect(smoke).toBeGreaterThan(-1);
+    expect(retire).toBeGreaterThan(smoke);
+    expect(deploy).toContain('modern DING keys already passed the live smoke');
+  });
+
+  it('hard-refuses Bust production in every unattended maintenance path', () => {
+    const scheduled = read('.github/workflows/scheduled-maintenance.yml');
+    const bustRef = 'yuorggekucycvxrtqvvp';
+    const refusal = 'Refusing to run DING maintenance against the known Bust production Supabase project.';
+
+    expect(scheduled.split(bustRef).length - 1).toBe(2);
+    expect(scheduled.split(refusal).length - 1).toBe(2);
+  });
+
+  it('keeps production setup to the five intended required secrets', () => {
+    const deploy = read('.github/workflows/deploy.yml');
+    const scheduled = read('.github/workflows/scheduled-maintenance.yml');
+
+    for (const name of [
+      'SUPABASE_ACCESS_TOKEN',
+      'SUPABASE_DB_PASSWORD',
+      'SUPABASE_PROJECT_REF',
+      'VAPID_KEYS_JSON',
+      'DING_INVITE_CODE',
+    ]) {
+      expect(deploy).toContain(`secrets.${name}`);
+    }
+    expect(deploy).not.toContain('secrets.REMINDER_CRON_SECRET');
+    expect(deploy).not.toContain('secrets.VAPID_PUBLIC_KEY');
+    expect(deploy).not.toContain('secrets.VAPID_PRIVATE_KEY');
+    expect(scheduled).not.toContain('SUPABASE_SECRET_KEY');
+    expect(scheduled).not.toContain('Authorization: Bearer');
+    expect(scheduled).toContain('ding-cron-v1:');
+    expect(scheduled).toContain('x-cron-secret: $cron_secret');
+    expect(deploy).toContain('"REMINDER_CRON_SECRET=$REMINDER_CRON_SECRET"');
+  });
+
+  it('never enables visual demo mode in production deployment', () => {
+    const deploy = read('.github/workflows/deploy.yml');
+    expect(deploy).not.toMatch(/VITE_DEMO_MODE\s*:/);
+    expect(deploy).toContain('SUPABASE_PROJECT_REF');
+    expect(deploy).toContain('/api-keys?reveal=true');
+    expect(deploy).toContain('"name":"ding-web"');
+    expect(deploy).toContain('"name":"ding-edge"');
+    expect(deploy).toContain('"role":"service_role"');
+    expect(deploy).toContain('VITE_SUPABASE_PUBLISHABLE_KEY=$publishable');
+    expect(deploy).toContain('npm run test:integration');
+  });
+
+  it('ships every PWA icon referenced by the manifest', () => {
+    const manifest = JSON.parse(read('public/manifest.webmanifest'));
+    expect(manifest.name).toBe('DING');
+    expect(manifest.short_name).toBe('DING');
+    expect(manifest.icons.length).toBeGreaterThanOrEqual(2);
+    for (const icon of manifest.icons) {
+      expect(existsSync(join(root, 'public', icon.src)), `missing manifest icon ${icon.src}`).toBe(true);
+    }
+  });
+
+  it('keeps the service worker on DING-native message and asset names', () => {
+    const worker = read('public/sw.js');
+    expect(worker).toContain('ding-push');
+    expect(worker).toContain('ding-sw-version');
+    expect(worker).not.toContain('bust-push');
+    expect(worker).not.toContain('bust-sw-version');
+  });
+
+  it('constrains notification navigation and delivery acknowledgements', () => {
+    const worker = read('public/sw.js');
+    expect(worker).toContain('function safeAppUrl');
+    expect(worker).toContain('target.origin !== scope.origin');
+    expect(worker).toContain('target.pathname.startsWith(prefix)');
+    expect(worker).toContain('function safeAckUrl');
+    expect(worker).toContain("target.protocol !== 'https:'");
+    expect(worker).toContain("target.pathname.endsWith('/functions/v1/ack-push')");
+    expect(worker).toContain('const target = safeAppUrl');
+    expect(worker).toContain('const ackUrl = safeAckUrl');
+  });
+
+  it('pins public-schema creation privileges away from browser roles', () => {
+    const schema = read('supabase/migrations/20261005230000_core_ding_domain.sql').toLowerCase();
+    expect(schema).toContain('revoke create on schema public from public, anon, authenticated');
+    expect(schema).toContain('grant usage on schema public to anon, authenticated');
+  });
+
+  it('does not expose internal signup failures to unauthenticated callers', () => {
+    const signup = read('supabase/functions/signup-account/index.ts');
+    expect(signup).toContain("console.error('[signup-account]', error)");
+    expect(signup).toContain("return json(500, { error: 'Account creation failed' })");
+    expect(signup).not.toContain('return json(500, { error: error instanceof Error ? error.message');
+  });
+
+  it('keeps unexpected user-facing Edge failures opaque while logging server details', () => {
+    const expectations = [
+      ['signup-account/index.ts', 'Account creation failed'],
+      ['delete-account/index.ts', 'Account deletion failed'],
+      ['notify-event/index.ts', 'Notification dispatch failed'],
+      ['reconcile-achievements/index.ts', 'Reconciliation failed'],
+      ['register-push-subscription/index.ts', 'Push registration failed'],
+    ];
+    for (const [relative, publicMessage] of expectations) {
+      const content = read(`supabase/functions/${relative}`);
+      expect(content).toContain('console.error');
+      expect(content).toContain(publicMessage);
+      expect(content).not.toMatch(/json\(500,\s*\{\s*error:\s*(?:error|\(error as Error\))/);
+      expect(content).not.toMatch(/JSON\.stringify\(\{\s*error:\s*error instanceof Error/);
+    }
+  });
+
+  it('announces newly persisted achievement bursts server-side, including synchronized remote awards', () => {
+    const reconcile = read('supabase/functions/reconcile-achievements/index.ts');
+    const app = read('src/DingApp.jsx');
+    expect(reconcile).toContain("import { announceAchievement } from '../_shared/announce.ts'");
+    expect(reconcile).toContain('insertedRows.map(row => announceAchievement(admin, row))');
+    expect(app).not.toContain("notifyEvent('achievement'");
+  });
+
+  it('does not age healthy push endpoints when delivery receipt logging failed', () => {
+    const push = read('supabase/functions/_shared/push.ts');
+    expect(push).toContain('let ackReceiptsPersisted = accepted.length === 0');
+    expect(push).toContain('if (ackReceiptsPersisted)');
+    expect(push.indexOf('if (ackReceiptsPersisted)')).toBeLessThan(push.indexOf("admin.rpc('mark_push_sent'"));
+  });
+
+  it('keeps direct browser progression writes disabled', () => {
+    const schema = read('supabase/migrations/20261005230000_core_ding_domain.sql');
+    expect(schema).toContain('Deliberately no browser INSERT/UPDATE policy for level_events');
+    expect(schema).not.toMatch(/create\s+policy[^;]*level_events[^;]*for\s+(insert|update)/i);
+    expect(schema).toContain('create or replace function public.record_ding');
+  });
+
+  it('keeps service-role and private push secrets out of VITE variables', () => {
+    const env = read('.env.example');
+    expect(env).not.toMatch(/VITE_.*SERVICE_ROLE/i);
+    expect(env).not.toMatch(/VITE_.*PRIVATE/i);
+    expect(env).toContain('VAPID_PRIVATE_KEY');
+  });
+  it('prefers modern Supabase Edge publishable/secret keys over deprecated legacy keys', () => {
+    const helper = read('supabase/functions/_shared/supabaseKeys.ts');
+    expect(helper).toContain('SUPABASE_PUBLISHABLE_KEYS');
+    expect(helper).toContain('SUPABASE_SECRET_KEYS');
+    expect(helper.indexOf('SUPABASE_PUBLISHABLE_KEYS')).toBeLessThan(helper.indexOf('SUPABASE_ANON_KEY'));
+    expect(helper.indexOf('SUPABASE_SECRET_KEYS')).toBeLessThan(helper.indexOf('SUPABASE_SERVICE_ROLE_KEY'));
+  });
+
+  it('centralizes deprecated Edge-key fallback in one compatibility helper', () => {
+    const functionFiles = filesUnder('supabase/functions', path => path.endsWith('.ts')).filter(
+      path => path !== 'supabase/functions/_shared/supabaseKeys.ts'
+    );
+
+    for (const path of functionFiles) {
+      const content = read(path);
+      expect(content, `${path} directly reads deprecated SUPABASE_ANON_KEY`).not.toContain(
+        "Deno.env.get('SUPABASE_ANON_KEY')"
+      );
+      expect(content, `${path} directly reads deprecated SUPABASE_SERVICE_ROLE_KEY`).not.toContain(
+        "Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')"
+      );
+    }
+  });
+});
+");
     expect(workflow).toContain('yuorggekucycvxrtqvvp');
     expect(workflow).toContain('DING_INVITE_CODE must be at least 24 characters');
+    expect(workflow).toContain('Named ding-web publishable key was not found. Run Deploy DING first.');
   });
 
   it('hard-refuses the known Bust production Supabase project', () => {
