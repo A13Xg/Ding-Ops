@@ -219,6 +219,13 @@ describe('DING release contract', () => {
     expect(deploy).toContain('"REMINDER_CRON_SECRET=$REMINDER_CRON_SECRET"');
   });
 
+  it('authenticates formatter-triggered CI dispatches', () => {
+    const formatter = read('.github/workflows/format-ding-social-once.yml');
+    expect(formatter).toContain('actions: write');
+    expect(formatter).toContain('GH_TOKEN: ${{ github.token }}');
+    expect(formatter).toContain('gh workflow run ci.yml --ref main');
+  });
+
   it('never enables visual demo mode in production deployment', () => {
     const deploy = read('.github/workflows/deploy.yml');
     expect(deploy).not.toMatch(/VITE_DEMO_MODE\s*:/);
