@@ -20,6 +20,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - uses: supabase/setup-cli@v2
+        with:
+          version: latest
       - name: Resolve DING public backend configuration
         shell: bash
         run: |
@@ -44,12 +47,7 @@ jobs:
             exit 1
           fi
 
-          keys_json="$(
-            curl --fail-with-body --silent --show-error \
-              --retry 3 --retry-all-errors --max-time 30 \
-              "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" \
-              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
-          )"
+          keys_json="$(supabase projects api-keys --project-ref "$SUPABASE_PROJECT_REF" --output json)"
           publishable="$(
             printf '%s' "$keys_json" | node -e '
               let raw = "";
@@ -58,10 +56,10 @@ jobs:
               process.stdin.on("end", () => {
                 const keys = JSON.parse(raw);
                 const key = Array.isArray(keys)
-                  ? keys.find(item => item?.type === "publishable" && item?.name === "ding-web" && item?.api_key)
+                  ? keys.find(item => item?.type === "publishable" && item?.name === "default" && item?.api_key)
                   : null;
                 if (!key) {
-                  console.error("Named ding-web publishable key was not found. Run Deploy DING first.");
+                  console.error("Default Supabase publishable key was not found.");
                   process.exit(1);
                 }
                 process.stdout.write(key.api_key);
