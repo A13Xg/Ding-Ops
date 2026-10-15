@@ -101,7 +101,7 @@ describe('DING release contract', () => {
     const deploy = read('.github/workflows/deploy.yml');
 
     expect(config).toMatch(/\[auth\][\s\S]*?enable_signup\s*=\s*false/);
-    expect(config).toMatch(/\[auth\.email\][\s\S]*?enable_signup\s*=\s*false/);
+    expect(config).toMatch(/\[auth\.email\]\s*\nenable_signup\s*=\s*true/);
     expect(config).toMatch(/\[auth\.sms\][\s\S]*?enable_signup\s*=\s*false/);
     expect(config).toContain('enable_anonymous_sign_ins = false');
     expect(deploy).toContain('https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth');
@@ -132,9 +132,9 @@ describe('DING release contract', () => {
     expect(count('supabase functions deploy --use-api --prune --project-ref')).toBe(1);
     expect(count('actions/deploy-pages@v4')).toBe(1);
     expect(count('Lock down public Supabase Auth signup')).toBe(1);
-    expect(count('Ensure dedicated DING Supabase API keys')).toBe(1);
+    expect(count('Resolve Supabase modern API keys')).toBe(1);
 
-    const apiKeys = deploy.indexOf('Ensure dedicated DING Supabase API keys');
+    const apiKeys = deploy.indexOf('Resolve Supabase modern API keys');
     const link = deploy.indexOf('supabase link --project-ref');
     const auth = deploy.indexOf('Lock down public Supabase Auth signup');
     const preview = deploy.indexOf('supabase db push --linked --include-all --dry-run');
@@ -169,12 +169,12 @@ describe('DING release contract', () => {
     const count = token => workflow.split(token).length - 1;
 
     expect(count('- name: Verify linked DING backend')).toBe(1);
-    expect(count('/api-keys?reveal=true')).toBe(1);
-    expect(count('item?.name === "ding-web"')).toBe(1);
+    expect(count('supabase projects api-keys --project-ref')).toBe(1);
+    expect(count('item?.name === "default"')).toBe(1);
     expect(workflow).toContain("grep -Eq '^[a-z0-9]+$'");
     expect(workflow).toContain('yuorggekucycvxrtqvvp');
     expect(workflow).toContain('DING_INVITE_CODE must be at least 24 characters');
-    expect(workflow).toContain('Named ding-web publishable key was not found. Run Deploy DING first.');
+    expect(workflow).toContain('Default Supabase publishable key was not found.');
   });
 
   it('hard-refuses the known Bust production Supabase project', () => {
@@ -235,10 +235,8 @@ describe('DING release contract', () => {
     const deploy = read('.github/workflows/deploy.yml');
     expect(deploy).not.toMatch(/VITE_DEMO_MODE\s*:/);
     expect(deploy).toContain('SUPABASE_PROJECT_REF');
-    expect(deploy).toContain('/api-keys?reveal=true');
-    expect(deploy).toContain('"name":"ding-web"');
-    expect(deploy).toContain('"name":"ding-edge"');
-    expect(deploy).toContain('"role":"service_role"');
+    expect(deploy).toContain('supabase projects api-keys --project-ref');
+    expect(deploy).toContain('item?.name === "default"');
     expect(deploy).toContain('VITE_SUPABASE_PUBLISHABLE_KEY=$publishable');
     expect(deploy).toContain('npm run test:integration');
   });
