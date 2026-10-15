@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: ding-source-formatter
@@ -41,3 +42,9 @@ jobs:
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
+
+          # GitHub suppresses ordinary workflow triggers for commits pushed with
+          # GITHUB_TOKEN. workflow_dispatch is the documented exception, so
+          # explicitly validate the newly formatted main head instead of leaving
+          # the bot commit untested.
+          gh workflow run ci.yml --ref main
