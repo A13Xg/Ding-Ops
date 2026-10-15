@@ -31,6 +31,8 @@ jobs:
       - name: Format all active DING source
         run: npx prettier --write "src/**/*.{js,jsx,css}"
       - name: Commit formatting if needed
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if git diff --quiet -- src; then
             exit 0
