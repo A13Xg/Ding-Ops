@@ -135,15 +135,20 @@ async function subscribeForLevelEvent(client, expectedId) {
 
   const channel = client
     .channel(`ding-smoke-${expectedId}`)
+    .on('system', '*', payload => {
+      if (payload?.extension === 'postgres_changes' && payload?.status === 'ok') resolveReady();
+    })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'level_events' }, payload => {
       if (payload?.new?.id === expectedId) resolveEvent(payload.new);
     })
     .subscribe(status => {
-      if (status === 'SUBSCRIBED') resolveReady();
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') rejectReady(new Error(`Realtime subscription failed: ${status}`));
     });
 
-  const readyTimer = setTimeout(() => rejectReady(new Error('Realtime subscription did not become ready within 15 seconds.')), 15_000);
+  const readyTimer = setTimeout(
+    () => rejectReady(new Error('Realtime Postgres Changes listener did not become ready within 30 seconds.')),
+    30_000
+  );
   try {
     await readyPromise;
   } finally {
@@ -151,7 +156,7 @@ async function subscribeForLevelEvent(client, expectedId) {
   }
 
   const waitForEvent = async () => {
-    const timeout = setTimeout(() => rejectEvent(new Error('Realtime level event was not observed within 15 seconds.')), 15_000);
+    const timeout = setTimeout(() => rejectEvent(new Error('Realtime level event was not observed within 30 seconds.')), 30_000);
     try {
       return await eventPromise;
     } finally {
