@@ -30,7 +30,25 @@ jobs:
               exit 1
             fi
           done
-          if ! printf '%s' "$SUPABASE_PROJECT_REF" | grep -Eq '^[a-z0-9]+               --retry 3 --retry-all-errors --max-time 30               "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true"               -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
+
+          if ! printf '%s' "$SUPABASE_PROJECT_REF" | grep -Eq '^[a-z0-9]+$'; then
+            echo "::error::SUPABASE_PROJECT_REF must contain only lowercase letters and digits."
+            exit 1
+          fi
+          if [ "$SUPABASE_PROJECT_REF" = "yuorggekucycvxrtqvvp" ]; then
+            echo "::error::Refusing to smoke-test DING against the known Bust production Supabase project."
+            exit 1
+          fi
+          if [ "${#DING_INVITE_CODE}" -lt 24 ]; then
+            echo "::error::DING_INVITE_CODE must be at least 24 characters."
+            exit 1
+          fi
+
+          keys_json="$(
+            curl --fail-with-body --silent --show-error \
+              --retry 3 --retry-all-errors --max-time 30 \
+              "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
           )"
           publishable="$(
             printf '%s' "$keys_json" | node -e '
@@ -53,39 +71,6 @@ jobs:
           echo "::add-mask::$publishable"
           echo "VITE_SUPABASE_URL=https://$SUPABASE_PROJECT_REF.supabase.co" >> "$GITHUB_ENV"
           echo "VITE_SUPABASE_PUBLISHABLE_KEY=$publishable" >> "$GITHUB_ENV"
-      - name: Verify linked DING backend
-        run: npm run test:integration
-; then
-            echo "::error::SUPABASE_PROJECT_REF must contain only lowercase letters and digits."
-            exit 1
-          fi
-          if [ "$SUPABASE_PROJECT_REF" = "yuorggekucycvxrtqvvp" ]; then
-            echo "::error::Refusing to smoke-test DING against the known Bust production Supabase project."
-            exit 1
-          fi
-          if [ "${#DING_INVITE_CODE}" -lt 24 ]; then
-            echo "::error::DING_INVITE_CODE must be at least 24 characters."
-            exit 1
-          fi
 
-          keys_json="$(
-            curl --fail-with-body --silent --show-error               --retry 3 --retry-all-errors --max-time 30               "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true"               -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
-          )"
-          publishable="$(
-            printf '%s' "$keys_json" | node -e '
-              let raw = "";
-              process.stdin.setEncoding("utf8");
-              process.stdin.on("data", chunk => raw += chunk);
-              process.stdin.on("end", () => {
-                const keys = JSON.parse(raw);
-                const key = Array.isArray(keys) ? keys.find(item => item?.type === "publishable" && item?.api_key) : null;
-                if (!key) process.exit(1);
-                process.stdout.write(key.api_key);
-              });
-            '
-          )"
-          echo "::add-mask::$publishable"
-          echo "VITE_SUPABASE_URL=https://$SUPABASE_PROJECT_REF.supabase.co" >> "$GITHUB_ENV"
-          echo "VITE_SUPABASE_PUBLISHABLE_KEY=$publishable" >> "$GITHUB_ENV"
       - name: Verify linked DING backend
         run: npm run test:integration
