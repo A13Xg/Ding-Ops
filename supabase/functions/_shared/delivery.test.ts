@@ -3,7 +3,12 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
 import { dispatchRecentEvents } from './backstop.ts';
 import { announceDing } from './announce.ts';
-import { DEFAULT_DISCORD_SETTINGS, maskWebhookUrl, validateDiscordSettingsPatch } from './discord.ts';
+import {
+  DEFAULT_DISCORD_SETTINGS,
+  maskWebhookUrl,
+  resolveWebhookUrl,
+  validateDiscordSettingsPatch,
+} from './discord.ts';
 
 const occurredAt = '2026-09-30T12:00:00.000Z';
 const ding = { id: 'd1', user_id: 'u1', character_id: 'c1', to_level: 84, timestamp: occurredAt, note: 'hello', zone: 'Harandar', activity_type: 'questing' };
@@ -217,6 +222,14 @@ Deno.test('Discord settings reject malformed webhooks and mask tokens', () => {
   assert.equal(validateDiscordSettingsPatch({ footer_text: 'x'.repeat(2049) }).ok, false);
   assert.equal(validateDiscordSettingsPatch({ webhook_url: 'https://discord.com/api/webhooks/123/secret' }).ok, true);
   assert.ok(!maskWebhookUrl('https://discord.com/api/webhooks/123/secret')?.includes('secret'));
+  assert.equal(
+    resolveWebhookUrl({ ...DEFAULT_DISCORD_SETTINGS, webhook_url: 'https://discord.com/api/webhooks/123/secret' }),
+    'https://discord.com/api/webhooks/123/secret',
+  );
+  assert.throws(
+    () => resolveWebhookUrl({ ...DEFAULT_DISCORD_SETTINGS, webhook_url: 'https://example.com/private' }),
+    /discord\.com\/api\/webhooks/i,
+  );
 });
 
 Deno.test('backstop advances past the newest 50 handled achievements on the next sweep', async () => {

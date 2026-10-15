@@ -19,6 +19,7 @@ import {
 import {
   checkPendingDing,
   clearPendingDing,
+  isDefinitiveDingRejection,
   readPendingDing,
   retryPendingDing,
   savePendingDing,
@@ -871,19 +872,44 @@ function DingDashboard({ user, setUser }) {
       setAchievements(result.achievements);
       const freshItems = result.newlyEarned.map(dingAchievementById).filter(Boolean);
       if (freshItems.length) enqueueBadge(freshItems);
-
-      const announceable = [...freshItems].sort((a, b) => (b.points || 0) - (a.points || 0))[0];
-      if (!announceable) return;
-      const row = result.achievements.find(
-        achievement => achievement.user_id === user.id && achievement.achievement_type === announceable.id
-      );
-      if (row) {
-        void backend.notifyEvent('achievement', row.id).catch(error => {
-          console.warn('[achievement notify]', error);
-        });
-      }
     } catch (error) {
       console.warn('[achievement reconcile]', error);
+    }
+  }
+
+  async function recoverDefinitiveDingRejection(error) {
+    clearPendingDing(sessionStorage, user.id);
+    setPending(null);
+    setPhase('idle');
+
+    const message = String(error?.message || error || '');
+    if (/DING_STALE_LEVEL/i.test(message)) {
+      setStatus('Another tab already changed this character level. Server state has been refreshed.');
+    } else if (/DING_MAX_LEVEL/i.test(message)) {
+      setStatus('This character is already at the configured max level.');
+    } else if (/DING_CHARACTER_(?:ARCHIVED|NOT_FOUND)/i.test(message)) {
+      setStatus('That character is no longer eligible for a Ding. Server state has been refreshed.');
+    } else {
+      setStatus('The server rejected this Ding before it committed. Server state has been refreshed.');
+    }
+
+    try {
+      const [freshCharacters, freshUser] = await Promise.all([
+        backend.characters({ includeArchived: true }),
+        backend.me(),
+      ]);
+      const byId = new Map(freshCharacters.map(character => [character.id, character]));
+      setCharacters(previous => {
+        const merged = previous.map(character => byId.get(character.id) || character);
+        const known = new Set(merged.map(character => character.id));
+        for (const character of freshCharacters) {
+          if (!known.has(character.id)) merged.push(character);
+        }
+        return merged;
+      });
+      if (freshUser) setUser(freshUser);
+    } catch (refreshError) {
+      console.warn('[ding rejection resync]', refreshError);
     }
   }
 
@@ -950,6 +976,10 @@ function DingDashboard({ user, setUser }) {
         committed = null;
       }
       if (!committed) {
+        if (isDefinitiveDingRejection(error)) {
+          await recoverDefinitiveDingRejection(error);
+          return;
+        }
         setPhase('idle');
         setStatus(error.message + '. Confirmation is pending; check status before doing anything else.');
         return;
@@ -977,8 +1007,12 @@ function DingDashboard({ user, setUser }) {
       const committed = await retryPendingDing(pending, request => backend.recordDing(request));
       acceptCommitted(committed);
     } catch (error) {
-      setPhase('idle');
-      setStatus(error.message);
+      if (isDefinitiveDingRejection(error)) {
+        await recoverDefinitiveDingRejection(error);
+      } else {
+        setPhase('idle');
+        setStatus(error.message);
+      }
     }
   }
 

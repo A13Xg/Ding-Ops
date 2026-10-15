@@ -183,6 +183,20 @@ try {
     }
   }
 
+  console.log('[smoke] verifying the server-side invite gate rejects the wrong capability');
+  {
+    const rejected = makeClient();
+    const username = (`WrongInvite${token}`).slice(0, 30);
+    const denied = await rejected.functions.invoke('signup-account', {
+      body: {
+        username,
+        password: 'Ding!' + randomBytes(18).toString('base64url'),
+        inviteCode: inviteCode + '-wrong',
+      },
+    });
+    assert(denied.error || denied.data?.error, 'signup-account unexpectedly accepted an invalid invite code.');
+  }
+
   const alice = await createAccount('A');
   const bob = await createAccount('B');
 
@@ -333,12 +347,28 @@ try {
   const successes = race.filter(result => !result.error);
   const failures = race.filter(result => result.error);
   assert(successes.length === 1 && failures.length === 1, 'Exactly one competing Ding must win the character lock.');
+  assert(
+    /DING_STALE_LEVEL/i.test(String(failures[0].error?.message || '')),
+    'The losing concurrent Ding did not fail with DING_STALE_LEVEL.'
+  );
   const winningRow = Array.isArray(successes[0].data) ? successes[0].data[0] : successes[0].data;
   assert(Number(winningRow?.to_level) === secondExpected + 1, 'Winning concurrent Ding advanced to the wrong level.');
 
   const character = await alice.client.from('characters').select('*').eq('id', alice.characterId).single();
   if (character.error) throw character.error;
   assert(Number(character.data.current_level) === secondExpected + 1, 'Character level was not updated atomically.');
+
+  console.log('[smoke] testing max-level rejection after the concurrent winner reached the configured cap');
+  const overCap = await alice.client.rpc('record_ding', {
+    ...firstArgs,
+    p_event_id: randomUUID(),
+    p_expected_from_level: secondExpected + 1,
+    p_note: 'must not advance beyond cap',
+  });
+  assert(
+    overCap.error && /DING_MAX_LEVEL/i.test(String(overCap.error.message || '')),
+    'Max-level Ding was not rejected.'
+  );
 
   console.log('[smoke] testing note RPC ownership');
   const note = await rpc(alice, 'update_level_event_note', { p_event_id: firstId, p_note: 'edited by live smoke test' });
@@ -365,6 +395,23 @@ try {
     p_time_zone: 'UTC',
   });
   if (bobDing.error) throw new Error('User B Ding failed: ' + bobDing.error.message);
+
+  console.log('[smoke] testing an explicitly stale expected-level write');
+  const staleBob = await bob.client.rpc('record_ding', {
+    p_event_id: randomUUID(),
+    p_character_id: bob.characterId,
+    p_expected_from_level: bobInitial,
+    p_zone: 'Smoke Zone',
+    p_activity_type: 'dungeon',
+    p_deaths: 0,
+    p_session_minutes: 1,
+    p_note: 'stale expected level',
+    p_time_zone: 'UTC',
+  });
+  assert(
+    staleBob.error && /DING_STALE_LEVEL/i.test(String(staleBob.error.message || '')),
+    'Stale expected-level Ding was not rejected with DING_STALE_LEVEL.'
+  );
 
   await expectFunctionDenied(
     alice.client.functions.invoke('notify-event', { body: { kind: 'ding', id: bobEventId } }),
@@ -424,6 +471,9 @@ try {
     realtime: true,
     rls: true,
     concurrency: true,
+    inviteGate: true,
+    staleLevel: true,
+    maxLevel: true,
   });
 } finally {
   console.log('[smoke] deleting temporary accounts');

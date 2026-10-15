@@ -179,8 +179,13 @@ export async function getDiscordSettings(admin: SupabaseClient<Database>): Promi
   return data ? { ...DEFAULT_DISCORD_SETTINGS, ...data } : DEFAULT_DISCORD_SETTINGS;
 }
 
-function resolveWebhookUrl(settings: DiscordSettings) {
-  return (settings.webhook_url || Deno.env.get('DISCORD_WEBHOOK_URL') || '').trim();
+export function resolveWebhookUrl(settings: DiscordSettings) {
+  const url = (settings.webhook_url || Deno.env.get('DISCORD_WEBHOOK_URL') || '').trim();
+  if (!url) return '';
+  if (!DISCORD_WEBHOOK_URL_RE.test(url)) {
+    throw new Error('Configured Discord webhook must be a discord.com/api/webhooks/... URL.');
+  }
+  return url;
 }
 
 /** Where the static app is hosted, for absolute asset URLs (badge sprites, avatar). */

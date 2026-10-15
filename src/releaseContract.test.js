@@ -129,7 +129,7 @@ describe('DING release contract', () => {
     expect(count('supabase link --project-ref')).toBe(1);
     expect(count('supabase db push --linked --include-all --dry-run')).toBe(1);
     expect(count('supabase db push --linked --include-all --yes')).toBe(1);
-    expect(count('supabase functions deploy --project-ref')).toBe(1);
+    expect(count('supabase functions deploy --use-api --prune --project-ref')).toBe(1);
     expect(count('actions/deploy-pages@v4')).toBe(1);
     expect(count('Lock down public Supabase Auth signup')).toBe(1);
     expect(count('Ensure dedicated DING Supabase API keys')).toBe(1);
@@ -139,7 +139,7 @@ describe('DING release contract', () => {
     const auth = deploy.indexOf('Lock down public Supabase Auth signup');
     const preview = deploy.indexOf('supabase db push --linked --include-all --dry-run');
     const migrations = deploy.indexOf('supabase db push --linked --include-all --yes');
-    const functions = deploy.indexOf('supabase functions deploy --project-ref');
+    const functions = deploy.indexOf('supabase functions deploy --use-api --prune --project-ref');
     const smoke = deploy.indexOf('npm run test:integration');
     const retireLegacy = deploy.indexOf('Disable legacy Supabase API keys after modern-key smoke passes');
     const build = deploy.lastIndexOf('npm run build');
@@ -155,6 +155,20 @@ describe('DING release contract', () => {
     expect(retireLegacy).toBeGreaterThan(smoke);
     expect(build).toBeGreaterThan(retireLegacy);
     expect(pages).toBeGreaterThan(build);
+  });
+
+  it('uses API bundling and pruning for canonical modules imported from outside supabase/', () => {
+    const deploy = read('.github/workflows/deploy.yml');
+    expect(deploy).toContain('supabase functions deploy --use-api --prune --project-ref');
+    expect(read('supabase/functions/reconcile-achievements/index.ts')).toContain("../../../src/dingAchievements.js");
+    expect(read('supabase/functions/_shared/push.ts')).toContain("../../../src/fetchAllPages.js");
+  });
+
+  it('keeps standalone live smoke pinned to the named DING browser key and safety gates', () => {
+    const workflow = read('.github/workflows/live-smoke.yml');
+    expect(workflow).toContain('item?.name === "ding-web"');
+    expect(workflow).toContain('yuorggekucycvxrtqvvp');
+    expect(workflow).toContain('DING_INVITE_CODE must be at least 24 characters');
   });
 
   it('hard-refuses the known Bust production Supabase project', () => {
@@ -265,6 +279,21 @@ describe('DING release contract', () => {
       expect(content).not.toMatch(/json\(500,\s*\{\s*error:\s*(?:error|\(error as Error\))/);
       expect(content).not.toMatch(/JSON\.stringify\(\{\s*error:\s*error instanceof Error/);
     }
+  });
+
+  it('announces newly persisted achievement bursts server-side, including synchronized remote awards', () => {
+    const reconcile = read('supabase/functions/reconcile-achievements/index.ts');
+    const app = read('src/DingApp.jsx');
+    expect(reconcile).toContain("import { announceAchievement } from '../_shared/announce.ts'");
+    expect(reconcile).toContain('insertedRows.map(row => announceAchievement(admin, row))');
+    expect(app).not.toContain("notifyEvent('achievement'");
+  });
+
+  it('does not age healthy push endpoints when delivery receipt logging failed', () => {
+    const push = read('supabase/functions/_shared/push.ts');
+    expect(push).toContain('let ackReceiptsPersisted = accepted.length === 0');
+    expect(push).toContain('if (ackReceiptsPersisted)');
+    expect(push.indexOf('if (ackReceiptsPersisted)')).toBeLessThan(push.indexOf("admin.rpc('mark_push_sent'"));
   });
 
   it('keeps direct browser progression writes disabled', () => {

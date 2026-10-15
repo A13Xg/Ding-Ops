@@ -44,3 +44,11 @@ export async function retryPendingDing(pending, recordDing) {
   if (!pending?.request?.p_event_id) throw new Error('Pending Ding is invalid.');
   return recordDing({ ...pending.request });
 }
+
+
+const DEFINITIVE_DING_REJECTION_RE =
+  /\bDING_(?:NOT_AUTHENTICATED|EVENT_ID_REQUIRED|EVENT_ID_CONFLICT|CHARACTER_NOT_FOUND|CHARACTER_ARCHIVED|CONFIG_MISSING|MAX_LEVEL|STALE_LEVEL|DEATHS_INVALID|SESSION_INVALID)\b/i;
+
+export function isDefinitiveDingRejection(error) {
+  return DEFINITIVE_DING_REJECTION_RE.test(String(error?.message ?? error ?? ''));
+}

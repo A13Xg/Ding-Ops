@@ -3,6 +3,7 @@ import type { Database } from '../_shared/database.types.ts';
 import { dingAchievements, computeDingAchievementUnlocks } from '../../../src/dingAchievements.js';
 import { fetchAllPages } from '../../../src/fetchAllPages.js';
 import { supabaseFunctionEnvironment } from '../_shared/supabaseKeys.ts';
+import { announceAchievement } from '../_shared/announce.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -101,14 +102,23 @@ Deno.serve(async req => {
       rowsToInsert.push(...earned.map(achievement_type => ({ user_id: userId, achievement_type })));
     }
 
-    let insertedRows: { user_id: string; achievement_type: string }[] = [];
+    let insertedRows: { id: string; user_id: string; achievement_type: string; unlocked_at: string }[] = [];
     if (rowsToInsert.length) {
       const { data, error } = await admin
         .from('achievements')
         .upsert(rowsToInsert, { onConflict: 'user_id,achievement_type', ignoreDuplicates: true })
-        .select('user_id,achievement_type');
+        .select('id,user_id,achievement_type,unlocked_at');
       if (error) throw new Error(error.message);
       insertedRows = data || [];
+    }
+
+    if (insertedRows.length) {
+      const announcements = await Promise.allSettled(insertedRows.map(row => announceAchievement(admin, row)));
+      for (const outcome of announcements) {
+        if (outcome.status === 'rejected') {
+          console.error('[reconcile-achievements] immediate announcement failed', outcome.reason);
+        }
+      }
     }
 
     const achievementRows = await fetchAllPages((from, to) =>

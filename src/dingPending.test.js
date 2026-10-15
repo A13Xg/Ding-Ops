@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   checkPendingDing,
   clearPendingDing,
+  isDefinitiveDingRejection,
   pendingDingKey,
   readPendingDing,
   retryPendingDing,
@@ -71,5 +72,25 @@ describe('pending Ding recovery', () => {
     await retryPendingDing({ actorId: 'u1', request }, recordDing);
     expect(recordDing).toHaveBeenCalledTimes(1);
     expect(recordDing).toHaveBeenCalledWith(request);
+  });
+});
+
+
+describe('Ding rejection classification', () => {
+  it('treats server validation failures as definitive rather than uncertain delivery', () => {
+    for (const code of [
+      'DING_STALE_LEVEL',
+      'DING_MAX_LEVEL',
+      'DING_CHARACTER_ARCHIVED',
+      'DING_EVENT_ID_CONFLICT',
+      'DING_SESSION_INVALID',
+    ]) {
+      expect(isDefinitiveDingRejection(new Error(code))).toBe(true);
+    }
+  });
+
+  it('keeps network and timeout failures in pending-confirmation recovery', () => {
+    expect(isDefinitiveDingRejection(new Error('Request timed out'))).toBe(false);
+    expect(isDefinitiveDingRejection(new TypeError('Failed to fetch'))).toBe(false);
   });
 });

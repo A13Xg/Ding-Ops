@@ -317,7 +317,7 @@ jobs:
           supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" "${args[@]}"
 
       - name: Deploy DING Edge Functions
-        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
+        run: supabase functions deploy --use-api --prune --project-ref "$SUPABASE_PROJECT_REF"
 
       - name: Live Supabase integration smoke
         run: npm run test:integration

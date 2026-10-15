@@ -125,6 +125,7 @@ export async function sendToSubscriptions(
   // Without it a confirmed delivery to a working laptop would vouch for a dead
   // phone on the same account.
   const accepted = outcomes.filter((outcome) => outcome.ok);
+  let ackReceiptsPersisted = accepted.length === 0;
   if (accepted.length) {
     const { error } = await admin.from('push_deliveries').insert(
       accepted.map((outcome) => ({
@@ -138,7 +139,11 @@ export async function sendToSubscriptions(
         sent_at: nowIso,
       })),
     );
-    if (error) console.error('[push] delivery log insert failed', error.message);
+    if (error) {
+      console.error('[push] delivery log insert failed', error.message);
+    } else {
+      ackReceiptsPersisted = true;
+    }
   }
 
   const deliveredIds: number[] = [];
@@ -168,8 +173,10 @@ export async function sendToSubscriptions(
     // device actually renders the notification. An endpoint whose counter only
     // ever climbs is one Apple accepts and silently discards — the failure mode
     // that cost this app iOS push, and the only one that leaves no other trace.
-    const { error } = await admin.rpc('mark_push_sent', { subscription_ids: deliveredIds });
-    if (error) console.error('[push] liveness bookkeeping failed', error.message);
+    if (ackReceiptsPersisted) {
+      const { error } = await admin.rpc('mark_push_sent', { subscription_ids: deliveredIds });
+      if (error) console.error('[push] liveness bookkeeping failed', error.message);
+    }
   }
   if (goneIds.length) {
     await admin.from('push_subscriptions').delete().in('id', goneIds);
