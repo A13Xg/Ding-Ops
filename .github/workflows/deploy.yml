@@ -279,6 +279,10 @@ jobs:
             echo "::notice::Supabase legacy-key toggle endpoint is unavailable; modern DING keys already passed the live smoke."
             exit 0
           fi
+          if [ "$status" = "422" ] && grep -Fq "were already disabled" "$body_file"; then
+            echo "::notice::Supabase legacy API keys are already disabled."
+            exit 0
+          fi
           if [ "$status" != "200" ]; then
             cat "$body_file"
             echo "::error::Could not disable legacy Supabase API keys (HTTP $status)."
