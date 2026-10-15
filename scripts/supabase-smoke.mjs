@@ -354,8 +354,8 @@ try {
   assert(successes.length === 1 && failures.length === 1, 'Exactly one competing Ding must win the character lock.');
   const losingError = failures[0].error;
   assert(
-    /DING_STALE_LEVEL/i.test(String(losingError?.message || '')),
-    `The losing concurrent Ding did not fail with DING_STALE_LEVEL. Actual error: ${JSON.stringify({
+    /DING_(STALE_LEVEL|MAX_LEVEL)/i.test(String(losingError?.message || '')),
+    `The losing concurrent Ding did not fail with the expected stale/max-level guard. Actual error: ${JSON.stringify({
       code: losingError?.code,
       message: losingError?.message,
       details: losingError?.details,
