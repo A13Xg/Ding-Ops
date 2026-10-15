@@ -263,6 +263,7 @@
 - [x] Deployment order: migrations → Edge secrets → functions → live smoke → build → Pages.
 - [x] Live smoke workflow.
 - [x] Scheduled push backstop/inactivity workflow.
+- [x] Final workflow-integrity audit: standalone live smoke repaired, formatter CI dispatch authenticated, and unattended maintenance hard-refuses the known Bust production project.
 - [!] Required production secrets are not yet supplied.
 - [!] GitHub Pages environment/source may require one account-level setting during first deployment.
 
