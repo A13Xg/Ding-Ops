@@ -75,7 +75,6 @@ describe('pending Ding recovery', () => {
   });
 });
 
-
 describe('Ding rejection classification', () => {
   it('treats server validation failures as definitive rather than uncertain delivery', () => {
     for (const code of [

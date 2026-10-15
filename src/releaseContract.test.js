@@ -160,8 +160,8 @@ describe('DING release contract', () => {
   it('uses API bundling and pruning for canonical modules imported from outside supabase/', () => {
     const deploy = read('.github/workflows/deploy.yml');
     expect(deploy).toContain('supabase functions deploy --use-api --prune --project-ref');
-    expect(read('supabase/functions/reconcile-achievements/index.ts')).toContain("../../../src/dingAchievements.js");
-    expect(read('supabase/functions/_shared/push.ts')).toContain("../../../src/fetchAllPages.js");
+    expect(read('supabase/functions/reconcile-achievements/index.ts')).toContain('../../../src/dingAchievements.js');
+    expect(read('supabase/functions/_shared/push.ts')).toContain('../../../src/fetchAllPages.js');
   });
 
   it('keeps standalone live smoke pinned to the named DING browser key and safety gates', () => {
