@@ -157,6 +157,14 @@ describe('DING release contract', () => {
     expect(pages).toBeGreaterThan(build);
   });
 
+  it('waits for the Postgres Changes system readiness signal before realtime smoke writes', () => {
+    const smoke = read('scripts/supabase-smoke.mjs');
+    expect(smoke).toContain(".on('system', '*'");
+    expect(smoke).toContain("payload?.extension === 'postgres_changes'");
+    expect(smoke).toContain("payload?.status === 'ok'");
+    expect(smoke).not.toContain("if (status === 'SUBSCRIBED') resolveReady()");
+  });
+
   it('uses API bundling and pruning for canonical modules imported from outside supabase/', () => {
     const deploy = read('.github/workflows/deploy.yml');
     expect(deploy).toContain('supabase functions deploy --use-api --prune --project-ref');
